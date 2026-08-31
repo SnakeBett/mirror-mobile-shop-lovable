@@ -5,7 +5,6 @@ import {
   Check,
   ChevronRight,
   Ellipsis,
-  Heart,
   MessageCircle,
   Search,
   Share2,
@@ -137,7 +136,7 @@ function ProductHeader({ cartCount }: { cartCount: number }) {
 
 function ProductTabs() {
   const [active, setActive] = useState("overview");
-  const tabs = [
+  const tabs: Array<[string, string]> = [
     ["overview", "Visão geral"],
     ["reviews", "Avaliações"],
     ["description", "Descrição"],
