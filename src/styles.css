@@ -184,6 +184,7 @@
 .product-tab-active::after { content: ""; position: absolute; left: 18%; right: 18%; bottom: -1px; height: 2px; background: var(--foreground); }
 .gallery { position: relative; aspect-ratio: 1 / 1; touch-action: pan-y; background: var(--muted); user-select: none; }
 .gallery > img { width: 100%; height: 100%; display: block; object-fit: cover; transition: opacity 150ms ease; }
+.gallery-empty { width: 100%; height: 100%; background: var(--muted); }
 .thumbnails { position: absolute; left: 10px; bottom: 9px; display: flex; gap: 5px; }
 .thumbnail { position: relative; width: 42px; height: 42px; padding: 0; overflow: hidden; border: 1px solid var(--background); border-radius: 5px; background: var(--background); }
 .thumbnail img { width: 100%; height: 100%; object-fit: cover; }

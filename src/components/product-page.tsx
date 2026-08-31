@@ -15,96 +15,8 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import mainImage from "@/assets/hazelnut-spread-main.jpg";
-import openImage from "@/assets/hazelnut-spread-open.jpg";
-import servingImage from "@/assets/hazelnut-spread-serving.jpg";
 import { cn } from "@/lib/utils";
-
-type Review = {
-  name: string;
-  comment: string;
-  image?: string;
-};
-
-export type Product = {
-  id: string;
-  slug: string;
-  name: string;
-  currentPrice: number;
-  oldPrice: number;
-  discountPercentage: number;
-  installments: string;
-  salesCount: string;
-  rating: number;
-  reviewCount: number;
-  images: string[];
-  promotions: string[];
-  shipping: {
-    fee: string;
-    quantityOffer: string;
-    freightDiscount: string;
-  };
-  details: Array<[string, string]>;
-  description: string;
-  highlights: string[];
-  closingText: string;
-  reviews: Review[];
-  checkoutUrl: string;
-};
-
-export const product: Product = {
-  id: "demo-700",
-  slug: "creme-avela-700g",
-  name: "Creme de Avelã 700g — Pote Econômico",
-  currentPrice: 33.9,
-  oldPrice: 74.9,
-  discountPercentage: 40,
-  installments: "11x R$ 3,08, com desconto de 15% de juros",
-  salesCount: "25,1K vendidos on-line",
-  rating: 4.8,
-  reviewCount: 236,
-  images: [mainImage, openImage, servingImage],
-  promotions: ["Compre R$ 80 e ganhe R$ 5 de desconto", "Economize 8%"],
-  shipping: {
-    fee: "Taxa de envio: R$ 0,10",
-    quantityOffer: "Compre 3 para ter desconto de R$ 20",
-    freightDiscount: "Desconto de R$ 9 no frete em pedidos acima de R$ 9",
-  },
-  details: [
-    ["Sabor", "Avelã"],
-    ["Peso líquido", "700g"],
-    ["Tipo de chocolate", "Avelã com cacau"],
-  ],
-  description:
-    "Um creme de avelã e cacau com textura suave e sabor marcante. Ideal para tornar suas sobremesas especiais.",
-  highlights: [
-    "Ingredientes de alta qualidade",
-    "Textura cremosa",
-    "Sabor marcante",
-    "Versatilidade de uso",
-    "Embalagem econômica",
-  ],
-  closingText:
-    "Perfeito para passar no pão, torradas e panquecas, e também para o preparo de bolos, tortas, mousses, milkshakes e coberturas.",
-  reviews: [
-    {
-      name: "Camila R.",
-      comment: "Veio certinho e em um tempo bom também. Qualidade do produto: muito bom!!",
-      image: servingImage,
-    },
-    {
-      name: "Juliana M.",
-      comment: "Chegou bem embalado e dentro do prazo.",
-      image: mainImage,
-    },
-    {
-      name: "Patrícia L.",
-      comment: "O pote rende bastante. Já vou pedir mais.",
-      image: openImage,
-    },
-  ],
-  checkoutUrl: "#comprar",
-};
+import { getShippingRange, type ProductView } from "@/lib/product-types";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -112,7 +24,7 @@ function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function ProductHeader({ cartCount }: { cartCount: number }) {
+function ProductHeader({ cartCount, placeholder }: { cartCount: number; placeholder: string }) {
   return (
     <header className="product-header">
       <Button aria-label="Voltar" variant="ghost" size="icon" onClick={() => history.back()}>
@@ -120,7 +32,7 @@ function ProductHeader({ cartCount }: { cartCount: number }) {
       </Button>
       <label className="search-field">
         <Search aria-hidden="true" />
-        <input aria-label="Pesquisar produtos" placeholder="Pesquisar produtos" />
+        <input aria-label="Pesquisar produtos" placeholder={placeholder} />
       </label>
       <div className="header-actions">
         <Button aria-label="Compartilhar" variant="ghost" size="icon"><Share2 /></Button>
@@ -162,7 +74,7 @@ function ProductTabs() {
   );
 }
 
-function ProductGallery({ images, name }: Pick<Product, "images" | "name">) {
+function ProductGallery({ images, name }: { images: string[]; name: string }) {
   const [current, setCurrent] = useState(0);
   const startX = useRef<number | null>(null);
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
@@ -179,42 +91,49 @@ function ProductGallery({ images, name }: Pick<Product, "images" | "name">) {
     startX.current = null;
   };
 
+  const safeIndex = Math.min(current, Math.max(images.length - 1, 0));
+
   return (
     <section className="gallery" onPointerDown={onPointerDown} onPointerUp={onPointerUp}>
-      <img src={images[current]} alt={`${name}, visualização ${current + 1}`} width={900} height={900} />
+      {images.length > 0 ? (
+        <img src={images[safeIndex]} alt={`${name}, visualização ${safeIndex + 1}`} width={900} height={900} />
+      ) : (
+        <div className="gallery-empty" aria-hidden="true" />
+      )}
       <div className="thumbnails">
         {images.map((image, index) => (
           <Button
             key={image}
             variant="ghost"
             aria-label={`Ver imagem ${index + 1}`}
-            className={cn("thumbnail", current === index && "thumbnail-active")}
+            className={cn("thumbnail", safeIndex === index && "thumbnail-active")}
             onClick={() => setCurrent(index)}
           >
             <img src={image} alt="" width={64} height={64} loading="lazy" />
-            {current === index && <Check aria-hidden="true" />}
+            {safeIndex === index && <Check aria-hidden="true" />}
           </Button>
         ))}
       </div>
-      <span className="gallery-count">{current + 1}/{images.length}</span>
+      <span className="gallery-count">{Math.min(safeIndex + 1, images.length)}/{images.length}</span>
     </section>
   );
 }
 
-function ProductPrice({ data }: { data: Product }) {
+function ProductPrice({ data }: { data: ProductView }) {
   return (
     <section className="product-padding price-block">
       <div className="price-line">
-        <span className="discount-badge">-{data.discountPercentage}%</span>
-        <strong>{currency.format(data.currentPrice)}</strong>
-        <del>{currency.format(data.oldPrice)}</del>
+        {data.discount_percentage != null && <span className="discount-badge">-{data.discount_percentage}%</span>}
+        <strong>{currency.format(Number(data.current_price))}</strong>
+        {data.old_price != null && <del>{currency.format(Number(data.old_price))}</del>}
       </div>
-      <p>{data.installments}</p>
+      <p>{data.installment_text}</p>
     </section>
   );
 }
 
-function PromotionChips({ promotions }: Pick<Product, "promotions">) {
+function PromotionChips({ promotions }: { promotions: string[] }) {
+  if (promotions.length === 0) return null;
   return <div className="promotion-row product-padding">{promotions.map((item) => <span key={item}>{item}</span>)}</div>;
 }
 
@@ -222,7 +141,7 @@ function Stars() {
   return <span className="stars" aria-label="5 estrelas">★★★★★</span>;
 }
 
-function ProductInfo({ data }: { data: Product }) {
+function ProductInfo({ data }: { data: ProductView }) {
   const [saved, setSaved] = useState(false);
   return (
     <section className="product-padding product-info">
@@ -233,62 +152,48 @@ function ProductInfo({ data }: { data: Product }) {
         </Button>
       </div>
       <div className="rating-line">
-        <Stars /><b>{String(data.rating).replace(".", ",")}</b><span>({data.reviewCount})</span><span>{data.salesCount}</span>
+        <Stars /><b>{String(data.rating ?? "").replace(".", ",")}</b><span>({data.review_count ?? 0})</span><span>{data.sales_count}</span>
       </div>
     </section>
   );
 }
 
-function formatShippingDate(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" })
-    .format(date)
-    .replace(".", "");
-}
-
-function getShippingRange() {
-  const start = new Date();
-  const end = new Date();
-  start.setDate(start.getDate() + 3);
-  end.setDate(end.getDate() + 6);
-  return `${formatShippingDate(start)} e ${formatShippingDate(end)}`;
-}
-
-function ShippingInfo({ shipping }: Pick<Product, "shipping">) {
+function ShippingInfo({ data }: { data: ProductView }) {
   return (
     <section className="product-padding shipping-section">
       <Truck aria-hidden="true" />
       <div>
         <h2>Receba entre {getShippingRange()}</h2>
-        <p>{shipping.fee} | <em>{shipping.quantityOffer}</em></p>
-        <p className="shipping-discount">{shipping.freightDiscount}</p>
+        <p>{data.shipping_fee} | <em>{data.shipping_promotion_text}</em></p>
+        <p className="shipping-discount">{data.shipping_discount_text}</p>
       </div>
     </section>
   );
 }
 
-function CustomerProtection() {
+function CustomerProtection({ text }: { text: string }) {
   return (
     <Button variant="ghost" className="protection-row product-padding">
-      <ShieldCheck /><span>Proteção ao cliente</span><ChevronRight />
+      <ShieldCheck /><span>{text}</span><ChevronRight />
     </Button>
   );
 }
 
-function ReviewsSection({ data }: { data: Product }) {
+function ReviewsSection({ data }: { data: ProductView }) {
   return (
     <section id="reviews" className="section product-padding scroll-target">
       <div className="section-heading">
-        <h2><span>★</span> {String(data.rating).replace(".", ",")} Avaliações dos clientes ({data.reviewCount})</h2>
+        <h2><span>★</span> {String(data.rating ?? "").replace(".", ",")} Avaliações dos clientes ({data.review_count ?? 0})</h2>
         <Button variant="link">Ver mais <ChevronRight /></Button>
       </div>
-      <p className="section-subtitle">189 avaliações de 5 estrelas nos últimos 30 dias</p>
+      <p className="section-subtitle">{data.five_star_count ?? 0} avaliações de 5 estrelas nos últimos 30 dias</p>
       <div className="reviews-list">
         {data.reviews.map((review) => (
-          <article className="review" key={review.name}>
-            <div className="review-avatar">{review.name.charAt(0)}</div>
+          <article className="review" key={review.id}>
+            <div className="review-avatar">{review.avatar_initial || review.customer_name.charAt(0)}</div>
             <div className="review-body">
-              <div><Stars /><span>{review.name}</span></div>
-              {review.image && <img src={review.image} alt={`Foto da avaliação de ${review.name}`} width={94} height={94} loading="lazy" />}
+              <div><Stars /><span>{review.customer_name}</span></div>
+              {review.image_url && <img src={review.image_url} alt={`Foto da avaliação de ${review.customer_name}`} width={94} height={94} loading="lazy" />}
               <p>{review.comment}</p>
             </div>
           </article>
@@ -298,7 +203,7 @@ function ReviewsSection({ data }: { data: Product }) {
   );
 }
 
-function ProductDetails({ details }: Pick<Product, "details">) {
+function ProductDetails({ details }: { details: Array<[string, string]> }) {
   return (
     <section className="section product-padding">
       <h2>Sobre este produto</h2>
@@ -310,14 +215,20 @@ function ProductDetails({ details }: Pick<Product, "details">) {
   );
 }
 
-function ProductDescription({ data }: { data: Product }) {
+function ProductDescription({ data }: { data: ProductView }) {
   return (
     <section id="description" className="description product-padding scroll-target">
       <h3>Descrição</h3>
-      <p>{data.description}</p>
-      <h3>Diferenciais:</h3>
-      <ul>{data.highlights.map((item) => <li key={item}>{item}</li>)}</ul>
-      <p>{data.closingText}</p>
+      {(data.description ?? "").split(/\n+/).filter(Boolean).map((paragraph, index) => (
+        <p key={index}>{paragraph}</p>
+      ))}
+      {data.highlights.length > 0 && (
+        <>
+          <h3>Diferenciais:</h3>
+          <ul>{data.highlights.map((item) => <li key={item}>{item}</li>)}</ul>
+        </>
+      )}
+      {data.closing_text && <p>{data.closing_text}</p>}
     </section>
   );
 }
@@ -326,30 +237,38 @@ function Recommendations() {
   return <section id="recommendations" className="recommendations product-padding scroll-target"><h2>Recomendações</h2><p>Novas sugestões serão exibidas aqui em breve.</p></section>;
 }
 
-function StickyPurchaseBar({ data }: { data: Product }) {
+function StickyPurchaseBar({ data }: { data: ProductView }) {
+  const checkoutUrl = (data.checkout_url ?? "").trim();
   return (
     <footer className="purchase-bar">
       <Button variant="ghost" className="bottom-action"><Store /><span>Loja</span></Button>
       <Button variant="ghost" className="bottom-action"><MessageCircle /><span>Chat</span></Button>
       <Button variant="secondary" size="icon" className="bottom-cart"><ShoppingCart /></Button>
-      <Button className="buy-button" onClick={() => { window.location.href = data.checkoutUrl; }}>
-        <span>Comprar agora</span><small>Promoção de {currency.format(data.currentPrice)}</small>
+      <Button
+        className="buy-button"
+        disabled={!checkoutUrl}
+        onClick={() => { if (checkoutUrl) window.location.href = checkoutUrl; }}
+      >
+        <span>Comprar agora</span><small>Promoção de {currency.format(Number(data.current_price))}</small>
       </Button>
     </footer>
   );
 }
 
-export function ProductPage() {
+export function ProductPage({ product }: { product: ProductView }) {
   return (
     <main id="overview" className="product-shell">
-      <div className="sticky-top"><ProductHeader cartCount={1} /><ProductTabs /></div>
+      <div className="sticky-top">
+        <ProductHeader cartCount={1} placeholder={product.search_placeholder || "Pesquisar produtos"} />
+        <ProductTabs />
+      </div>
       <ProductGallery images={product.images} name={product.name} />
       <ProductPrice data={product} />
       <PromotionChips promotions={product.promotions} />
       <ProductInfo data={product} />
       <div className="section-divider" />
-      <ShippingInfo shipping={product.shipping} />
-      <CustomerProtection />
+      <ShippingInfo data={product} />
+      <CustomerProtection text={product.customer_protection_text || "Proteção ao cliente"} />
       <div className="section-divider" />
       <ReviewsSection data={product} />
       <div className="section-divider" />
@@ -357,6 +276,19 @@ export function ProductPage() {
       <ProductDescription data={product} />
       <Recommendations />
       <StickyPurchaseBar data={product} />
+    </main>
+  );
+}
+
+export function ProductUnavailable() {
+  return (
+    <main className="product-shell">
+      <div className="product-padding" style={{ paddingTop: 64, textAlign: "center" }}>
+        <h1 style={{ fontSize: 18, fontWeight: 600 }}>Produto indisponível</h1>
+        <p style={{ marginTop: 8, fontSize: 13, color: "var(--muted-foreground)" }}>
+          Este produto não existe ou não está mais disponível.
+        </p>
+      </div>
     </main>
   );
 }
