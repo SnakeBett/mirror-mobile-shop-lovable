@@ -630,7 +630,10 @@ function applyJsonProduct(product: ImportedProduct, node: Record<string, any>, b
     product.reviewCount = pickNumber(node, ["review_count", "reviewCount", "comment_count", "commentCount", "rating_count", "ratingCount"]);
   }
   const sold = pickNumber(node, ["sold_count", "soldCount", "sale_cnt", "sales", "sold"]);
-  if (sold != null && product.metadata["soldCount"] == null) product.metadata["soldCount"] = sold;
+  if (sold != null) {
+    if (product.soldCount == null) product.soldCount = sold;
+    if (product.metadata["soldCount"] == null) product.metadata["soldCount"] = sold;
+  }
 
   if (!product.externalId) {
     const id = pickString(node, ["product_id", "productId", "item_id", "itemId", "id", "sku"]);
