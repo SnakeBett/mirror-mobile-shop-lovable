@@ -348,8 +348,23 @@ export function resolvePageSettings(row: Raw): PageSettings {
   const bottom = mergeGroup(DEFAULT_PAGE_SETTINGS.bottom_bar_settings, source["bottom_bar_settings"]);
   const gallery = mergeGroup(DEFAULT_PAGE_SETTINGS.gallery_settings, source["gallery_settings"]);
   const reviews = mergeGroup(DEFAULT_PAGE_SETTINGS.review_settings, source["review_settings"]);
+  const recommendation = mergeGroup(
+    DEFAULT_PAGE_SETTINGS.recommendation_settings,
+    source["recommendation_settings"],
+  );
 
   return {
+    recommendation_settings: {
+      ...recommendation,
+      mode: enums(recommendation.mode, ["manual", "auto", "manual_auto"] as const, "manual_auto"),
+      auto_criteria: enums(
+        recommendation.auto_criteria,
+        ["best_sellers", "recent", "random"] as const,
+        "best_sellers",
+      ),
+      limit: Math.min(6, Math.max(2, Math.round(Number(recommendation.limit)) || 4)),
+    },
+
     section_visibility: mergeGroup(DEFAULT_PAGE_SETTINGS.section_visibility, source["section_visibility"]),
     section_order: normalizeOrder(source["section_order"]),
     field_visibility: mergeGroup(DEFAULT_PAGE_SETTINGS.field_visibility, source["field_visibility"]),
