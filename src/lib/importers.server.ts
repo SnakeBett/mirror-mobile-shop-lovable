@@ -73,7 +73,7 @@ function mercadoLivreItemId(url: URL): string | null {
   const source = `${url.pathname}${url.search}`;
   const match = source.match(/(ML[A-Z])-?(\d{6,})/i);
   if (!match) return null;
-  return `${match[1].toUpperCase()}${match[2]}`;
+  return `${(match[1] ?? "").toUpperCase()}${match[2] ?? ""}`;
 }
 
 const mercadoLivreImporter: Importer = {
