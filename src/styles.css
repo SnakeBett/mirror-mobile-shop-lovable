@@ -252,3 +252,14 @@
 
 @media (min-width: 431px) { body { background: var(--page-rail); } }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition-duration: 0.01ms !important; } }
+
+/* Fase 3: ajustes usados apenas pelas configurações por produto (cores, indicadores, lightbox). */
+.buy-button { background: var(--buy-color, var(--primary)); }
+.price-line strong { color: var(--price-color, var(--primary)); }
+.gallery-dots { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: flex; gap: 5px; }
+.gallery-dots span { width: 6px; height: 6px; border-radius: 999px; background: color-mix(in oklab, var(--foreground) 28%, transparent); }
+.gallery-dots span.dot-active { background: var(--primary); }
+.promotion-wrap { flex-wrap: wrap; overflow-x: visible; }
+.lightbox { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; border: 0; background: color-mix(in oklab, var(--foreground) 86%, transparent); }
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.protection-note { margin: 0; color: var(--muted-foreground); font-size: 9px; }
