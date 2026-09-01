@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.create_default_page_settings() FROM PUBLIC, anon, authenticated;
