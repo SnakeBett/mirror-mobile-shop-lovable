@@ -32,22 +32,24 @@ export const analyzeImportUrl = createServerFn({ method: "POST" })
         notices: [],
         message: parsed.error,
         individualReviewsAvailable: false,
+        foundCount: 0,
       };
     }
 
     const platform = detectPlatform(data.url);
-    const { getImporter } = await import("./importers.server");
+    const { analyzePublicUrl } = await import("./importers.server");
     try {
-      return await getImporter(platform).analyze({ url: parsed.url });
+      return await analyzePublicUrl(parsed.url, platform);
     } catch (error) {
       console.error("[import] analyze failed", error);
       return {
-        status: "failed",
+        status: "blocked",
         product: null,
         missingFields: [],
-        notices: [],
-        message: "Não conseguimos acessar informações suficientes deste produto.",
+        notices: ["Use a importação assistida para cadastrar os dados manualmente."],
+        message: "Não conseguimos ler automaticamente esta página.",
         individualReviewsAvailable: false,
+        foundCount: 0,
       };
     }
   });
