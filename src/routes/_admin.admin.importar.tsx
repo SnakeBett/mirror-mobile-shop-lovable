@@ -775,7 +775,10 @@ function ImportPage() {
           {history.data?.map((row) => (
             <div key={row.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
               <div className="min-w-40 flex-1">
-                <p className="truncate font-medium text-foreground">{row.title ?? row.source_url}</p>
+                <p className="truncate font-medium text-foreground">
+                  {displayImportTitle(row.title, row.source_platform, row.external_product_id, row.source_url)}
+                </p>
+
                 <p className="truncate text-xs text-muted-foreground">{row.source_url}</p>
               </div>
               <span className="text-xs text-muted-foreground">
