@@ -95,6 +95,7 @@ function emptyProduct(platform: SourcePlatform, url: URL): ImportedProduct {
     images: [],
     rating: null,
     reviewCount: null,
+    soldCount: null,
     description: null,
     descriptionLicensed: false,
     attributes: [],
