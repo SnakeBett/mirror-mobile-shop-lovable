@@ -186,9 +186,12 @@ export function ProductEditor({ productId }: { productId?: string }) {
         return;
       }
       await updateProduct(productId!, values);
+      await savePageSettings(productId!, page);
       setBaseline(draft);
+      setPageBaseline(page);
       invalidate();
       toast.success("Produto atualizado com sucesso");
+
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível salvar.");
     } finally {
