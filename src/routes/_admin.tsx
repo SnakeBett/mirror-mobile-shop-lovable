@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Download, Filter, LayoutDashboard, LogOut, Package, Receipt, Settings, Store } from "lucide-react";
+import { BarChart3, CreditCard, Download, Filter, LayoutDashboard, LogOut, Package, Receipt, Settings, Store, Webhook } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { claimAdminIfFirst } from "@/lib/admin.functions";
@@ -116,6 +116,20 @@ function AdminLayout() {
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <Settings className="size-4" /> Tracking
+          </Link>
+          <Link
+            to="/admin/configuracoes/pagamentos"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <CreditCard className="size-4" /> Pagamentos
+          </Link>
+          <Link
+            to="/admin/pagamentos/webhooks"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Webhook className="size-4" /> Webhooks
           </Link>
           <button
             type="button"

@@ -22,8 +22,10 @@ import { Route as ApiPublicMetaEventRouteImport } from './routes/api/public/meta
 import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
 import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admin.admin.configuracoes.geral'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
+import { Route as AdminAdminConfiguracoesPagamentosRouteImport } from './routes/_admin.admin.configuracoes.pagamentos'
 import { Route as AdminAdminConfiguracoesTrackingRouteImport } from './routes/_admin.admin.configuracoes.tracking'
 import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
+import { Route as AdminAdminPagamentosWebhooksRouteImport } from './routes/_admin.admin.pagamentos.webhooks'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
@@ -96,6 +98,12 @@ const AdminAdminConfiguracoesIntegracoesRoute =
     path: '/admin/configuracoes/integracoes',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminAdminConfiguracoesPagamentosRoute =
+  AdminAdminConfiguracoesPagamentosRouteImport.update({
+    id: '/admin/configuracoes/pagamentos',
+    path: '/admin/configuracoes/pagamentos',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAdminConfiguracoesTrackingRoute =
   AdminAdminConfiguracoesTrackingRouteImport.update({
     id: '/admin/configuracoes/tracking',
@@ -107,6 +115,12 @@ const AdminAdminImportarNavegadorRoute =
     id: '/navegador',
     path: '/navegador',
     getParentRoute: () => AdminAdminImportarRoute,
+  } as any)
+const AdminAdminPagamentosWebhooksRoute =
+  AdminAdminPagamentosWebhooksRouteImport.update({
+    id: '/admin/pagamentos/webhooks',
+    path: '/admin/pagamentos/webhooks',
+    getParentRoute: () => AdminRoute,
   } as any)
 const AdminAdminProdutosIndexRoute = AdminAdminProdutosIndexRouteImport.update({
   id: '/admin/produtos/',
@@ -149,8 +163,10 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
+  '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
@@ -170,8 +186,10 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
+  '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
@@ -193,8 +211,10 @@ export interface FileRoutesById {
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/_admin/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/_admin/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
+  '/_admin/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
@@ -216,8 +236,10 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
+    | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
+    | '/admin/pagamentos/webhooks'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/public/webhooks/imperiumpay'
@@ -237,8 +259,10 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
+    | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
+    | '/admin/pagamentos/webhooks'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/public/webhooks/imperiumpay'
@@ -259,8 +283,10 @@ export interface FileRouteTypes {
     | '/_admin/admin/'
     | '/_admin/admin/configuracoes/geral'
     | '/_admin/admin/configuracoes/integracoes'
+    | '/_admin/admin/configuracoes/pagamentos'
     | '/_admin/admin/configuracoes/tracking'
     | '/_admin/admin/importar/navegador'
+    | '/_admin/admin/pagamentos/webhooks'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
     | '/api/public/webhooks/imperiumpay'
@@ -372,6 +398,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminConfiguracoesIntegracoesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/configuracoes/pagamentos': {
+      id: '/_admin/admin/configuracoes/pagamentos'
+      path: '/admin/configuracoes/pagamentos'
+      fullPath: '/admin/configuracoes/pagamentos'
+      preLoaderRoute: typeof AdminAdminConfiguracoesPagamentosRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/configuracoes/tracking': {
       id: '/_admin/admin/configuracoes/tracking'
       path: '/admin/configuracoes/tracking'
@@ -385,6 +418,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/importar/navegador'
       preLoaderRoute: typeof AdminAdminImportarNavegadorRouteImport
       parentRoute: typeof AdminAdminImportarRoute
+    }
+    '/_admin/admin/pagamentos/webhooks': {
+      id: '/_admin/admin/pagamentos/webhooks'
+      path: '/admin/pagamentos/webhooks'
+      fullPath: '/admin/pagamentos/webhooks'
+      preLoaderRoute: typeof AdminAdminPagamentosWebhooksRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_admin/admin/produtos/': {
       id: '/_admin/admin/produtos/'
@@ -443,7 +483,9 @@ interface AdminRouteChildren {
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminConfiguracoesGeralRoute: typeof AdminAdminConfiguracoesGeralRoute
   AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
+  AdminAdminConfiguracoesPagamentosRoute: typeof AdminAdminConfiguracoesPagamentosRoute
   AdminAdminConfiguracoesTrackingRoute: typeof AdminAdminConfiguracoesTrackingRoute
+  AdminAdminPagamentosWebhooksRoute: typeof AdminAdminPagamentosWebhooksRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
   AdminAdminProdutosNovoRoute: typeof AdminAdminProdutosNovoRoute
   AdminAdminProdutosIndexRoute: typeof AdminAdminProdutosIndexRoute
@@ -458,7 +500,10 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminConfiguracoesGeralRoute: AdminAdminConfiguracoesGeralRoute,
   AdminAdminConfiguracoesIntegracoesRoute:
     AdminAdminConfiguracoesIntegracoesRoute,
+  AdminAdminConfiguracoesPagamentosRoute:
+    AdminAdminConfiguracoesPagamentosRoute,
   AdminAdminConfiguracoesTrackingRoute: AdminAdminConfiguracoesTrackingRoute,
+  AdminAdminPagamentosWebhooksRoute: AdminAdminPagamentosWebhooksRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
   AdminAdminProdutosNovoRoute: AdminAdminProdutosNovoRoute,
   AdminAdminProdutosIndexRoute: AdminAdminProdutosIndexRoute,
