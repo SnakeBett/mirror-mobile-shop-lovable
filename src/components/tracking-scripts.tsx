@@ -187,5 +187,5 @@ export function TrackingScripts({
     if (ga) initGA(ga);
   }, [ga]);
 
-  return  <UtmifyScripts config= {config} />;
+  return <UtmifyScripts config={config} />;
 }
