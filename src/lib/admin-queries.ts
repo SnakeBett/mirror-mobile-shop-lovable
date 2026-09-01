@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_BUCKET, resolveImageUrls } from "./storage-images";
+import { resolvePageSettings, type PageSettings } from "./page-settings";
+
 import type {
   ProductDetailRow,
   ProductHighlightRow,
