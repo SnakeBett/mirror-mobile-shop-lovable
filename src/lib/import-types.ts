@@ -45,6 +45,11 @@ export type ImportAnalysis = {
   individualReviewsAvailable: boolean;
   /** Quantidade de informações efetivamente encontradas. */
   foundCount: number;
+  /** Motivo técnico do bloqueio (security_check, captcha, challenge...). */
+  blockedReason?: string | null;
+  /** Estratégia usada: json_ld, inline_json, open_graph, html_text... */
+  strategyUsed?: string;
+
 };
 
 export const PLATFORM_LABELS: Record<SourcePlatform, string> = {
