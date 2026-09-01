@@ -116,3 +116,101 @@ export async function getDashboardStats() {
     images: images.count ?? 0,
   };
 }
+
+export type ProductListItem = ProductRow & {
+  thumbnail: string | null;
+  reviewCount: number;
+};
+
+/** Listagem com miniatura da imagem principal e contagem de avaliações. */
+export async function listProductsWithMeta(search = ""): Promise<ProductListItem[]> {
+  let query = supabase
+    .from("products")
+    .select("*, product_images(image_url, sort_order), reviews(id)")
+    .order("created_at", { ascending: false });
+
+  const term = search.trim();
+  if (term) query = query.or(`name.ilike.%${term}%,slug.ilike.%${term}%`);
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<
+    ProductRow & {
+      product_images: Array<{ image_url: string; sort_order: number }>;
+      reviews: Array<{ id: string }>;
+    }
+  >;
+
+  const mains = rows.map(
+    (row) => [...(row.product_images ?? [])].sort((a, b) => a.sort_order - b.sort_order)[0]?.image_url ?? null,
+  );
+  const previews = await resolveImageUrls(supabase, mains);
+
+  return rows.map((row, index) => {
+    const main = mains[index];
+    const { product_images: _images, reviews: reviewRows, ...product } = row;
+    return {
+      ...(product as ProductRow),
+      thumbnail: main ? (previews[main] ?? null) : null,
+      reviewCount: reviewRows?.length ?? 0,
+    };
+  });
+}
+
+export async function setProductActive(id: string, isActive: boolean) {
+  const { error } = await supabase.from("products").update({ is_active: isActive }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function reorderChild(table: ChildTable, rows: Array<{ id: string }>, from: number, to: number) {
+  if (to < 0 || to >= rows.length) return;
+  const next = [...rows];
+  const [moved] = next.splice(from, 1);
+  if (!moved) return;
+  next.splice(to, 0, moved);
+  await Promise.all(next.map((row, index) => updateChild(table, row.id, { sort_order: index })));
+}
+
+async function uniqueSlug(base: string) {
+  const { data } = await supabase.from("products").select("slug").like("slug", `${base}%`);
+  const taken = new Set((data ?? []).map((row) => row.slug));
+  if (!taken.has(base)) return base;
+  let counter = 2;
+  while (taken.has(`${base}-${counter}`)) counter += 1;
+  return `${base}-${counter}`;
+}
+
+/** Duplica o produto e todo o conteúdo relacionado, reaproveitando os arquivos do storage. */
+export async function duplicateProduct(id: string): Promise<string> {
+  const source = await getProduct(id);
+  if (!source) throw new Error("Produto não encontrado.");
+
+  const { id: _id, created_at: _c, updated_at: _u, slug, name, ...rest } = source.product;
+  const newSlug = await uniqueSlug(`${slug}-copia`);
+  const newId = await createProduct({
+    ...(rest as Partial<ProductRow>),
+    slug: newSlug,
+    name: `${name} (cópia)`,
+    is_active: false,
+  });
+
+  const clone = <T extends { id: string }>(rows: T[]) =>
+    rows.map(({ id: _rowId, ...row }) => ({ ...row, product_id: newId }));
+
+  const batches: Array<[ChildTable, Record<string, unknown>[]]> = [
+    ["product_images", clone(source.images)],
+    ["product_details", clone(source.details)],
+    ["product_highlights", clone(source.highlights)],
+    ["promotions", clone(source.promotions)],
+    ["reviews", clone(source.reviews)],
+  ];
+
+  for (const [table, rows] of batches) {
+    if (rows.length === 0) continue;
+    const { error } = await supabase.from(table).insert(rows as never);
+    if (error) throw error;
+  }
+
+  return newId;
+}
