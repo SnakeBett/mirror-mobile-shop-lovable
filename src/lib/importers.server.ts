@@ -1094,18 +1094,32 @@ export function analyzeDocument(input: DocumentInput): ImportAnalysis {
   missingFields.push("individualReviews");
 
   if (found.length === 0) {
+    if (origin === "browser") {
+      return blocked(
+        blockedReason
+          ? "O conteúdo colado é a página de verificação de segurança, não a do produto."
+          : "Não encontramos dados de produto no conteúdo colado.",
+        [
+          blockedReason
+            ? "Abra a página do produto no navegador (depois de passar a verificação) e copie o HTML novamente."
+            : "Copie o HTML completo da página do produto ou o JSON estruturado e cole novamente.",
+        ],
+        blockedReason ?? "no_data",
+      );
+    }
     return blocked(
       blockedReason
         ? "Esta página bloqueou a leitura automática."
         : "Não conseguimos ler automaticamente esta página.",
       [
         blockedReason
-          ? "A loja exibiu uma verificação de segurança. Use a importação assistida."
-          : "Nenhum dado público estruturado foi encontrado. Use a importação assistida.",
+          ? "A loja exibiu uma verificação de segurança. Use a importação pelo navegador."
+          : "Nenhum dado público estruturado foi encontrado. Use a importação pelo navegador.",
       ],
       blockedReason ?? "no_data",
     );
   }
+
 
   const notices = [
     "Avaliações individuais não são importadas: cadastre as suas próprias no editor.",
