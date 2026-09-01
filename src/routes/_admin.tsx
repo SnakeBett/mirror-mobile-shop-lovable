@@ -140,6 +140,7 @@ function AdminLayout() {
             <Link to="/admin/funil" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Funil</Link>
             <Link to="/admin/pedidos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Pedidos</Link>
             <Link to="/admin/configuracoes/geral" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Config</Link>
+            <Link to="/admin/configuracoes/tracking" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Tracking</Link>
             <Link to="/admin/importar" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Importar</Link>
             <Button variant="ghost" size="sm" onClick={openStore}>Loja</Button>
             <Button variant="ghost" size="sm" onClick={signOut}>Sair</Button>
