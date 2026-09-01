@@ -27,7 +27,42 @@ const payloadSchema = z.object({
   paid_at: z.string().nullish(),
   is_test: z.boolean().optional(),
   metadata: z.record(z.string(), z.unknown()).nullish(),
+  // Atribuição anônima (repassada pelo checkout via query string).
+  visitor_id: z.string().max(64).nullish(),
+  session_id: z.string().max(64).nullish(),
+  utm_source: z.string().max(160).nullish(),
+  utm_medium: z.string().max(160).nullish(),
+  utm_campaign: z.string().max(160).nullish(),
+  utm_content: z.string().max(160).nullish(),
+  utm_term: z.string().max(160).nullish(),
+  first_utm_source: z.string().max(160).nullish(),
+  first_utm_campaign: z.string().max(160).nullish(),
 });
+
+/** Aceita a atribuição tanto no corpo quanto dentro de metadata. */
+function attributionFrom(data: {
+  metadata?: Record<string, unknown> | null;
+} & Record<string, unknown>) {
+  const meta = (data.metadata ?? {}) as Record<string, unknown>;
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = data[key] ?? meta[key];
+      if (typeof value === "string" && value.trim()) return value.trim().slice(0, 160);
+    }
+    return null;
+  };
+  return {
+    visitor_id: pick("visitor_id", "vid"),
+    session_id: pick("session_id", "sid"),
+    utm_source: pick("utm_source"),
+    utm_medium: pick("utm_medium"),
+    utm_campaign: pick("utm_campaign"),
+    utm_content: pick("utm_content"),
+    utm_term: pick("utm_term"),
+    first_utm_source: pick("first_utm_source"),
+    first_utm_campaign: pick("first_utm_campaign"),
+  };
+}
 
 function timingSafeEqual(a: string, b: string) {
   if (a.length !== b.length) return false;
@@ -108,6 +143,7 @@ export const Route = createFileRoute("/api/public/webhooks/pagamento")({
           is_test: data.is_test ?? false,
           metadata: (data.metadata ?? null) as never,
           paid_at: paidAt,
+          ...attributionFrom(data as never),
         };
 
         if (existing) {

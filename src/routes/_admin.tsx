@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Download, LayoutDashboard, LogOut, Package, Receipt, Store } from "lucide-react";
+import { BarChart3, Download, Filter, LayoutDashboard, LogOut, Package, Receipt, Settings, Store } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { claimAdminIfFirst } from "@/lib/admin.functions";
@@ -83,6 +83,13 @@ function AdminLayout() {
             <BarChart3 className="size-4" /> Vendas
           </Link>
           <Link
+            to="/admin/funil"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Filter className="size-4" /> Funil
+          </Link>
+          <Link
             to="/admin/pedidos"
             activeProps={{ className: "bg-accent text-accent-foreground" }}
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
@@ -95,6 +102,13 @@ function AdminLayout() {
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <Download className="size-4" /> Importar produto
+          </Link>
+          <Link
+            to="/admin/configuracoes/geral"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Settings className="size-4" /> Configurações
           </Link>
           <button
             type="button"
@@ -116,7 +130,9 @@ function AdminLayout() {
             <Link to="/admin" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Início</Link>
             <Link to="/admin/produtos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Produtos</Link>
             <Link to="/admin/vendas" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Vendas</Link>
+            <Link to="/admin/funil" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Funil</Link>
             <Link to="/admin/pedidos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Pedidos</Link>
+            <Link to="/admin/configuracoes/geral" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Config</Link>
             <Link to="/admin/importar" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Importar</Link>
             <Button variant="ghost" size="sm" onClick={openStore}>Loja</Button>
             <Button variant="ghost" size="sm" onClick={signOut}>Sair</Button>

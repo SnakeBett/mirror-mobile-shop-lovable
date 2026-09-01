@@ -14,9 +14,12 @@ import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
+import { Route as AdminAdminFunilRouteImport } from './routes/_admin.admin.funil'
 import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.importar'
 import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
 import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
+import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
+import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admin.admin.configuracoes.geral'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
 import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
@@ -48,6 +51,11 @@ const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdminFunilRoute = AdminAdminFunilRouteImport.update({
+  id: '/admin/funil',
+  path: '/admin/funil',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAdminImportarRoute = AdminAdminImportarRouteImport.update({
   id: '/admin/importar',
   path: '/admin/importar',
@@ -63,6 +71,17 @@ const AdminAdminVendasRoute = AdminAdminVendasRouteImport.update({
   path: '/admin/vendas',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicTrackRoute = ApiPublicTrackRouteImport.update({
+  id: '/api/public/track',
+  path: '/api/public/track',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminAdminConfiguracoesGeralRoute =
+  AdminAdminConfiguracoesGeralRouteImport.update({
+    id: '/admin/configuracoes/geral',
+    path: '/admin/configuracoes/geral',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAdminConfiguracoesIntegracoesRoute =
   AdminAdminConfiguracoesIntegracoesRouteImport.update({
     id: '/admin/configuracoes/integracoes',
@@ -101,10 +120,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
+  '/api/public/track': typeof ApiPublicTrackRoute
   '/admin/': typeof AdminAdminIndexRoute
+  '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
@@ -116,10 +138,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
+  '/api/public/track': typeof ApiPublicTrackRoute
   '/admin': typeof AdminAdminIndexRoute
+  '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
@@ -133,10 +158,13 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/_admin/admin/funil': typeof AdminAdminFunilRoute
   '/_admin/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
   '/_admin/admin/vendas': typeof AdminAdminVendasRoute
+  '/api/public/track': typeof ApiPublicTrackRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_admin/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
@@ -150,10 +178,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/funil'
     | '/admin/importar'
     | '/admin/pedidos'
     | '/admin/vendas'
+    | '/api/public/track'
     | '/admin/'
+    | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
     | '/admin/importar/navegador'
     | '/admin/produtos/$id'
@@ -165,10 +196,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/funil'
     | '/admin/importar'
     | '/admin/pedidos'
     | '/admin/vendas'
+    | '/api/public/track'
     | '/admin'
+    | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
     | '/admin/importar/navegador'
     | '/admin/produtos/$id'
@@ -181,10 +215,13 @@ export interface FileRouteTypes {
     | '/_admin'
     | '/admin/login'
     | '/produto/$slug'
+    | '/_admin/admin/funil'
     | '/_admin/admin/importar'
     | '/_admin/admin/pedidos'
     | '/_admin/admin/vendas'
+    | '/api/public/track'
     | '/_admin/admin/'
+    | '/_admin/admin/configuracoes/geral'
     | '/_admin/admin/configuracoes/integracoes'
     | '/_admin/admin/importar/navegador'
     | '/_admin/admin/produtos/$id'
@@ -198,6 +235,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiPublicTrackRoute: typeof ApiPublicTrackRoute
   ApiPublicWebhooksPagamentoRoute: typeof ApiPublicWebhooksPagamentoRoute
 }
 
@@ -238,6 +276,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/funil': {
+      id: '/_admin/admin/funil'
+      path: '/admin/funil'
+      fullPath: '/admin/funil'
+      preLoaderRoute: typeof AdminAdminFunilRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/importar': {
       id: '/_admin/admin/importar'
       path: '/admin/importar'
@@ -257,6 +302,20 @@ declare module '@tanstack/react-router' {
       path: '/admin/vendas'
       fullPath: '/admin/vendas'
       preLoaderRoute: typeof AdminAdminVendasRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/api/public/track': {
+      id: '/api/public/track'
+      path: '/api/public/track'
+      fullPath: '/api/public/track'
+      preLoaderRoute: typeof ApiPublicTrackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_admin/admin/configuracoes/geral': {
+      id: '/_admin/admin/configuracoes/geral'
+      path: '/admin/configuracoes/geral'
+      fullPath: '/admin/configuracoes/geral'
+      preLoaderRoute: typeof AdminAdminConfiguracoesGeralRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/admin/configuracoes/integracoes': {
@@ -316,10 +375,12 @@ const AdminAdminImportarRouteWithChildren =
   AdminAdminImportarRoute._addFileChildren(AdminAdminImportarRouteChildren)
 
 interface AdminRouteChildren {
+  AdminAdminFunilRoute: typeof AdminAdminFunilRoute
   AdminAdminImportarRoute: typeof AdminAdminImportarRouteWithChildren
   AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
   AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
+  AdminAdminConfiguracoesGeralRoute: typeof AdminAdminConfiguracoesGeralRoute
   AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
   AdminAdminProdutosNovoRoute: typeof AdminAdminProdutosNovoRoute
@@ -327,10 +388,12 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminFunilRoute: AdminAdminFunilRoute,
   AdminAdminImportarRoute: AdminAdminImportarRouteWithChildren,
   AdminAdminPedidosRoute: AdminAdminPedidosRoute,
   AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
+  AdminAdminConfiguracoesGeralRoute: AdminAdminConfiguracoesGeralRoute,
   AdminAdminConfiguracoesIntegracoesRoute:
     AdminAdminConfiguracoesIntegracoesRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
@@ -345,6 +408,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiPublicTrackRoute: ApiPublicTrackRoute,
   ApiPublicWebhooksPagamentoRoute: ApiPublicWebhooksPagamentoRoute,
 }
 export const routeTree = rootRouteImport

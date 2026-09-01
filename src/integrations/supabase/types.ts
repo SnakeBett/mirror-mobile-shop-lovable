@@ -14,6 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      analytics_events: {
+        Row: {
+          click_id: string | null
+          click_source: string | null
+          created_at: string
+          device_type: string | null
+          event_name: string
+          first_utm_campaign: string | null
+          first_utm_medium: string | null
+          first_utm_source: string | null
+          id: string
+          metadata: Json | null
+          path: string | null
+          product_id: string | null
+          recommended_product_id: string | null
+          referrer: string | null
+          session_id: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_id: string
+        }
+        Insert: {
+          click_id?: string | null
+          click_source?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_name: string
+          first_utm_campaign?: string | null
+          first_utm_medium?: string | null
+          first_utm_source?: string | null
+          id?: string
+          metadata?: Json | null
+          path?: string | null
+          product_id?: string | null
+          recommended_product_id?: string | null
+          referrer?: string | null
+          session_id: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id: string
+        }
+        Update: {
+          click_id?: string | null
+          click_source?: string | null
+          created_at?: string
+          device_type?: string | null
+          event_name?: string
+          first_utm_campaign?: string | null
+          first_utm_medium?: string | null
+          first_utm_source?: string | null
+          id?: string
+          metadata?: Json | null
+          path?: string | null
+          product_id?: string | null
+          recommended_product_id?: string | null
+          referrer?: string | null
+          session_id?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_recommended_product_id_fkey"
+            columns: ["recommended_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      app_settings: {
+        Row: {
+          created_at: string
+          currency: string
+          ga_measurement_id: string | null
+          id: string
+          meta_pixel_id: string | null
+          singleton: boolean
+          tiktok_pixel_id: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          ga_measurement_id?: string | null
+          id?: string
+          meta_pixel_id?: string | null
+          singleton?: boolean
+          tiktok_pixel_id?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          ga_measurement_id?: string | null
+          id?: string
+          meta_pixel_id?: string | null
+          singleton?: boolean
+          tiktok_pixel_id?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           amount: number
@@ -21,14 +144,23 @@ export type Database = {
           customer_email: string | null
           customer_name: string | null
           external_order_id: string
+          first_utm_campaign: string | null
+          first_utm_source: string | null
           id: string
           is_test: boolean
           metadata: Json | null
           paid_at: string | null
           payment_method: string | null
           product_id: string | null
+          session_id: string | null
           status: Database["public"]["Enums"]["order_status"]
           updated_at: string
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+          visitor_id: string | null
         }
         Insert: {
           amount?: number
@@ -36,14 +168,23 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           external_order_id: string
+          first_utm_campaign?: string | null
+          first_utm_source?: string | null
           id?: string
           is_test?: boolean
           metadata?: Json | null
           paid_at?: string | null
           payment_method?: string | null
           product_id?: string | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
         }
         Update: {
           amount?: number
@@ -51,14 +192,23 @@ export type Database = {
           customer_email?: string | null
           customer_name?: string | null
           external_order_id?: string
+          first_utm_campaign?: string | null
+          first_utm_source?: string | null
           id?: string
           is_test?: boolean
           metadata?: Json | null
           paid_at?: string | null
           payment_method?: string | null
           product_id?: string | null
+          session_id?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           updated_at?: string
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+          visitor_id?: string | null
         }
         Relationships: [
           {
@@ -346,11 +496,13 @@ export type Database = {
           discount_percentage: number | null
           external_product_id: string | null
           five_star_count: number | null
+          ga_measurement_id: string | null
           id: string
           import_method: string | null
           installment_note: string | null
           installment_text: string | null
           is_active: boolean
+          meta_pixel_id: string | null
           name: string
           old_price: number | null
           rating: number | null
@@ -367,6 +519,8 @@ export type Database = {
           slug: string
           source_platform: string | null
           source_url: string | null
+          tiktok_pixel_id: string | null
+          tracking_use_global: boolean
           updated_at: string
         }
         Insert: {
@@ -382,11 +536,13 @@ export type Database = {
           discount_percentage?: number | null
           external_product_id?: string | null
           five_star_count?: number | null
+          ga_measurement_id?: string | null
           id?: string
           import_method?: string | null
           installment_note?: string | null
           installment_text?: string | null
           is_active?: boolean
+          meta_pixel_id?: string | null
           name: string
           old_price?: number | null
           rating?: number | null
@@ -403,6 +559,8 @@ export type Database = {
           slug: string
           source_platform?: string | null
           source_url?: string | null
+          tiktok_pixel_id?: string | null
+          tracking_use_global?: boolean
           updated_at?: string
         }
         Update: {
@@ -418,11 +576,13 @@ export type Database = {
           discount_percentage?: number | null
           external_product_id?: string | null
           five_star_count?: number | null
+          ga_measurement_id?: string | null
           id?: string
           import_method?: string | null
           installment_note?: string | null
           installment_text?: string | null
           is_active?: boolean
+          meta_pixel_id?: string | null
           name?: string
           old_price?: number | null
           rating?: number | null
@@ -439,6 +599,8 @@ export type Database = {
           slug?: string
           source_platform?: string | null
           source_url?: string | null
+          tiktok_pixel_id?: string | null
+          tracking_use_global?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -551,6 +713,56 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_campaigns: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          campaign: string
+          conversion: number
+          orders_count: number
+          revenue: number
+          views: number
+          visitors: number
+        }[]
+      }
+      admin_funnel: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          buy_clicks: number
+          checkouts: number
+          product_views: number
+          purchases: number
+          revenue: number
+          unique_visitors: number
+        }[]
+      }
+      admin_product_conversion: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          buy_clicks: number
+          checkouts: number
+          conversion: number
+          orders_count: number
+          product_id: string
+          product_name: string
+          revenue: number
+          slug: string
+          views: number
+          visitors: number
+        }[]
+      }
+      admin_product_funnel: {
+        Args: { _from: string; _product_id: string; _to: string }
+        Returns: {
+          buy_clicks: number
+          checkouts: number
+          orders_count: number
+          rec_clicks: number
+          rec_views: number
+          revenue: number
+          views: number
+          visitors: number
+        }[]
+      }
       admin_product_performance: {
         Args: { _product_id: string }
         Returns: {
@@ -560,6 +772,16 @@ export type Database = {
           revenue_30d: number
           revenue_7d: number
           revenue_total: number
+        }[]
+      }
+      admin_revenue_breakdown: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          cancelled_count: number
+          gross: number
+          net: number
+          refunded: number
+          refunded_count: number
         }[]
       }
       admin_sales_by_product: {
@@ -589,6 +811,29 @@ export type Database = {
           revenue: number
           top_product_id: string
           top_product_name: string
+        }[]
+      }
+      admin_traffic_daily: {
+        Args: { _from: string; _to: string; _tz?: string }
+        Returns: {
+          buy_clicks: number
+          checkouts: number
+          day: string
+          orders_count: number
+          product_views: number
+          revenue: number
+          sessions: number
+          visitors: number
+        }[]
+      }
+      admin_traffic_sources: {
+        Args: { _from: string; _product_id?: string; _to: string }
+        Returns: {
+          orders_count: number
+          revenue: number
+          source: string
+          views: number
+          visitors: number
         }[]
       }
       has_role: {

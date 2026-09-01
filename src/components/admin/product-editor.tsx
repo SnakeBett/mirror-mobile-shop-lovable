@@ -38,6 +38,14 @@ import {
 } from "@/lib/admin-queries";
 import { calcDiscount, slugify, type ProductRow } from "@/lib/product-types";
 import { currencyBRL, getProductPerformance } from "@/lib/sales-queries";
+import {
+  getAppSettings,
+  getProductFunnel,
+  getTrafficSources,
+  percent,
+  ratio,
+  resolveRange,
+} from "@/lib/analytics-queries";
 
 type Draft = Partial<ProductRow>;
 
@@ -600,7 +608,47 @@ export function ProductEditor({ productId }: { productId?: string }) {
               </Field>
             </div>
           </Panel>
+
+          <Panel title="Rastreamento">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.tracking_use_global !== false}
+                onChange={(e) => set("tracking_use_global", e.target.checked)}
+              />
+              Usar os pixels globais da loja
+            </label>
+            {draft.tracking_use_global === false && (
+              <div className="grid gap-4 md:grid-cols-3">
+                <Field label="Meta Pixel ID" id="metapx">
+                  <Input
+                    id="metapx"
+                    value={draft.meta_pixel_id ?? ""}
+                    onChange={(e) => set("meta_pixel_id", e.target.value)}
+                  />
+                </Field>
+                <Field label="TikTok Pixel ID" id="ttpx">
+                  <Input
+                    id="ttpx"
+                    value={draft.tiktok_pixel_id ?? ""}
+                    onChange={(e) => set("tiktok_pixel_id", e.target.value)}
+                  />
+                </Field>
+                <Field label="Google Analytics (GA4)" id="gapx">
+                  <Input
+                    id="gapx"
+                    value={draft.ga_measurement_id ?? ""}
+                    onChange={(e) => set("ga_measurement_id", e.target.value)}
+                  />
+                </Field>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              O evento de compra é registrado apenas com a confirmação do pagamento no webhook.
+            </p>
+          </Panel>
         </TabsContent>
+
 
         {/* PÁGINA */}
         <TabsContent value="pagina" className="mt-4">
@@ -1196,6 +1244,18 @@ function PerformancePanel({ productId }: { productId: string }) {
     queryKey: ["admin", "product-performance", productId],
     queryFn: () => getProductPerformance(productId),
   });
+  const settings = useQuery({ queryKey: ["admin", "settings"], queryFn: getAppSettings });
+  const tz = settings.data?.timezone ?? "America/Sao_Paulo";
+  const range = useMemo(() => resolveRange("30d", tz), [tz]);
+
+  const funnel = useQuery({
+    queryKey: ["admin", "product-funnel", productId, range],
+    queryFn: () => getProductFunnel(productId, range),
+  });
+  const sources = useQuery({
+    queryKey: ["admin", "sources", range, productId],
+    queryFn: () => getTrafficSources(range, productId),
+  });
 
   const cards: Array<[string, string]> = [
     ["Vendas totais", perf.data ? String(perf.data.orders_total) : "—"],
@@ -1206,20 +1266,71 @@ function PerformancePanel({ productId }: { productId: string }) {
     ["Faturamento 30 dias", perf.data ? currencyBRL.format(perf.data.revenue_30d) : "—"],
   ];
 
+  const steps: Array<[string, number, number]> = [
+    ["Visualizações", funnel.data?.views ?? 0, funnel.data?.views ?? 0],
+    ["Cliques em comprar", funnel.data?.buy_clicks ?? 0, funnel.data?.views ?? 0],
+    ["Checkouts", funnel.data?.checkouts ?? 0, funnel.data?.buy_clicks ?? 0],
+    ["Vendas", funnel.data?.orders_count ?? 0, funnel.data?.checkouts ?? 0],
+  ];
+
   return (
-    <Panel title="Desempenho (pedidos pagos)">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-        {cards.map(([label, value]) => (
-          <div key={label} className="rounded-md border border-border p-3">
-            <p className="text-xs text-muted-foreground">{label}</p>
-            <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
-          </div>
-        ))}
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Baseado nos pedidos reais recebidos pelo webhook de pagamento.
-      </p>
-    </Panel>
+    <>
+      <Panel title="Desempenho (pedidos pagos)">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+          {cards.map(([label, value]) => (
+            <div key={label} className="rounded-md border border-border p-3">
+              <p className="text-xs text-muted-foreground">{label}</p>
+              <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Baseado nos pedidos reais recebidos pelo webhook de pagamento.
+        </p>
+      </Panel>
+
+      <Panel title="Funil deste produto (30 dias)">
+        <div className="space-y-3">
+          {steps.map(([label, value, base], index) => (
+            <div key={label}>
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{label}</span>
+                <span>
+                  {value.toLocaleString("pt-BR")}
+                  {index > 0 && ` · ${percent(ratio(value, base))}`}
+                </span>
+              </div>
+              <div className="mt-1 h-2.5 w-full rounded bg-muted">
+                <div
+                  className="h-2.5 rounded bg-primary/80"
+                  style={{ width: `${Math.max(2, ratio(value, Math.max(1, funnel.data?.views ?? 1)))}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Conversão: {percent(ratio(funnel.data?.orders_count ?? 0, funnel.data?.views ?? 0))} ·
+          Recomendações vistas {funnel.data?.rec_views ?? 0} · cliques {funnel.data?.rec_clicks ?? 0}
+        </p>
+      </Panel>
+
+      <Panel title="Origens de tráfego (30 dias)">
+        <div className="divide-y divide-border">
+          {(sources.data ?? []).map((row) => (
+            <div key={row.source} className="flex items-center justify-between py-2 text-sm">
+              <span className="truncate">{row.source}</span>
+              <span className="text-xs text-muted-foreground">
+                {row.visitors} visitantes · {row.orders_count} vendas · {currencyBRL.format(row.revenue)}
+              </span>
+            </div>
+          ))}
+          {(sources.data ?? []).length === 0 && (
+            <p className="py-3 text-sm text-muted-foreground">Sem tráfego registrado ainda.</p>
+          )}
+        </div>
+      </Panel>
+    </>
   );
 }
 
