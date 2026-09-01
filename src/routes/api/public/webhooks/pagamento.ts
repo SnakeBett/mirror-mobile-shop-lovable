@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
+import { sendPurchaseForOrder } from "@/lib/meta-purchase.server";
+
 /**
  * Endpoint de webhook de pagamento (genérico e idempotente).
  *
@@ -37,6 +39,11 @@ const payloadSchema = z.object({
   utm_term: z.string().max(160).nullish(),
   first_utm_source: z.string().max(160).nullish(),
   first_utm_campaign: z.string().max(160).nullish(),
+  // Sinais Meta repassados pelo checkout (quando disponíveis).
+  fbp: z.string().max(200).nullish(),
+  fbc: z.string().max(400).nullish(),
+  client_user_agent: z.string().max(400).nullish(),
+  customer_phone: z.string().max(40).nullish(),
 });
 
 /** Aceita a atribuição tanto no corpo quanto dentro de metadata. */
@@ -61,6 +68,9 @@ function attributionFrom(data: {
     utm_term: pick("utm_term"),
     first_utm_source: pick("first_utm_source"),
     first_utm_campaign: pick("first_utm_campaign"),
+    fbp: pick("fbp", "_fbp"),
+    fbc: pick("fbc", "_fbc"),
+    client_user_agent: pick("client_user_agent"),
   };
 }
 
@@ -152,7 +162,9 @@ export const Route = createFileRoute("/api/public/webhooks/pagamento")({
             .update(values as never)
             .eq("id", existing.id);
           if (error) return Response.json({ error: "Falha ao atualizar pedido." }, { status: 500 });
-          return Response.json({ ok: true, duplicated: true, order_id: existing.id });
+          // Idempotente: só envia Purchase se ainda não foi enviado para este pedido.
+          const meta = await sendPurchaseForOrder(existing.id, data.customer_phone ?? null);
+          return Response.json({ ok: true, duplicated: true, order_id: existing.id, meta });
         }
 
         const { data: inserted, error } = await supabaseAdmin
@@ -169,7 +181,8 @@ export const Route = createFileRoute("/api/public/webhooks/pagamento")({
           return Response.json({ error: "Falha ao registrar pedido." }, { status: 500 });
         }
 
-        return Response.json({ ok: true, duplicated: false, order_id: inserted.id });
+        const meta = await sendPurchaseForOrder(inserted.id, data.customer_phone ?? null);
+        return Response.json({ ok: true, duplicated: false, order_id: inserted.id, meta });
       },
     },
   },
