@@ -2,7 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 
 import { resolveImageUrls } from "./storage-images";
+import { resolvePageSettings } from "./page-settings";
 import type { ProductView } from "./product-types";
+
 
 function createPublicClient() {
   const url = process.env["SUPABASE_URL"]!;
