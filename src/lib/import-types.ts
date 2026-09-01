@@ -6,7 +6,7 @@
 
 export type SourcePlatform = "mercado_livre" | "shopee" | "tiktok_shop" | "unknown";
 
-export type ImportStatus = "analyzing" | "found" | "partial" | "failed" | "imported";
+export type ImportStatus = "analyzing" | "found" | "partial" | "blocked" | "failed" | "imported";
 
 export type ImportedAttribute = { label: string; value: string };
 
@@ -43,6 +43,8 @@ export type ImportAnalysis = {
   message: string | null;
   /** Avaliações individuais nunca são inventadas. */
   individualReviewsAvailable: boolean;
+  /** Quantidade de informações efetivamente encontradas. */
+  foundCount: number;
 };
 
 export const PLATFORM_LABELS: Record<SourcePlatform, string> = {

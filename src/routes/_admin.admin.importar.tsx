@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -18,12 +18,15 @@ import {
   type ImportedProduct,
 } from "@/lib/import-types";
 import {
+  createProductAssisted,
   createProductFromImport,
   findExistingImport,
   listRecentImports,
   logImport,
   type ImportSelection,
 } from "@/lib/import-queries";
+import { uploadProductImage } from "@/lib/admin-queries";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,10 +38,10 @@ export const Route = createFileRoute("/_admin/admin/importar")({
   head: () => ({
     meta: [
       { title: "Importar produto | Vitrine Admin" },
-      { name: "description", content: "Importe produtos a partir de uma URL para acelerar o cadastro." },
+      { name: "description", content: "Importe produtos a partir de uma URL pública para acelerar o cadastro." },
       { name: "robots", content: "noindex" },
       { property: "og:title", content: "Importar produto | Vitrine Admin" },
-      { property: "og:description", content: "Importe produtos a partir de uma URL para acelerar o cadastro." },
+      { property: "og:description", content: "Importe produtos a partir de uma URL pública para acelerar o cadastro." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -52,11 +55,18 @@ const STATUS_LABELS: Record<string, string> = {
   analyzing: "Analisando",
   found: "Encontrado",
   partial: "Parcial",
+  blocked: "Leitura bloqueada",
   failed: "Falhou",
   imported: "Importado",
 };
 
-type DescriptionMode = "none" | "original" | "generated";
+type DescriptionMode = "none" | "reference" | "generated";
+type EditableAttribute = { label: string; value: string };
+
+function toNumberInput(value: string): number | null {
+  const parsed = Number(value.replace(/\./g, "").replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 function ImportPage() {
   const navigate = useNavigate();
@@ -72,6 +82,7 @@ function ImportPage() {
   const [analysis, setAnalysis] = useState<ImportAnalysis | null>(null);
   const [duplicate, setDuplicate] = useState<{ id: string; name: string } | null>(null);
   const [forceNew, setForceNew] = useState(false);
+  const [assistedOpen, setAssistedOpen] = useState(false);
 
   const [selection, setSelection] = useState<ImportSelection>({
     name: true,
@@ -85,10 +96,24 @@ function ImportPage() {
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [oldPrice, setOldPrice] = useState("");
+  const [attributes, setAttributes] = useState<EditableAttribute[]>([]);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [primaryImage, setPrimaryImage] = useState<string | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
   const [descriptionMode, setDescriptionMode] = useState<DescriptionMode>("generated");
   const [description, setDescription] = useState("");
+
+  // Importação assistida
+  const [assisted, setAssisted] = useState({
+    name: "",
+    price: "",
+    oldPrice: "",
+    description: "",
+    rating: "",
+    reviewCount: "",
+  });
+  const [assistedAttributes, setAssistedAttributes] = useState<EditableAttribute[]>([{ label: "", value: "" }]);
+  const [assistedFiles, setAssistedFiles] = useState<File[]>([]);
 
   const platform = useMemo(() => detectPlatform(url), [url]);
   const product = analysis?.product ?? null;
@@ -99,10 +124,12 @@ function ImportPage() {
     setName(found.title ?? "");
     setPrice(found.currentPrice != null ? String(found.currentPrice) : "");
     setOldPrice(found.oldPrice != null ? String(found.oldPrice) : "");
+    setAttributes(found.attributes.map((item) => ({ ...item })));
     setSelectedImages(found.images);
+    setPrimaryImage(found.images[0] ?? null);
     setSelectedVariants([]);
     setDescription("");
-    setDescriptionMode(found.description ? "generated" : "generated");
+    setDescriptionMode("generated");
   }
 
   async function handleAnalyze() {
@@ -114,6 +141,7 @@ function ImportPage() {
     setAnalysis(null);
     setDuplicate(null);
     setForceNew(false);
+    setAssistedOpen(false);
     try {
       const result = await analyze({ data: { url: url.trim() } });
       setAnalysis(result);
@@ -121,6 +149,8 @@ function ImportPage() {
         resetPreview(result.product);
         const existing = await findExistingImport(result.product.sourceUrl, result.product.externalId);
         if (existing) setDuplicate({ id: existing.id, name: existing.name });
+      } else {
+        setAssisted((prev) => ({ ...prev, name: prev.name }));
       }
       await logImport({
         source_platform: platform,
@@ -132,9 +162,18 @@ function ImportPage() {
         error_detail: result.message,
       }).catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ["admin", "imports"] });
-      if (result.status === "failed") toast.error(result.message ?? "Não foi possível importar.");
+      if (result.status === "failed") toast.error(result.message ?? "URL inválida.");
+      if (result.status === "blocked") toast.warning(result.message ?? "Não conseguimos ler esta página.");
     } catch {
-      toast.error("Não conseguimos analisar esta URL agora.");
+      setAnalysis({
+        status: "blocked",
+        product: null,
+        missingFields: [],
+        notices: ["Use a importação assistida para cadastrar os dados manualmente."],
+        message: "Não conseguimos ler automaticamente esta página.",
+        individualReviewsAvailable: false,
+        foundCount: 0,
+      });
     } finally {
       setAnalyzing(false);
     }
@@ -147,8 +186,8 @@ function ImportPage() {
       const result = await generate({
         data: {
           title: name || product.title || "",
-          attributes: product.attributes,
-          price: Number(price) || product.currentPrice,
+          attributes,
+          price: toNumberInput(price) ?? product.currentPrice,
         },
       });
       setDescription(result.description);
@@ -172,7 +211,7 @@ function ImportPage() {
       const finalDescription =
         descriptionMode === "none"
           ? ""
-          : descriptionMode === "original"
+          : descriptionMode === "reference"
             ? (product.description ?? "")
             : description;
 
@@ -180,23 +219,27 @@ function ImportPage() {
         imported: product,
         selection,
         name: selection.name ? name : "Produto importado",
-        currentPrice: Number(price.replace(",", ".")) || 0,
-        oldPrice: oldPrice ? Number(oldPrice.replace(",", ".")) : null,
+        currentPrice: toNumberInput(price) ?? 0,
+        oldPrice: oldPrice ? toNumberInput(oldPrice) : null,
         description: finalDescription,
         selectedImagePaths: [],
-        selectedAttributes: product.attributes,
+        selectedAttributes: attributes.filter((item) => item.label.trim() && item.value.trim()),
         selectedVariants: product.variants.filter((variant) => selectedVariants.includes(variant.name)),
       });
 
       if (selectedImages.length > 0) {
-        const { paths, skipped } = await copyImages({ data: { productId, urls: selectedImages } });
+        const ordered = primaryImage
+          ? [primaryImage, ...selectedImages.filter((image) => image !== primaryImage)]
+          : selectedImages;
+        const { paths, skipped } = await copyImages({ data: { productId, urls: ordered } });
         if (paths.length > 0) {
-          const { supabase } = await import("@/integrations/supabase/client");
           await supabase.from("product_images").insert(
             paths.map((path, index) => ({ product_id: productId, image_url: path, sort_order: index })) as never,
           );
         }
-        if (skipped.length > 0) toast.warning(`${skipped.length} imagem(ns) não puderam ser copiadas.`);
+        if (skipped.length > 0) {
+          toast.warning(`${skipped.length} imagem(ns) não puderam ser copiadas. Envie as suas no editor.`);
+        }
       }
 
       await logImport({
@@ -204,13 +247,66 @@ function ImportPage() {
         source_url: product.sourceUrl,
         external_product_id: product.externalId,
         product_id: productId,
-        status: analysis?.status === "partial" ? "partial" : "imported",
+        status: "imported",
         title: name,
         missing_fields: analysis?.missingFields ?? [],
       }).catch(() => undefined);
 
       queryClient.invalidateQueries({ queryKey: ["admin"] });
-      toast.success("Produto importado. Revise as informações antes de publicar.");
+      toast.success("Produto importado. Revise antes de publicar.");
+      navigate({ to: "/admin/produtos/$id", params: { id: productId } });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar o produto.");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  async function handleAssistedCreate() {
+    if (!assisted.name.trim()) {
+      toast.error("Informe o nome do produto.");
+      return;
+    }
+    setCreating(true);
+    try {
+      const productId = await createProductAssisted({
+        name: assisted.name,
+        currentPrice: toNumberInput(assisted.price) ?? 0,
+        oldPrice: assisted.oldPrice ? toNumberInput(assisted.oldPrice) : null,
+        description: assisted.description,
+        rating: assisted.rating ? toNumberInput(assisted.rating) : null,
+        reviewCount: assisted.reviewCount ? toNumberInput(assisted.reviewCount) : null,
+        attributes: assistedAttributes,
+        sourceUrl: url.trim() || null,
+        sourcePlatform: platform,
+      });
+
+      if (assistedFiles.length > 0) {
+        const paths: string[] = [];
+        for (const file of assistedFiles) {
+          try {
+            paths.push(await uploadProductImage(file, productId));
+          } catch {
+            toast.warning(`Não foi possível enviar ${file.name}.`);
+          }
+        }
+        if (paths.length > 0) {
+          await supabase.from("product_images").insert(
+            paths.map((path, index) => ({ product_id: productId, image_url: path, sort_order: index })) as never,
+          );
+        }
+      }
+
+      await logImport({
+        source_platform: platform,
+        source_url: url.trim() || "cadastro-assistido",
+        product_id: productId,
+        status: "imported",
+        title: assisted.name,
+      }).catch(() => undefined);
+
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      toast.success("Produto importado. Revise antes de publicar.");
       navigate({ to: "/admin/produtos/$id", params: { id: productId } });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível criar o produto.");
@@ -224,12 +320,12 @@ function ImportPage() {
       <header>
         <h1 className="text-xl font-semibold text-foreground">Importar produto</h1>
         <p className="text-sm text-muted-foreground">
-          Use uma URL de produto para acelerar a criação do seu cadastro.
+          Cole o link público do produto. Não é necessária nenhuma configuração prévia.
         </p>
       </header>
 
       <section className="space-y-3 rounded-lg border border-border bg-background p-4">
-        <Label htmlFor="import-url">URL do produto</Label>
+        <Label htmlFor="import-url">Cole o link</Label>
         <Input
           id="import-url"
           value={url}
@@ -240,25 +336,159 @@ function ImportPage() {
         <p className="text-xs text-muted-foreground">
           Origem detectada: <span className="font-medium text-foreground">{PLATFORM_LABELS[platform]}</span>
         </p>
-        <Button onClick={handleAnalyze} disabled={analyzing}>
-          {analyzing && <Loader2 className="mr-2 size-4 animate-spin" />}
-          ANALISAR PRODUTO
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={handleAnalyze} disabled={analyzing}>
+            {analyzing && <Loader2 className="mr-2 size-4 animate-spin" />}
+            ANALISAR PRODUTO
+          </Button>
+          <span className="text-xs text-muted-foreground">Você também pode cadastrar manualmente</span>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/produtos/novo">CADASTRO MANUAL</Link>
+          </Button>
+        </div>
       </section>
 
-      {analysis?.status === "failed" && (
-        <section className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+      {(analysis?.status === "blocked" || analysis?.status === "failed") && (
+        <section className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
           <p className="text-sm font-medium text-foreground">{analysis.message}</p>
           {analysis.notices.map((notice) => (
             <p key={notice} className="text-xs text-muted-foreground">{notice}</p>
           ))}
           <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={() => setAssistedOpen(true)}>IMPORTAÇÃO ASSISTIDA</Button>
             <Button asChild variant="outline" size="sm">
-              <Link to="/admin/produtos/novo">CRIAR PRODUTO MANUALMENTE</Link>
+              <Link to="/admin/produtos/novo">CADASTRO MANUAL</Link>
             </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/admin/configuracoes/integracoes">Configurar integrações</Link>
+          </div>
+        </section>
+      )}
+
+      {assistedOpen && (
+        <section className="space-y-4 rounded-lg border border-border bg-background p-4">
+          <div>
+            <h2 className="text-base font-semibold text-foreground">Importação assistida</h2>
+            <p className="text-xs text-muted-foreground">
+              Preencha os dados que você tem em mãos e envie suas próprias imagens.
+            </p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <Label htmlFor="assisted-name">Nome</Label>
+              <Input
+                id="assisted-name"
+                value={assisted.name}
+                onChange={(event) => setAssisted((prev) => ({ ...prev, name: event.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="assisted-price">Preço</Label>
+              <Input
+                id="assisted-price"
+                value={assisted.price}
+                onChange={(event) => setAssisted((prev) => ({ ...prev, price: event.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="assisted-old-price">Preço antigo</Label>
+              <Input
+                id="assisted-old-price"
+                value={assisted.oldPrice}
+                onChange={(event) => setAssisted((prev) => ({ ...prev, oldPrice: event.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="assisted-rating">Nota média</Label>
+              <Input
+                id="assisted-rating"
+                value={assisted.rating}
+                onChange={(event) => setAssisted((prev) => ({ ...prev, rating: event.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="assisted-reviews">Quantidade de avaliações</Label>
+              <Input
+                id="assisted-reviews"
+                value={assisted.reviewCount}
+                onChange={(event) => setAssisted((prev) => ({ ...prev, reviewCount: event.target.value }))}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <Label htmlFor="assisted-description">Descrição</Label>
+              <Textarea
+                id="assisted-description"
+                rows={6}
+                value={assisted.description}
+                onChange={(event) => setAssisted((prev) => ({ ...prev, description: event.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Características</Label>
+            {assistedAttributes.map((attribute, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  placeholder="Marca"
+                  value={attribute.label}
+                  onChange={(event) =>
+                    setAssistedAttributes((prev) =>
+                      prev.map((item, position) =>
+                        position === index ? { ...item, label: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+                <Input
+                  placeholder="Valor"
+                  value={attribute.value}
+                  onChange={(event) =>
+                    setAssistedAttributes((prev) =>
+                      prev.map((item, position) =>
+                        position === index ? { ...item, value: event.target.value } : item,
+                      ),
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAssistedAttributes((prev) => prev.filter((_, position) => position !== index))}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setAssistedAttributes((prev) => [...prev, { label: "", value: "" }])}
+            >
+              <Plus className="mr-1 size-4" /> Adicionar característica
             </Button>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="assisted-images">Imagens (envie as suas)</Label>
+            <Input
+              id="assisted-images"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={(event) => setAssistedFiles(Array.from(event.target.files ?? []))}
+            />
+            {assistedFiles.length > 0 && (
+              <p className="text-xs text-muted-foreground">{assistedFiles.length} imagem(ns) selecionada(s).</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 border-t border-border pt-4">
+            <Button onClick={handleAssistedCreate} disabled={creating}>
+              {creating && <Loader2 className="mr-2 size-4 animate-spin" />}
+              CRIAR PRODUTO
+            </Button>
+            <span className="text-xs text-muted-foreground">Criado como rascunho (inativo).</span>
           </div>
         </section>
       )}
@@ -266,7 +496,12 @@ function ImportPage() {
       {product && (
         <section className="space-y-6 rounded-lg border border-border bg-background p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-base font-semibold text-foreground">Pré-visualização da importação</h2>
+            <div>
+              <h2 className="text-base font-semibold text-foreground">Produto encontrado</h2>
+              <p className="text-xs text-muted-foreground">
+                {analysis?.foundCount ?? 0} informações encontradas.
+              </p>
+            </div>
             <span className="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">
               {PLATFORM_LABELS[product.source]} · {STATUS_LABELS[analysis?.status ?? "found"]}
             </span>
@@ -290,11 +525,10 @@ function ImportPage() {
             <div className="rounded-md border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
               <p className="font-medium text-foreground">Algumas informações não estavam disponíveis:</p>
               <p>{analysis.missingFields.map((field) => FIELD_LABELS[field] ?? field).join(" · ")}</p>
-              <p className="mt-1">Este dado não está disponível para importação automática — preencha manualmente depois.</p>
+              <p className="mt-1">Você pode preencher manualmente agora ou depois, no editor.</p>
             </div>
           )}
 
-          {/* Seleção de campos */}
           <div className="space-y-2">
             <h3 className="text-sm font-medium text-foreground">O que deseja aproveitar</h3>
             {(
@@ -302,7 +536,7 @@ function ImportPage() {
                 ["name", "Nome", product.title ?? "—"],
                 ["currentPrice", "Preço", product.currentPrice != null ? currency.format(product.currentPrice) : "—"],
                 ["oldPrice", "Preço anterior", product.oldPrice != null ? currency.format(product.oldPrice) : "—"],
-                ["attributes", "Características / especificações", `${product.attributes.length} itens`],
+                ["attributes", "Características / especificações", `${attributes.length} itens`],
                 ["rating", "Nota média", product.rating != null ? String(product.rating) : "—"],
                 ["reviewCount", "Quantidade de avaliações", product.reviewCount != null ? String(product.reviewCount) : "—"],
                 ["variants", "Variações", `${product.variants.length} grupos`],
@@ -319,14 +553,13 @@ function ImportPage() {
             ))}
           </div>
 
-          {/* Nome e preços */}
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="sm:col-span-3">
               <Label htmlFor="import-name">Nome do produto</Label>
               <Input id="import-name" value={name} onChange={(event) => setName(event.target.value)} />
             </div>
             <div>
-              <Label htmlFor="import-price">Meu preço</Label>
+              <Label htmlFor="import-price">Preço que será usado</Label>
               <Input id="import-price" value={price} onChange={(event) => setPrice(event.target.value)} />
               <p className="mt-1 text-xs text-muted-foreground">
                 Encontrado: {product.currentPrice != null ? currency.format(product.currentPrice) : "—"}
@@ -347,6 +580,50 @@ function ImportPage() {
             </div>
           </div>
 
+          {/* Características editáveis */}
+          <div className="space-y-2">
+            <h3 className="text-sm font-medium text-foreground">Características</h3>
+            {attributes.length === 0 && (
+              <p className="text-xs text-muted-foreground">Nenhuma característica encontrada.</p>
+            )}
+            {attributes.map((attribute, index) => (
+              <div key={index} className="flex gap-2">
+                <Input
+                  value={attribute.label}
+                  onChange={(event) =>
+                    setAttributes((prev) =>
+                      prev.map((item, position) => (position === index ? { ...item, label: event.target.value } : item)),
+                    )
+                  }
+                />
+                <Input
+                  value={attribute.value}
+                  onChange={(event) =>
+                    setAttributes((prev) =>
+                      prev.map((item, position) => (position === index ? { ...item, value: event.target.value } : item)),
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setAttributes((prev) => prev.filter((_, position) => position !== index))}
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setAttributes((prev) => [...prev, { label: "", value: "" }])}
+            >
+              <Plus className="mr-1 size-4" /> Adicionar característica
+            </Button>
+          </div>
+
           {/* Imagens */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -357,34 +634,49 @@ function ImportPage() {
               </div>
             </div>
             {product.images.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nenhuma imagem disponível para importação.</p>
+              <p className="text-xs text-muted-foreground">
+                Nenhuma imagem disponível. Envie suas próprias imagens no editor do produto.
+              </p>
             ) : (
               <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                 {product.images.map((image) => {
                   const checked = selectedImages.includes(image);
                   return (
-                    <button
+                    <div
                       key={image}
-                      type="button"
-                      onClick={() =>
-                        setSelectedImages((prev) =>
-                          prev.includes(image) ? prev.filter((item) => item !== image) : [...prev, image],
-                        )
-                      }
                       className={`relative overflow-hidden rounded-md border-2 ${checked ? "border-primary" : "border-border"}`}
                     >
-                      <img src={image} alt="" className="aspect-square w-full object-cover" loading="lazy" />
-                      {checked && (
-                        <span className="absolute right-1 top-1 rounded bg-primary px-1 text-[10px] text-primary-foreground">✓</span>
-                      )}
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setSelectedImages((prev) =>
+                            prev.includes(image) ? prev.filter((item) => item !== image) : [...prev, image],
+                          )
+                        }
+                        className="block w-full"
+                      >
+                        <img src={image} alt="" className="aspect-square w-full object-cover" loading="lazy" />
+                      </button>
+                      <div className="flex items-center justify-between gap-1 px-1 py-1 text-[10px]">
+                        <span>{checked ? "Selecionada" : "Ignorada"}</span>
+                        <button
+                          type="button"
+                          onClick={() => setPrimaryImage(image)}
+                          className={primaryImage === image ? "font-semibold text-primary" : "text-muted-foreground"}
+                        >
+                          {primaryImage === image ? "Principal" : "Definir principal"}
+                        </button>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
             )}
+            <p className="text-xs text-muted-foreground">
+              Copiamos apenas imagens públicas acessíveis. Se a origem bloquear, envie as suas no editor.
+            </p>
           </div>
 
-          {/* Variações */}
           {product.variants.length > 0 && (
             <div className="space-y-2">
               <h3 className="text-sm font-medium text-foreground">Variações encontradas</h3>
@@ -415,8 +707,8 @@ function ImportPage() {
                 <RadioGroupItem value="none" /> Não importar
               </label>
               <label className="flex items-center gap-2 text-sm">
-                <RadioGroupItem value="original" disabled={!product.description} />
-                Usar conteúdo original da origem {product.description ? "" : "(indisponível)"}
+                <RadioGroupItem value="reference" disabled={!product.description} />
+                Usar o texto da origem apenas como referência {product.description ? "" : "(indisponível)"}
               </label>
               <label className="flex items-center gap-2 text-sm">
                 <RadioGroupItem value="generated" /> Criar descrição nova a partir dos fatos (recomendado)
@@ -426,7 +718,7 @@ function ImportPage() {
               <>
                 <Button size="sm" variant="outline" onClick={handleGenerateDescription} disabled={generating}>
                   {generating && <Loader2 className="mr-2 size-4 animate-spin" />}
-                  GERAR MINHA DESCRIÇÃO
+                  GERAR NOVA DESCRIÇÃO
                 </Button>
                 <Textarea
                   rows={10}
@@ -436,12 +728,11 @@ function ImportPage() {
                 />
               </>
             )}
-            {descriptionMode === "original" && product.description && (
+            {descriptionMode === "reference" && product.description && (
               <Textarea rows={8} readOnly value={product.description} />
             )}
           </div>
 
-          {/* Avaliações */}
           <div className="space-y-1 rounded-md border border-border bg-muted/30 p-3 text-sm">
             <p className="font-medium text-foreground">Avaliações</p>
             <p className="text-muted-foreground">
@@ -449,9 +740,7 @@ function ImportPage() {
               {product.reviewCount != null ? `${product.reviewCount} avaliações` : "quantidade indisponível"}
             </p>
             <p className="text-muted-foreground">
-              {analysis?.individualReviewsAvailable
-                ? "Avaliações individuais disponíveis."
-                : "Avaliações individuais não disponíveis para importação. Cadastre suas próprias avaliações no editor do produto."}
+              Avaliações individuais não são importadas. Cadastre as suas no editor do produto.
             </p>
           </div>
 
@@ -459,6 +748,9 @@ function ImportPage() {
             <Button onClick={handleCreate} disabled={creating}>
               {creating && <Loader2 className="mr-2 size-4 animate-spin" />}
               CRIAR PRODUTO
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setAssistedOpen(true)}>
+              Preencher manualmente
             </Button>
             <span className="text-xs text-muted-foreground">
               O produto é criado como rascunho (inativo). Nada é publicado automaticamente.

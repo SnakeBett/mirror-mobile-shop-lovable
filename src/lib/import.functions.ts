@@ -3,7 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   detectPlatform,
-  isAllowedSourceHost,
   parseProductUrl,
   type ImportAnalysis,
 } from "./import-types";
@@ -32,22 +31,24 @@ export const analyzeImportUrl = createServerFn({ method: "POST" })
         notices: [],
         message: parsed.error,
         individualReviewsAvailable: false,
+        foundCount: 0,
       };
     }
 
     const platform = detectPlatform(data.url);
-    const { getImporter } = await import("./importers.server");
+    const { analyzePublicUrl } = await import("./importers.server");
     try {
-      return await getImporter(platform).analyze({ url: parsed.url });
+      return await analyzePublicUrl(parsed.url, platform);
     } catch (error) {
       console.error("[import] analyze failed", error);
       return {
-        status: "failed",
+        status: "blocked",
         product: null,
         missingFields: [],
-        notices: [],
-        message: "Não conseguimos acessar informações suficientes deste produto.",
+        notices: ["Use a importação assistida para cadastrar os dados manualmente."],
+        message: "Não conseguimos ler automaticamente esta página.",
         individualReviewsAvailable: false,
+        foundCount: 0,
       };
     }
   });
@@ -81,7 +82,7 @@ export const importImagesToStorage = createServerFn({ method: "POST" })
 
     for (const raw of data.urls) {
       const parsed = parseProductUrl(raw);
-      if ("error" in parsed || parsed.url.protocol !== "https:" || !isAllowedSourceHost(parsed.url.hostname)) {
+      if ("error" in parsed || parsed.url.protocol !== "https:") {
         skipped.push(raw);
         continue;
       }

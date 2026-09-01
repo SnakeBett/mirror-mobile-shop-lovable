@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Download, LayoutDashboard, LogOut, Package, Plug, Receipt, Store } from "lucide-react";
+import { BarChart3, Download, LayoutDashboard, LogOut, Package, Receipt, Store } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { claimAdminIfFirst } from "@/lib/admin.functions";
@@ -95,13 +95,6 @@ function AdminLayout() {
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <Download className="size-4" /> Importar produto
-          </Link>
-          <Link
-            to="/admin/configuracoes/integracoes"
-            activeProps={{ className: "bg-accent text-accent-foreground" }}
-            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <Plug className="size-4" /> Integrações
           </Link>
           <button
             type="button"
