@@ -112,6 +112,8 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [baseline, setBaseline] = useState<Draft>(emptyDraft);
+  const [page, setPage] = useState<PageSettings>(DEFAULT_PAGE_SETTINGS);
+  const [pageBaseline, setPageBaseline] = useState<PageSettings>(DEFAULT_PAGE_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("geral");
 
@@ -121,9 +123,19 @@ export function ProductEditor({ productId }: { productId?: string }) {
       setDraft(next);
       setBaseline(next);
     }
-  }, [query.data?.product]);
+    if (query.data?.page) {
+      setPage(query.data.page);
+      setPageBaseline(query.data.page);
+    }
+  }, [query.data?.product, query.data?.page]);
 
-  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline]);
+  const dirty = useMemo(
+    () =>
+      JSON.stringify(draft) !== JSON.stringify(baseline) ||
+      JSON.stringify(page) !== JSON.stringify(pageBaseline),
+    [draft, baseline, page, pageBaseline],
+  );
+
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((prev) => {
