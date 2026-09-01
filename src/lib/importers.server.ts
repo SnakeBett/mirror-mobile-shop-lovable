@@ -350,6 +350,19 @@ function extractFromPage(platform: SourcePlatform, ctx: ImporterContext): Import
   if (product.rating == null) product.rating = toNumber(metaContent(html, ["ratingValue"]));
   if (product.reviewCount == null) product.reviewCount = toNumber(metaContent(html, ["reviewCount", "ratingCount"]));
 
+  // Último recurso: preço visível no HTML público (microdata ou padrão monetário).
+  if (product.currentPrice == null) {
+    const microdata = html.match(/itemprop=["']price["'][^>]*content=["']([^"']+)["']/i)?.[1];
+    const fromMicrodata = toNumber(microdata ?? "");
+    if (fromMicrodata) product.currentPrice = fromMicrodata;
+  }
+  if (product.currentPrice == null) {
+    const candidates = [...html.matchAll(/(?:R\$|US\$|€|£)\s?([\d.,]{3,12})/g)]
+      .map((match) => toNumber(match[1] ?? ""))
+      .filter((value): value is number => value != null && value > 0);
+    if (candidates.length > 0) product.currentPrice = candidates[0] ?? null;
+  }
+
   const ogImages = [...allMetaContents(html, "og:image"), ...allMetaContents(html, "og:image:secure_url")];
   for (const image of ogImages) {
     const abs = absolute(url, image);
