@@ -536,6 +536,29 @@ export function ProductEditor({ productId }: { productId?: string }) {
             </div>
           </Panel>
         </TabsContent>
+
+        {/* PÁGINA */}
+        <TabsContent value="pagina" className="mt-4">
+          {isNew ? (
+            <Panel title="Página">
+              <p className="text-sm text-muted-foreground">
+                Salve o produto para configurar a apresentação da página pública.
+              </p>
+            </Panel>
+          ) : (
+            <PageSettingsPanel
+              page={page}
+              onChange={setPage}
+              canPreview={!!previewUrl}
+              onPreview={() => previewUrl && window.open(previewUrl, "_blank", "noopener")}
+              onSaveAndPreview={async () => {
+                await save();
+                if (previewUrl) window.open(previewUrl, "_blank", "noopener");
+              }}
+            />
+          )}
+        </TabsContent>
+
       </Tabs>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">
