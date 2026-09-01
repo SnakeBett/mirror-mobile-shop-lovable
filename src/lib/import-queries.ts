@@ -149,3 +149,60 @@ export async function createProductFromImport(input: CreateFromImportInput): Pro
 
   return productId;
 }
+
+export type AssistedImportInput = {
+  name: string;
+  currentPrice: number;
+  oldPrice: number | null;
+  description: string;
+  rating: number | null;
+  reviewCount: number | null;
+  attributes: Array<{ label: string; value: string }>;
+  sourceUrl: string | null;
+  sourcePlatform: SourcePlatform;
+};
+
+/** Cadastro assistido: usado quando a página bloqueia a leitura automática. */
+export async function createProductAssisted(input: AssistedImportInput): Promise<string> {
+  const name = input.name.trim() || "Produto importado";
+  const slug = await uniqueSlug(slugify(name));
+  const discount =
+    input.oldPrice && input.oldPrice > input.currentPrice
+      ? Math.round(((input.oldPrice - input.currentPrice) / input.oldPrice) * 100)
+      : null;
+
+  const { data, error } = await supabase
+    .from("products")
+    .insert({
+      slug,
+      name,
+      current_price: input.currentPrice,
+      old_price: input.oldPrice,
+      discount_percentage: discount,
+      description: input.description || null,
+      rating: input.rating,
+      review_count: input.reviewCount ?? 0,
+      is_active: false,
+      source_platform: input.sourcePlatform,
+      source_url: input.sourceUrl,
+    } as never)
+    .select("id")
+    .single();
+  if (error) throw error;
+  const productId = data.id as string;
+
+  const details = input.attributes.filter((item) => item.label.trim() && item.value.trim());
+  if (details.length > 0) {
+    const { error: detailError } = await supabase.from("product_details").insert(
+      details.map((detail, index) => ({
+        product_id: productId,
+        label: detail.label.trim(),
+        value: detail.value.trim(),
+        sort_order: index,
+      })) as never,
+    );
+    if (detailError) throw detailError;
+  }
+
+  return productId;
+}
