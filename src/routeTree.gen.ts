@@ -22,6 +22,7 @@ import { Route as ApiPublicMetaEventRouteImport } from './routes/api/public/meta
 import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
 import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admin.admin.configuracoes.geral'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
+import { Route as AdminAdminConfiguracoesTrackingRouteImport } from './routes/_admin.admin.configuracoes.tracking'
 import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
@@ -94,6 +95,12 @@ const AdminAdminConfiguracoesIntegracoesRoute =
     path: '/admin/configuracoes/integracoes',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminAdminConfiguracoesTrackingRoute =
+  AdminAdminConfiguracoesTrackingRouteImport.update({
+    id: '/admin/configuracoes/tracking',
+    path: '/admin/configuracoes/tracking',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAdminImportarNavegadorRoute =
   AdminAdminImportarNavegadorRouteImport.update({
     id: '/navegador',
@@ -135,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -175,6 +184,7 @@ export interface FileRoutesById {
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/_admin/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
+    | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
+    | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
@@ -235,6 +247,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/'
     | '/_admin/admin/configuracoes/geral'
     | '/_admin/admin/configuracoes/integracoes'
+    | '/_admin/admin/configuracoes/tracking'
     | '/_admin/admin/importar/navegador'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
@@ -345,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminConfiguracoesIntegracoesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/configuracoes/tracking': {
+      id: '/_admin/admin/configuracoes/tracking'
+      path: '/admin/configuracoes/tracking'
+      fullPath: '/admin/configuracoes/tracking'
+      preLoaderRoute: typeof AdminAdminConfiguracoesTrackingRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/importar/navegador': {
       id: '/_admin/admin/importar/navegador'
       path: '/navegador'
@@ -402,6 +422,7 @@ interface AdminRouteChildren {
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminConfiguracoesGeralRoute: typeof AdminAdminConfiguracoesGeralRoute
   AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
+  AdminAdminConfiguracoesTrackingRoute: typeof AdminAdminConfiguracoesTrackingRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
   AdminAdminProdutosNovoRoute: typeof AdminAdminProdutosNovoRoute
   AdminAdminProdutosIndexRoute: typeof AdminAdminProdutosIndexRoute
@@ -416,6 +437,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminConfiguracoesGeralRoute: AdminAdminConfiguracoesGeralRoute,
   AdminAdminConfiguracoesIntegracoesRoute:
     AdminAdminConfiguracoesIntegracoesRoute,
+  AdminAdminConfiguracoesTrackingRoute: AdminAdminConfiguracoesTrackingRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
   AdminAdminProdutosNovoRoute: AdminAdminProdutosNovoRoute,
   AdminAdminProdutosIndexRoute: AdminAdminProdutosIndexRoute,
