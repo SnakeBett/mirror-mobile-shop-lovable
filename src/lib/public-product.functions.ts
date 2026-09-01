@@ -3,7 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 
 import { resolveImageUrls } from "./storage-images";
 import { resolvePageSettings } from "./page-settings";
-import type { ProductView } from "./product-types";
+import type { ProductView, RecommendedProduct } from "./product-types";
+import type { PageSettings } from "./page-settings";
 
 
 function createPublicClient() {
@@ -22,6 +23,108 @@ function createPublicClient() {
       },
     },
   });
+}
+
+
+type Client = ReturnType<typeof createPublicClient>;
+
+const RECOMMENDATION_COLUMNS = "id, slug, name, current_price, old_price, discount_percentage, is_active";
+
+/**
+ * Monta a lista de recomendações respeitando o modo configurado.
+ * Produtos inativos, sem slug ou o próprio produto nunca entram.
+ */
+async function loadRecommendations(
+  supabase: Client,
+  productId: string,
+  page: PageSettings,
+): Promise<RecommendedProduct[]> {
+  const config = page.recommendation_settings;
+  if (!page.section_visibility.recommendations) return [];
+
+  const limit = Math.min(6, Math.max(2, config.limit || 4));
+  const picked: Array<Record<string, unknown>> = [];
+  const seen = new Set<string>([productId]);
+
+  const push = (rows: Array<Record<string, unknown>> | null | undefined) => {
+    for (const row of rows ?? []) {
+      const id = String(row["id"] ?? "");
+      const slug = String(row["slug"] ?? "").trim();
+      if (!id || !slug || seen.has(id) || row["is_active"] !== true) continue;
+      seen.add(id);
+      picked.push(row);
+      if (picked.length >= limit) break;
+    }
+  };
+
+  if (config.mode !== "auto") {
+    const { data } = await supabase
+      .from("product_recommendations")
+      .select(`sort_order, product:products!product_recommendations_recommended_product_id_fkey(${RECOMMENDATION_COLUMNS})`)
+      .eq("product_id", productId)
+      .order("sort_order");
+    push(
+      (data ?? [])
+        .map((row) => (row as Record<string, unknown>)["product"] as Record<string, unknown> | null)
+        .filter(Boolean) as Array<Record<string, unknown>>,
+    );
+  }
+
+  if (config.mode !== "manual" && picked.length < limit) {
+    const criteria = config.auto_criteria;
+
+    if (criteria === "best_sellers") {
+      const { data: ranking } = await supabase.rpc("public_best_sellers", { _limit: limit * 3 });
+      const ids = (ranking ?? [])
+        .map((row: { product_id: string | null }) => row.product_id)
+        .filter((id): id is string => Boolean(id) && !seen.has(id));
+      if (ids.length > 0) {
+        const { data } = await supabase.from("products").select(RECOMMENDATION_COLUMNS).in("id", ids);
+        const byId = new Map((data ?? []).map((row) => [String(row.id), row as Record<string, unknown>]));
+        push(ids.map((id) => byId.get(id)).filter(Boolean) as Array<Record<string, unknown>>);
+      }
+    }
+
+    if (picked.length < limit) {
+      // Fallback (e critérios "recentes"/"aleatórios"): produtos ativos mais recentes.
+      const { data } = await supabase
+        .from("products")
+        .select(RECOMMENDATION_COLUMNS)
+        .eq("is_active", true)
+        .order("created_at", { ascending: false })
+        .limit(limit * 4);
+      let rows = (data ?? []) as Array<Record<string, unknown>>;
+      if (criteria === "random") rows = [...rows].sort(() => Math.random() - 0.5);
+      push(rows);
+    }
+  }
+
+  const ids = picked.map((row) => String(row["id"]));
+  const imageMap: Record<string, string> = {};
+  if (ids.length > 0) {
+    const { data: imageRows } = await supabase
+      .from("product_images")
+      .select("product_id, image_url, sort_order")
+      .in("product_id", ids)
+      .order("sort_order");
+    const mainByProduct = new Map<string, string>();
+    for (const row of imageRows ?? []) {
+      const key = String(row.product_id);
+      if (!mainByProduct.has(key)) mainByProduct.set(key, row.image_url as string);
+    }
+    const resolved = await resolveImageUrls(supabase, [...mainByProduct.values()]);
+    for (const [key, path] of mainByProduct) imageMap[key] = resolved[path] ?? "";
+  }
+
+  return picked.map((row) => ({
+    id: String(row["id"]),
+    slug: String(row["slug"]),
+    name: String(row["name"]),
+    current_price: Number(row["current_price"] ?? 0),
+    old_price: row["old_price"] == null ? null : Number(row["old_price"]),
+    discount_percentage: row["discount_percentage"] == null ? null : Number(row["discount_percentage"]),
+    image: imageMap[String(row["id"])] || null,
+  }));
 }
 
 export const getPublicProduct = createServerFn({ method: "GET" })
@@ -81,10 +184,16 @@ export const getPublicProduct = createServerFn({ method: "GET" })
           five_star_count: reviewRows.filter((row) => row.rating === 5).length,
         };
 
+    const page = resolvePageSettings(
+      settings.error ? null : (settings.data as Record<string, unknown> | null),
+    );
+    const recommendations = await loadRecommendations(supabase, product.id, page);
+
     return {
       ...(product as ProductView),
       ...computed,
-      page: resolvePageSettings(settings.error ? null : (settings.data as Record<string, unknown> | null)),
+      page,
+      recommendations,
 
       images: imageRows.map((row) => urlMap[row.image_url]).filter(Boolean) as string[],
       promotions: (promotions.data ?? []).map((row) => row.text),
