@@ -1198,8 +1198,8 @@ function PerformancePanel({ productId }: { productId: string }) {
   });
 
   const cards: Array<[string, string]> = [
-    ["Vendas totais", perf.data ? String(perf.data.total_orders) : "—"],
-    ["Faturamento total", perf.data ? currencyBRL.format(perf.data.total_revenue) : "—"],
+    ["Vendas totais", perf.data ? String(perf.data.orders_total) : "—"],
+    ["Faturamento total", perf.data ? currencyBRL.format(perf.data.revenue_total) : "—"],
     ["Vendas 7 dias", perf.data ? String(perf.data.orders_7d) : "—"],
     ["Faturamento 7 dias", perf.data ? currencyBRL.format(perf.data.revenue_7d) : "—"],
     ["Vendas 30 dias", perf.data ? String(perf.data.orders_30d) : "—"],
