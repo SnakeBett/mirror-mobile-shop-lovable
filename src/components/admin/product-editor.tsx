@@ -27,6 +27,9 @@ import {
   deleteChild,
   getProduct,
   insertChild,
+  listRecommendationOptions,
+  listRecommendations,
+  saveRecommendations,
   removeStorageObject,
   reorderChild,
   updateChild,
@@ -34,6 +37,7 @@ import {
   uploadProductImage,
 } from "@/lib/admin-queries";
 import { calcDiscount, slugify, type ProductRow } from "@/lib/product-types";
+import { currencyBRL, getProductPerformance } from "@/lib/sales-queries";
 
 type Draft = Partial<ProductRow>;
 
@@ -47,6 +51,7 @@ const emptyDraft: Draft = {
   installment_text: "",
   installment_note: "",
   sales_count: "",
+  sales_count_display: "",
   rating: 5,
   review_count: 0,
   five_star_count: 0,
@@ -75,6 +80,8 @@ const TABS: Array<[string, string]> = [
   ["descricao", "Descrição"],
   ["avaliacoes", "Avaliações"],
   ["pagina", "Página"],
+  ["recomendacoes", "Recomendações"],
+  ["desempenho", "Desempenho"],
   ["checkout", "Checkout"],
 
 ];
@@ -243,6 +250,17 @@ export function ProductEditor({ productId }: { productId?: string }) {
               </Field>
               <Field label="Quantidade vendida (texto)" id="sales">
                 <Input id="sales" value={draft.sales_count ?? ""} onChange={(e) => set("sales_count", e.target.value)} />
+              </Field>
+              <Field label="Quantidade vendida exibida (opcional)" id="salesdisplay">
+                <Input
+                  id="salesdisplay"
+                  placeholder="Ex.: 5 mil+ vendidos"
+                  value={(draft as Record<string, unknown>)["sales_count_display"] as string ?? ""}
+                  onChange={(e) => set("sales_count_display" as keyof Draft, e.target.value as never)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Apenas visual. Não altera os pedidos reais registrados em Vendas.
+                </p>
               </Field>
               <Field label="Placeholder da pesquisa" id="ph">
                 <Input
@@ -504,6 +522,32 @@ export function ProductEditor({ productId }: { productId?: string }) {
           ) : (
             <Panel>
               <p className="text-sm text-muted-foreground">Salve o produto para adicionar avaliações.</p>
+            </Panel>
+          )}
+        </TabsContent>
+
+        <TabsContent value="recomendacoes" className="mt-4">
+          {data ? (
+            <RecommendationsPanel
+              productId={data.product.id}
+              settings={page.recommendation_settings}
+              onSettingsChange={(next) =>
+                setPage((prev) => ({ ...prev, recommendation_settings: { ...prev.recommendation_settings, ...next } }))
+              }
+            />
+          ) : (
+            <Panel title="Recomendações">
+              <p className="text-sm text-muted-foreground">Salve o produto para configurar recomendações.</p>
+            </Panel>
+          )}
+        </TabsContent>
+
+        <TabsContent value="desempenho" className="mt-4">
+          {data ? (
+            <PerformancePanel productId={data.product.id} />
+          ) : (
+            <Panel title="Desempenho">
+              <p className="text-sm text-muted-foreground">Salve o produto para acompanhar as vendas.</p>
             </Panel>
           )}
         </TabsContent>
@@ -1144,5 +1188,187 @@ function ReviewDialog({
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PerformancePanel({ productId }: { productId: string }) {
+  const perf = useQuery({
+    queryKey: ["admin", "product-performance", productId],
+    queryFn: () => getProductPerformance(productId),
+  });
+
+  const cards: Array<[string, string]> = [
+    ["Vendas totais", perf.data ? String(perf.data.total_orders) : "—"],
+    ["Faturamento total", perf.data ? currencyBRL.format(perf.data.total_revenue) : "—"],
+    ["Vendas 7 dias", perf.data ? String(perf.data.orders_7d) : "—"],
+    ["Faturamento 7 dias", perf.data ? currencyBRL.format(perf.data.revenue_7d) : "—"],
+    ["Vendas 30 dias", perf.data ? String(perf.data.orders_30d) : "—"],
+    ["Faturamento 30 dias", perf.data ? currencyBRL.format(perf.data.revenue_30d) : "—"],
+  ];
+
+  return (
+    <Panel title="Desempenho (pedidos pagos)">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        {cards.map(([label, value]) => (
+          <div key={label} className="rounded-md border border-border p-3">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="mt-1 text-lg font-semibold text-foreground">{value}</p>
+          </div>
+        ))}
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Baseado nos pedidos reais recebidos pelo webhook de pagamento.
+      </p>
+    </Panel>
+  );
+}
+
+function RecommendationsPanel({
+  productId,
+  settings,
+  onSettingsChange,
+}: {
+  productId: string;
+  settings: PageSettings["recommendation_settings"];
+  onSettingsChange: (next: Partial<PageSettings["recommendation_settings"]>) => void;
+}) {
+  const options = useQuery({
+    queryKey: ["admin", "recommendation-options", productId],
+    queryFn: () => listRecommendationOptions(productId),
+  });
+  const current = useQuery({
+    queryKey: ["admin", "recommendations", productId],
+    queryFn: () => listRecommendations(productId),
+  });
+
+  const [selected, setSelected] = useState<string[] | null>(null);
+  const ids = selected ?? current.data ?? [];
+  const [busy, setBusy] = useState(false);
+
+  const byId = useMemo(() => {
+    const map = new Map<string, string>();
+    (options.data ?? []).forEach((option) => map.set(option.id, option.name));
+    return map;
+  }, [options.data]);
+
+  const available = (options.data ?? []).filter((option) => !ids.includes(option.id));
+
+  async function persist(next: string[]) {
+    setSelected(next);
+    setBusy(true);
+    try {
+      await saveRecommendations(productId, next);
+      await current.refetch();
+      toast.success("Recomendações atualizadas.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível salvar.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function move(index: number, delta: number) {
+    const next = [...ids];
+    const target = index + delta;
+    if (target < 0 || target >= next.length) return;
+    [next[index], next[target]] = [next[target]!, next[index]!];
+    void persist(next);
+  }
+
+  return (
+    <div className="space-y-4">
+      <Panel title="Configuração da seção">
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label="Título da seção" id="rec-title">
+            <Input
+              id="rec-title"
+              placeholder="Compre também"
+              value={settings.title}
+              onChange={(e) => onSettingsChange({ title: e.target.value })}
+            />
+          </Field>
+          <Field label="Modo" id="rec-mode">
+            <select
+              id="rec-mode"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={settings.mode}
+              onChange={(e) => onSettingsChange({ mode: e.target.value as typeof settings.mode })}
+            >
+              <option value="manual">Manual</option>
+              <option value="auto">Automático</option>
+              <option value="manual_auto">Manual + Automático</option>
+            </select>
+          </Field>
+          <Field label="Critério automático" id="rec-criteria">
+            <select
+              id="rec-criteria"
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+              value={settings.auto_criteria}
+              onChange={(e) => onSettingsChange({ auto_criteria: e.target.value as typeof settings.auto_criteria })}
+            >
+              <option value="best_sellers">Mais vendidos</option>
+              <option value="recent">Mais recentes</option>
+              <option value="random">Aleatórios</option>
+            </select>
+          </Field>
+          <Field label="Quantidade exibida" id="rec-limit">
+            <Input
+              id="rec-limit"
+              type="number"
+              min="2"
+              max="6"
+              value={settings.limit}
+              onChange={(e) => onSettingsChange({ limit: Number(e.target.value) })}
+            />
+          </Field>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          As configurações da seção são salvas junto com o produto.
+        </p>
+      </Panel>
+
+      <Panel title="Produtos recomendados (manual)">
+        {ids.length === 0 && <p className="text-sm text-muted-foreground">Nenhum produto selecionado.</p>}
+        <ul className="space-y-2">
+          {ids.map((id, index) => (
+            <li key={id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2">
+              <span className="flex-1 truncate text-sm">{byId.get(id) ?? id}</span>
+              <Button size="sm" variant="ghost" disabled={busy || index === 0} onClick={() => move(index, -1)}>
+                ↑
+              </Button>
+              <Button size="sm" variant="ghost" disabled={busy || index === ids.length - 1} onClick={() => move(index, 1)}>
+                ↓
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                disabled={busy}
+                onClick={() => void persist(ids.filter((value) => value !== id))}
+              >
+                Remover
+              </Button>
+            </li>
+          ))}
+        </ul>
+
+        <div className="flex gap-2">
+          <select
+            className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+            value=""
+            disabled={busy || available.length === 0}
+            onChange={(e) => {
+              if (e.target.value) void persist([...ids, e.target.value]);
+            }}
+          >
+            <option value="">
+              {available.length === 0 ? "Nenhum produto disponível" : "Adicionar produto..."}
+            </option>
+            {available.map((option) => (
+              <option key={option.id} value={option.id}>{option.name}</option>
+            ))}
+          </select>
+        </div>
+      </Panel>
+    </div>
   );
 }
