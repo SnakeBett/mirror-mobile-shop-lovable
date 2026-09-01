@@ -12,6 +12,8 @@ import {
 } from "@/lib/import.functions";
 import {
   detectPlatform,
+  displayImportTitle,
+
   FIELD_LABELS,
   PLATFORM_LABELS,
   type ImportAnalysis,
@@ -341,11 +343,17 @@ function ImportPage() {
             {analyzing && <Loader2 className="mr-2 size-4 animate-spin" />}
             ANALISAR PRODUTO
           </Button>
+          {analysis && (
+            <Button variant="secondary" onClick={handleAnalyze} disabled={analyzing}>
+              TENTAR NOVAMENTE
+            </Button>
+          )}
           <span className="text-xs text-muted-foreground">Você também pode cadastrar manualmente</span>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/produtos/novo">CADASTRO MANUAL</Link>
           </Button>
         </div>
+
       </section>
 
       {(analysis?.status === "blocked" || analysis?.status === "failed") && (
@@ -769,7 +777,10 @@ function ImportPage() {
           {history.data?.map((row) => (
             <div key={row.id} className="flex flex-wrap items-center gap-3 px-4 py-3 text-sm">
               <div className="min-w-40 flex-1">
-                <p className="truncate font-medium text-foreground">{row.title ?? row.source_url}</p>
+                <p className="truncate font-medium text-foreground">
+                  {displayImportTitle(row.title, row.source_platform, row.external_product_id, row.source_url)}
+                </p>
+
                 <p className="truncate text-xs text-muted-foreground">{row.source_url}</p>
               </div>
               <span className="text-xs text-muted-foreground">

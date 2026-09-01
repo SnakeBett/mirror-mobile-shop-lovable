@@ -45,6 +45,11 @@ export type ImportAnalysis = {
   individualReviewsAvailable: boolean;
   /** Quantidade de informações efetivamente encontradas. */
   foundCount: number;
+  /** Motivo técnico do bloqueio (security_check, captcha, challenge...). */
+  blockedReason?: string | null;
+  /** Estratégia usada: json_ld, inline_json, open_graph, html_text... */
+  strategyUsed?: string;
+
 };
 
 export const PLATFORM_LABELS: Record<SourcePlatform, string> = {
@@ -122,3 +127,20 @@ export const FIELD_LABELS: Record<string, string> = {
   individualReviews: "Avaliações individuais",
   availability: "Disponibilidade",
 };
+
+const BLOCK_TITLE_RE =
+  /(security\s*check|access\s*denied|forbidden|captcha|verify\s+you|robot\s*check|just\s+a\s+moment|temporarily\s+unavailable|attention\s+required|acesso\s+negado|verifica(ç|c)ão\s+de\s+seguran)/i;
+
+/** Nunca exibir títulos de páginas de bloqueio no histórico/preview. */
+export function displayImportTitle(
+  title: string | null | undefined,
+  platform: string,
+  externalId: string | null | undefined,
+  fallbackUrl: string,
+): string {
+  const value = (title ?? "").trim();
+  if (value && !BLOCK_TITLE_RE.test(value)) return value;
+  const label = PLATFORM_LABELS[platform as SourcePlatform] ?? platform;
+  if (externalId) return `${label} • Produto ${externalId}`;
+  return fallbackUrl;
+}
