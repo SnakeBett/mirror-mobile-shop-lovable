@@ -96,13 +96,6 @@ function AdminLayout() {
           >
             <Download className="size-4" /> Importar produto
           </Link>
-          <Link
-            to="/admin/configuracoes/integracoes"
-            activeProps={{ className: "bg-accent text-accent-foreground" }}
-            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-          >
-            <Plug className="size-4" /> Integrações
-          </Link>
           <button
             type="button"
             onClick={openStore}
