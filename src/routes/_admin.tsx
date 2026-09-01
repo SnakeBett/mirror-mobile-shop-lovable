@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Download, LayoutDashboard, LogOut, Package, Plug, Receipt, Store } from "lucide-react";
+import { BarChart3, Download, LayoutDashboard, LogOut, Package, Receipt, Store } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { claimAdminIfFirst } from "@/lib/admin.functions";
