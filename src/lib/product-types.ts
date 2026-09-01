@@ -19,6 +19,13 @@ export type ProductRow = {
   closing_text: string | null;
   checkout_url: string | null;
   is_active: boolean;
+  shipping_min_days: number;
+  shipping_max_days: number;
+  shipping_business_days: boolean;
+  installment_note: string | null;
+  custom_stats_enabled: boolean;
+  checkout_button_text: string;
+  checkout_button_subtext: string | null;
   created_at: string;
   updated_at: string;
 };
