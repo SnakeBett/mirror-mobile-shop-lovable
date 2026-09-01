@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 
-import { getDashboardStats, listProducts } from "@/lib/admin-queries";
+import { getDashboardStats, listProductsWithMeta } from "@/lib/admin-queries";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/_admin/admin/")({
@@ -21,7 +21,10 @@ export const Route = createFileRoute("/_admin/admin/")({
 
 function AdminDashboard() {
   const stats = useQuery({ queryKey: ["admin", "stats"], queryFn: getDashboardStats });
-  const recent = useQuery({ queryKey: ["admin", "products", ""], queryFn: () => listProducts("") });
+  const recent = useQuery({
+    queryKey: ["admin", "products-meta", ""],
+    queryFn: () => listProductsWithMeta(""),
+  });
 
   const cards = [
     ["Produtos", stats.data?.products],
@@ -34,7 +37,7 @@ function AdminDashboard() {
     <div className="mx-auto max-w-4xl">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold text-foreground">Dashboard</h1>
-        <Button asChild size="sm"><Link to="/admin/produtos/novo">Novo produto</Link></Button>
+        <Button asChild size="sm"><Link to="/admin/produtos/novo">+ Novo produto</Link></Button>
       </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -49,15 +52,16 @@ function AdminDashboard() {
       <h2 className="mt-8 text-sm font-semibold text-foreground">Produtos recentes</h2>
       <div className="mt-3 divide-y divide-border rounded-lg border border-border bg-background">
         {(recent.data ?? []).slice(0, 5).map((product) => (
-          <Link
-            key={product.id}
-            to="/admin/produtos/$id"
-            params={{ id: product.id }}
-            className="flex items-center justify-between gap-3 px-4 py-3 text-sm hover:bg-accent"
-          >
-            <span className="truncate">{product.name}</span>
+          <div key={product.id} className="flex items-center gap-3 px-4 py-3 text-sm">
+            {product.thumbnail && (
+              <img src={product.thumbnail} alt="" className="size-10 rounded-md border border-border object-cover" />
+            )}
+            <span className="min-w-0 flex-1 truncate">{product.name}</span>
             <span className="text-xs text-muted-foreground">{product.is_active ? "Ativo" : "Inativo"}</span>
-          </Link>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/produtos/$id" params={{ id: product.id }}>Editar</Link>
+            </Button>
+          </div>
         ))}
         {recent.data?.length === 0 && (
           <p className="px-4 py-6 text-sm text-muted-foreground">Nenhum produto cadastrado ainda.</p>
