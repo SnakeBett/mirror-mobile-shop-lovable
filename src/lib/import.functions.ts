@@ -3,7 +3,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   detectPlatform,
-  isAllowedSourceHost,
   parseProductUrl,
   type ImportAnalysis,
 } from "./import-types";
