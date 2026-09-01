@@ -6,7 +6,7 @@
 
 export type SourcePlatform = "mercado_livre" | "shopee" | "tiktok_shop" | "unknown";
 
-export type ImportStatus = "analyzing" | "found" | "partial" | "failed" | "imported";
+export type ImportStatus = "analyzing" | "found" | "partial" | "blocked" | "failed" | "imported";
 
 export type ImportedAttribute = { label: string; value: string };
 
