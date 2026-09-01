@@ -74,7 +74,9 @@ const TABS: Array<[string, string]> = [
   ["detalhes", "Detalhes"],
   ["descricao", "Descrição"],
   ["avaliacoes", "Avaliações"],
+  ["pagina", "Página"],
   ["checkout", "Checkout"],
+
 ];
 
 function Panel({ title, children }: { title?: string; children: React.ReactNode }) {
