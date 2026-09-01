@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      orders: {
+        Row: {
+          amount: number
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          external_order_id: string
+          id: string
+          is_test: boolean
+          metadata: Json | null
+          paid_at: string | null
+          payment_method: string | null
+          product_id: string | null
+          status: Database["public"]["Enums"]["order_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          external_order_id: string
+          id?: string
+          is_test?: boolean
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_method?: string | null
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          external_order_id?: string
+          id?: string
+          is_test?: boolean
+          metadata?: Json | null
+          paid_at?: string | null
+          payment_method?: string | null
+          product_id?: string | null
+          status?: Database["public"]["Enums"]["order_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_details: {
         Row: {
           created_at: string
@@ -125,6 +181,7 @@ export type Database = {
           product_id: string
           promotion_settings: Json
           protection_settings: Json
+          recommendation_settings: Json
           review_settings: Json
           section_order: Json
           section_visibility: Json
@@ -144,6 +201,7 @@ export type Database = {
           product_id: string
           promotion_settings?: Json
           protection_settings?: Json
+          recommendation_settings?: Json
           review_settings?: Json
           section_order?: Json
           section_visibility?: Json
@@ -163,6 +221,7 @@ export type Database = {
           product_id?: string
           promotion_settings?: Json
           protection_settings?: Json
+          recommendation_settings?: Json
           review_settings?: Json
           section_order?: Json
           section_visibility?: Json
@@ -176,6 +235,45 @@ export type Database = {
             foreignKeyName: "product_page_settings_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_recommendations: {
+        Row: {
+          created_at: string
+          id: string
+          product_id: string
+          recommended_product_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          product_id: string
+          recommended_product_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          product_id?: string
+          recommended_product_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_recommendations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_recommendations_recommended_product_id_fkey"
+            columns: ["recommended_product_id"]
+            isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
@@ -203,6 +301,7 @@ export type Database = {
           rating: number | null
           review_count: number | null
           sales_count: string | null
+          sales_count_display: string | null
           search_placeholder: string | null
           shipping_business_days: boolean
           shipping_discount_text: string | null
@@ -234,6 +333,7 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           sales_count?: string | null
+          sales_count_display?: string | null
           search_placeholder?: string | null
           shipping_business_days?: boolean
           shipping_discount_text?: string | null
@@ -265,6 +365,7 @@ export type Database = {
           rating?: number | null
           review_count?: number | null
           sales_count?: string | null
+          sales_count_display?: string | null
           search_placeholder?: string | null
           shipping_business_days?: boolean
           shipping_discount_text?: string | null
@@ -385,6 +486,46 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_product_performance: {
+        Args: { _product_id: string }
+        Returns: {
+          orders_30d: number
+          orders_7d: number
+          orders_total: number
+          revenue_30d: number
+          revenue_7d: number
+          revenue_total: number
+        }[]
+      }
+      admin_sales_by_product: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          avg_ticket: number
+          orders_count: number
+          product_id: string
+          product_name: string
+          revenue: number
+          slug: string
+        }[]
+      }
+      admin_sales_daily: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          day: string
+          orders_count: number
+          revenue: number
+        }[]
+      }
+      admin_sales_summary: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          avg_ticket: number
+          orders_count: number
+          revenue: number
+          top_product_id: string
+          top_product_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -392,9 +533,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      public_best_sellers: {
+        Args: { _limit?: number }
+        Returns: {
+          orders_count: number
+          product_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
+      order_status: "pending" | "paid" | "cancelled" | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -523,6 +672,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
+      order_status: ["pending", "paid", "cancelled", "refunded"],
     },
   },
 } as const
