@@ -202,6 +202,20 @@ export type ColorSettings = {
   price: string;
 };
 
+export type RecommendationMode = "manual" | "auto" | "manual_auto";
+export type RecommendationCriteria = "best_sellers" | "recent" | "random";
+
+export type RecommendationSettings = {
+  /** Vazio = usa "Compre também". */
+  title: string;
+  mode: RecommendationMode;
+  auto_criteria: RecommendationCriteria;
+  /** 2 a 6 itens. */
+  limit: number;
+};
+
+export const RECOMMENDATION_TITLE_DEFAULT = "Compre também";
+
 export type PageSettings = {
   section_visibility: SectionVisibility;
   section_order: SectionKey[];
@@ -216,7 +230,9 @@ export type PageSettings = {
   shipping_settings: ShippingSettings;
   protection_settings: ProtectionSettings;
   color_settings: ColorSettings;
+  recommendation_settings: RecommendationSettings;
 };
+
 
 export const DEFAULT_PAGE_SETTINGS: PageSettings = {
   section_visibility: {
