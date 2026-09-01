@@ -1060,6 +1060,8 @@ export function analyzeDocument(input: DocumentInput): ImportAnalysis {
   product.metadata["imagesReusable"] = isAllowedSourceHost(fetched.url.hostname);
   if (productId) product.metadata["productId"] = productId;
   if (blockedReason) product.metadata["blockedReason"] = blockedReason;
+  product.metadata["importMethod"] = origin === "browser" ? "browser_capture" : "server";
+  if (product.soldCount != null) product.metadata["soldCount"] = product.soldCount;
 
   const found: string[] = [];
   if (product.title) found.push("title");
