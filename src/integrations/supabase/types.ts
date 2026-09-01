@@ -175,6 +175,7 @@ export type Database = {
           error_detail: string | null
           external_product_id: string | null
           id: string
+          import_method: string
           missing_fields: Json
           product_id: string | null
           source_platform: string
@@ -188,6 +189,7 @@ export type Database = {
           error_detail?: string | null
           external_product_id?: string | null
           id?: string
+          import_method?: string
           missing_fields?: Json
           product_id?: string | null
           source_platform?: string
@@ -201,6 +203,7 @@ export type Database = {
           error_detail?: string | null
           external_product_id?: string | null
           id?: string
+          import_method?: string
           missing_fields?: Json
           product_id?: string | null
           source_platform?: string
@@ -344,6 +347,7 @@ export type Database = {
           external_product_id: string | null
           five_star_count: number | null
           id: string
+          import_method: string | null
           installment_note: string | null
           installment_text: string | null
           is_active: boolean
@@ -379,6 +383,7 @@ export type Database = {
           external_product_id?: string | null
           five_star_count?: number | null
           id?: string
+          import_method?: string | null
           installment_note?: string | null
           installment_text?: string | null
           is_active?: boolean
@@ -414,6 +419,7 @@ export type Database = {
           external_product_id?: string | null
           five_star_count?: number | null
           id?: string
+          import_method?: string | null
           installment_note?: string | null
           installment_text?: string | null
           is_active?: boolean

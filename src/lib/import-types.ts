@@ -12,6 +12,14 @@ export type ImportedAttribute = { label: string; value: string };
 
 export type ImportedVariantOption = { name: string; values: string[] };
 
+export type ImportMethod = "server" | "browser_capture" | "manual";
+
+export const IMPORT_METHOD_LABELS: Record<ImportMethod, string> = {
+  server: "Server",
+  browser_capture: "Browser Capture",
+  manual: "Manual",
+};
+
 export type ImportedProduct = {
   source: SourcePlatform;
   sourceUrl: string;
@@ -23,6 +31,7 @@ export type ImportedProduct = {
   images: string[];
   rating: number | null;
   reviewCount: number | null;
+  soldCount: number | null;
   /** Texto original da origem, apenas quando a fonte autoriza a reutilização. */
   description: string | null;
   descriptionLicensed: boolean;

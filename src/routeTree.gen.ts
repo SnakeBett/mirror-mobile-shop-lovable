@@ -18,6 +18,7 @@ import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.im
 import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
 import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
+import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
@@ -68,6 +69,12 @@ const AdminAdminConfiguracoesIntegracoesRoute =
     path: '/admin/configuracoes/integracoes',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminAdminImportarNavegadorRoute =
+  AdminAdminImportarNavegadorRouteImport.update({
+    id: '/navegador',
+    path: '/navegador',
+    getParentRoute: () => AdminAdminImportarRoute,
+  } as any)
 const AdminAdminProdutosIndexRoute = AdminAdminProdutosIndexRouteImport.update({
   id: '/admin/produtos/',
   path: '/admin/produtos/',
@@ -94,11 +101,12 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
-  '/admin/importar': typeof AdminAdminImportarRoute
+  '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
@@ -108,11 +116,12 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
-  '/admin/importar': typeof AdminAdminImportarRoute
+  '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin': typeof AdminAdminIndexRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
@@ -124,11 +133,12 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
-  '/_admin/admin/importar': typeof AdminAdminImportarRoute
+  '/_admin/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
   '/_admin/admin/vendas': typeof AdminAdminVendasRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
+  '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
@@ -145,6 +155,7 @@ export interface FileRouteTypes {
     | '/admin/vendas'
     | '/admin/'
     | '/admin/configuracoes/integracoes'
+    | '/admin/importar/navegador'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/public/webhooks/pagamento'
@@ -159,6 +170,7 @@ export interface FileRouteTypes {
     | '/admin/vendas'
     | '/admin'
     | '/admin/configuracoes/integracoes'
+    | '/admin/importar/navegador'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/public/webhooks/pagamento'
@@ -174,6 +186,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/vendas'
     | '/_admin/admin/'
     | '/_admin/admin/configuracoes/integracoes'
+    | '/_admin/admin/importar/navegador'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
     | '/api/public/webhooks/pagamento'
@@ -253,6 +266,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminConfiguracoesIntegracoesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/importar/navegador': {
+      id: '/_admin/admin/importar/navegador'
+      path: '/navegador'
+      fullPath: '/admin/importar/navegador'
+      preLoaderRoute: typeof AdminAdminImportarNavegadorRouteImport
+      parentRoute: typeof AdminAdminImportarRoute
+    }
     '/_admin/admin/produtos/': {
       id: '/_admin/admin/produtos/'
       path: '/admin/produtos'
@@ -284,8 +304,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminAdminImportarRouteChildren {
+  AdminAdminImportarNavegadorRoute: typeof AdminAdminImportarNavegadorRoute
+}
+
+const AdminAdminImportarRouteChildren: AdminAdminImportarRouteChildren = {
+  AdminAdminImportarNavegadorRoute: AdminAdminImportarNavegadorRoute,
+}
+
+const AdminAdminImportarRouteWithChildren =
+  AdminAdminImportarRoute._addFileChildren(AdminAdminImportarRouteChildren)
+
 interface AdminRouteChildren {
-  AdminAdminImportarRoute: typeof AdminAdminImportarRoute
+  AdminAdminImportarRoute: typeof AdminAdminImportarRouteWithChildren
   AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
   AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
@@ -296,7 +327,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminAdminImportarRoute: AdminAdminImportarRoute,
+  AdminAdminImportarRoute: AdminAdminImportarRouteWithChildren,
   AdminAdminPedidosRoute: AdminAdminPedidosRoute,
   AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,

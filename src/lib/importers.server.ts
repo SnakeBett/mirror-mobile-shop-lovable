@@ -95,6 +95,7 @@ function emptyProduct(platform: SourcePlatform, url: URL): ImportedProduct {
     images: [],
     rating: null,
     reviewCount: null,
+    soldCount: null,
     description: null,
     descriptionLicensed: false,
     attributes: [],
@@ -629,7 +630,10 @@ function applyJsonProduct(product: ImportedProduct, node: Record<string, any>, b
     product.reviewCount = pickNumber(node, ["review_count", "reviewCount", "comment_count", "commentCount", "rating_count", "ratingCount"]);
   }
   const sold = pickNumber(node, ["sold_count", "soldCount", "sale_cnt", "sales", "sold"]);
-  if (sold != null && product.metadata["soldCount"] == null) product.metadata["soldCount"] = sold;
+  if (sold != null) {
+    if (product.soldCount == null) product.soldCount = sold;
+    if (product.metadata["soldCount"] == null) product.metadata["soldCount"] = sold;
+  }
 
   if (!product.externalId) {
     const id = pickString(node, ["product_id", "productId", "item_id", "itemId", "id", "sku"]);
@@ -984,20 +988,52 @@ export async function analyzePublicUrl(url: URL, platform: SourcePlatform): Prom
     );
   }
 
+  return analyzeDocument({
+    platform,
+    html: fetched.html,
+    finalUrl: fetched.url,
+    canonical,
+    productId,
+    origin: "server",
+  });
+}
+
+type DocumentInput = {
+  platform: SourcePlatform;
+  html: string;
+  finalUrl: URL;
+  canonical: URL;
+  productId: string | null;
+  /** "server" = HTML buscado por nós; "browser" = conteúdo colado pelo admin. */
+  origin: "server" | "browser";
+  /** JSON já extraído (usado pela captura do navegador quando o admin cola JSON puro). */
+  extraJson?: unknown[];
+};
+
+/**
+ * Pipeline única de extração: usada tanto pela leitura server-side quanto pela
+ * captura feita no navegador do administrador. Nunca executa scripts — apenas
+ * faz parsing de texto.
+ */
+export function analyzeDocument(input: DocumentInput): ImportAnalysis {
+  const { platform, html, finalUrl, canonical, productId, origin } = input;
+
   const redirectedToAuth = /\/(login|signin|sign-in|passport|verify|captcha|challenge)(\/|$)/i.test(
-    fetched.url.pathname,
+    finalUrl.pathname,
   );
-  const blockedReason = detectBlockedPage(fetched.html) ?? (redirectedToAuth ? "login_required" : null);
+  const blockedReason = detectBlockedPage(html) ?? (redirectedToAuth && origin === "server" ? "login_required" : null);
 
-
+  const url = finalUrl;
+  const fetched = { url: finalUrl, html };
   const ctx: ImporterContext = {
     url: fetched.url,
     canonicalUrl: canonical,
     productId,
     html: fetched.html,
-    json: collectJsonLd(fetched.html),
-    inlineJson: collectInlineJson(fetched.html),
+    json: [...collectJsonLd(fetched.html), ...(input.extraJson ?? [])],
+    inlineJson: [...collectInlineJson(fetched.html), ...(input.extraJson ?? [])],
   };
+
 
   const { product: base, strategies } = extractFromPage(platform, ctx);
   let product = base;
@@ -1024,6 +1060,8 @@ export async function analyzePublicUrl(url: URL, platform: SourcePlatform): Prom
   product.metadata["imagesReusable"] = isAllowedSourceHost(fetched.url.hostname);
   if (productId) product.metadata["productId"] = productId;
   if (blockedReason) product.metadata["blockedReason"] = blockedReason;
+  product.metadata["importMethod"] = origin === "browser" ? "browser_capture" : "server";
+  if (product.soldCount != null) product.metadata["soldCount"] = product.soldCount;
 
   const found: string[] = [];
   if (product.title) found.push("title");
@@ -1056,18 +1094,32 @@ export async function analyzePublicUrl(url: URL, platform: SourcePlatform): Prom
   missingFields.push("individualReviews");
 
   if (found.length === 0) {
+    if (origin === "browser") {
+      return blocked(
+        blockedReason
+          ? "O conteúdo colado é a página de verificação de segurança, não a do produto."
+          : "Não encontramos dados de produto no conteúdo colado.",
+        [
+          blockedReason
+            ? "Abra a página do produto no navegador (depois de passar a verificação) e copie o HTML novamente."
+            : "Copie o HTML completo da página do produto ou o JSON estruturado e cole novamente.",
+        ],
+        blockedReason ?? "no_data",
+      );
+    }
     return blocked(
       blockedReason
         ? "Esta página bloqueou a leitura automática."
         : "Não conseguimos ler automaticamente esta página.",
       [
         blockedReason
-          ? "A loja exibiu uma verificação de segurança. Use a importação assistida."
-          : "Nenhum dado público estruturado foi encontrado. Use a importação assistida.",
+          ? "A loja exibiu uma verificação de segurança. Use a importação pelo navegador."
+          : "Nenhum dado público estruturado foi encontrado. Use a importação pelo navegador.",
       ],
       blockedReason ?? "no_data",
     );
   }
+
 
   const notices = [
     "Avaliações individuais não são importadas: cadastre as suas próprias no editor.",
@@ -1097,4 +1149,131 @@ export function integrationStatus() {
     shopee: process.env["SHOPEE_API_KEY"] ? "connected" : "not_configured",
     tiktok_shop: process.env["TIKTOK_SHOP_API_KEY"] ? "connected" : "not_configured",
   } as const;
+}
+
+// ---------- captura pelo navegador (fallback sem evasão) ----------
+
+/** Remove variações de resolução da mesma imagem, mantendo a maior. */
+export function dedupeImagesByResolution(images: string[]): string[] {
+  const groups = new Map<string, { url: string; score: number }>();
+  for (const image of images) {
+    const key = image
+      .split("?")[0]!
+      .replace(/[_-]\d{2,4}x\d{2,4}(?=\.)/i, "")
+      .replace(/[_-]\d{2,4}(?:w|px)(?=\.)/i, "")
+      .replace(/~tplv-[^./]+/i, "")
+      .toLowerCase();
+    const score = imageScore(image) || image.length;
+    const current = groups.get(key);
+    if (!current || score > current.score) groups.set(key, { url: image, score });
+  }
+  return [...groups.values()].map((entry) => entry.url);
+}
+
+function flattenJson(value: unknown): unknown[] {
+  const out: unknown[] = [];
+  const push = (entry: unknown) => {
+    if (!entry || typeof entry !== "object") return;
+    out.push(entry);
+    const graph = (entry as Record<string, unknown>)["@graph"];
+    if (Array.isArray(graph)) out.push(...graph);
+  };
+  if (Array.isArray(value)) value.forEach(push);
+  else push(value);
+  return out;
+}
+
+export const MAX_CAPTURE_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Analisa conteúdo capturado pelo próprio administrador no navegador
+ * (HTML da página, JSON-LD ou JSON estruturado). Nada é executado: apenas
+ * parsing de texto. Reutiliza a mesma camada normalizada do importador.
+ */
+export function analyzeCapturedContent(
+  rawContent: string,
+  sourceUrlRaw: string,
+  platform: SourcePlatform,
+): ImportAnalysis {
+  const content = (rawContent ?? "").trim();
+  if (!content) {
+    return blocked("Cole os dados capturados da página.", [], "empty_capture");
+  }
+  if (content.length > MAX_CAPTURE_BYTES) {
+    return blocked(
+      "Conteúdo muito grande.",
+      [
+        "Cole apenas o JSON estruturado (JSON-LD) da página ou use a importação assistida.",
+      ],
+      "too_large",
+    );
+  }
+
+  let html = "";
+  let extraJson: unknown[] = [];
+  if (content.startsWith("{") || content.startsWith("[")) {
+    try {
+      extraJson = flattenJson(JSON.parse(content));
+    } catch {
+      return blocked(
+        "Não conseguimos interpretar o JSON colado.",
+        ["Confira se o conteúdo foi copiado por completo ou cole o HTML da página."],
+        "invalid_json",
+      );
+    }
+  } else {
+    html = content;
+  }
+
+  // URL de origem: informada pelo admin ou descoberta no próprio conteúdo.
+  const declared = parseProductUrl(sourceUrlRaw ?? "");
+  let sourceUrl: URL | null = "url" in declared ? declared.url : null;
+  if (!sourceUrl && html) {
+    const candidate =
+      metaContent(html, ["og:url"]) ??
+      html.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1] ??
+      null;
+    if (candidate) {
+      const parsed = parseProductUrl(decodeEntities(candidate));
+      if ("url" in parsed) sourceUrl = parsed.url;
+    }
+  }
+  if (!sourceUrl && extraJson.length > 0) {
+    for (const node of extraJson) {
+      const value = (node as Record<string, unknown>)?.["url"];
+      if (typeof value === "string") {
+        const parsed = parseProductUrl(value);
+        if ("url" in parsed) {
+          sourceUrl = parsed.url;
+          break;
+        }
+      }
+    }
+  }
+  if (!sourceUrl) {
+    return blocked(
+      "Informe a URL do produto para relacionar os dados capturados.",
+      ["Cole o endereço da página do produto no campo acima."],
+      "missing_url",
+    );
+  }
+
+  const detected = platform === "unknown" ? platform : platform;
+  const { canonical, productId } = canonicalizeProductUrl(sourceUrl, detected);
+
+  const analysis = analyzeDocument({
+    platform: detected,
+    html,
+    finalUrl: sourceUrl,
+    canonical,
+    productId,
+    origin: "browser",
+    extraJson,
+  });
+
+  if (analysis.product) {
+    analysis.product.images = dedupeImagesByResolution(analysis.product.images).slice(0, 24);
+    analysis.product.metadata["importMethod"] = "browser_capture";
+  }
+  return analysis;
 }
