@@ -75,14 +75,15 @@ async function loadRecommendations(
 
     if (criteria === "best_sellers") {
       const { data: ranking } = await supabase.rpc("public_best_sellers", { _limit: limit * 3 });
-      const ids = (ranking ?? [])
-        .map((row: { product_id: string | null }) => row.product_id)
-        .filter((id): id is string => Boolean(id) && !seen.has(id));
+      const ids: string[] = ((ranking ?? []) as Array<{ product_id: string | null }>)
+        .map((row) => row.product_id)
+        .filter((id): id is string => Boolean(id) && !seen.has(id as string));
       if (ids.length > 0) {
         const { data } = await supabase.from("products").select(RECOMMENDATION_COLUMNS).in("id", ids);
         const byId = new Map((data ?? []).map((row) => [String(row.id), row as Record<string, unknown>]));
-        push(ids.map((id) => byId.get(id)).filter(Boolean) as Array<Record<string, unknown>>);
+        push(ids.map((id: string) => byId.get(id)).filter(Boolean) as Array<Record<string, unknown>>);
       }
+
     }
 
     if (picked.length < limit) {
