@@ -2,7 +2,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { createClient } from "@supabase/supabase-js";
 
 import { resolveImageUrls } from "./storage-images";
+import { resolvePageSettings } from "./page-settings";
 import type { ProductView } from "./product-types";
+
 
 function createPublicClient() {
   const url = process.env["SUPABASE_URL"]!;
@@ -36,7 +38,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     if (error) throw new Error("Não foi possível carregar o produto.");
     if (!product) return null;
 
-    const [images, promotions, details, highlights, reviews] = await Promise.all([
+    const [images, promotions, details, highlights, reviews, settings] = await Promise.all([
       supabase.from("product_images").select("*").eq("product_id", product.id).order("sort_order"),
       supabase
         .from("promotions")
@@ -52,7 +54,10 @@ export const getPublicProduct = createServerFn({ method: "GET" })
         .eq("product_id", product.id)
         .eq("is_active", true)
         .order("sort_order"),
+      // Falha aqui nunca quebra a página: cai nos defaults (visual original).
+      supabase.from("product_page_settings").select("*").eq("product_id", product.id).maybeSingle(),
     ]);
+
 
     const imageRows = images.data ?? [];
     const reviewRows = reviews.data ?? [];
@@ -79,6 +84,8 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     return {
       ...(product as ProductView),
       ...computed,
+      page: resolvePageSettings(settings.error ? null : (settings.data as Record<string, unknown> | null)),
+
       images: imageRows.map((row) => urlMap[row.image_url]).filter(Boolean) as string[],
       promotions: (promotions.data ?? []).map((row) => row.text),
       details: (details.data ?? []).map((row) => [row.label, row.value ?? ""] as [string, string]),

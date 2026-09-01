@@ -113,6 +113,74 @@ export type Database = {
           },
         ]
       }
+      product_page_settings: {
+        Row: {
+          bottom_bar_settings: Json
+          color_settings: Json
+          created_at: string
+          field_visibility: Json
+          gallery_settings: Json
+          header_settings: Json
+          id: string
+          product_id: string
+          promotion_settings: Json
+          protection_settings: Json
+          review_settings: Json
+          section_order: Json
+          section_visibility: Json
+          shipping_settings: Json
+          tab_settings: Json
+          text_settings: Json
+          updated_at: string
+        }
+        Insert: {
+          bottom_bar_settings?: Json
+          color_settings?: Json
+          created_at?: string
+          field_visibility?: Json
+          gallery_settings?: Json
+          header_settings?: Json
+          id?: string
+          product_id: string
+          promotion_settings?: Json
+          protection_settings?: Json
+          review_settings?: Json
+          section_order?: Json
+          section_visibility?: Json
+          shipping_settings?: Json
+          tab_settings?: Json
+          text_settings?: Json
+          updated_at?: string
+        }
+        Update: {
+          bottom_bar_settings?: Json
+          color_settings?: Json
+          created_at?: string
+          field_visibility?: Json
+          gallery_settings?: Json
+          header_settings?: Json
+          id?: string
+          product_id?: string
+          promotion_settings?: Json
+          protection_settings?: Json
+          review_settings?: Json
+          section_order?: Json
+          section_visibility?: Json
+          shipping_settings?: Json
+          tab_settings?: Json
+          text_settings?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_page_settings_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           checkout_button_subtext: string | null

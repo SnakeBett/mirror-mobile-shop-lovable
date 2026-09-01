@@ -53,7 +53,9 @@ export type ProductView = ProductRow & {
   details: Array<[string, string]>;
   highlights: string[];
   reviews: Array<Omit<ProductReview, "image_url"> & { image_url: string | null }>;
+  page: import("./page-settings").PageSettings;
 };
+
 
 export function slugify(value: string) {
   return value
@@ -101,4 +103,32 @@ export function getShippingRange(
   const min = Math.min(minDays, maxDays);
   const max = Math.max(minDays, maxDays);
   return `${formatShippingDate(addDays(from, min, businessDays))} e ${formatShippingDate(addDays(from, max, businessDays))}`;
+}
+
+/** Datas de entrega (mínima e máxima) já formatadas. */
+export function getShippingDates(
+  minDays = 3,
+  maxDays = 6,
+  businessDays = false,
+  from: Date = new Date(),
+): [string, string] {
+  const min = Math.min(minDays, maxDays);
+  const max = Math.max(minDays, maxDays);
+  return [
+    formatShippingDate(addDays(from, min, businessDays)),
+    formatShippingDate(addDays(from, max, businessDays)),
+  ];
+}
+
+/** Aplica o modelo de texto da entrega, com fallback para o padrão atual. */
+export function formatShippingText(
+  template: string,
+  minDays = 3,
+  maxDays = 6,
+  businessDays = false,
+  from: Date = new Date(),
+) {
+  const [min, max] = getShippingDates(minDays, maxDays, businessDays, from);
+  const model = (template ?? "").trim() || "Receba entre {min_date} e {max_date}";
+  return model.replaceAll("{min_date}", min).replaceAll("{max_date}", max);
 }
