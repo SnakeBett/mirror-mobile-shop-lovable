@@ -988,10 +988,45 @@ export async function analyzePublicUrl(url: URL, platform: SourcePlatform): Prom
     );
   }
 
+  return analyzeDocument({
+    platform,
+    html: fetched.html,
+    finalUrl: fetched.url,
+    canonical,
+    productId,
+    origin: "server",
+  });
+}
+
+type DocumentInput = {
+  platform: SourcePlatform;
+  html: string;
+  finalUrl: URL;
+  canonical: URL;
+  productId: string | null;
+  /** "server" = HTML buscado por nós; "browser" = conteúdo colado pelo admin. */
+  origin: "server" | "browser";
+  /** JSON já extraído (usado pela captura do navegador quando o admin cola JSON puro). */
+  extraJson?: unknown[];
+};
+
+/**
+ * Pipeline única de extração: usada tanto pela leitura server-side quanto pela
+ * captura feita no navegador do administrador. Nunca executa scripts — apenas
+ * faz parsing de texto.
+ */
+export function analyzeDocument(input: DocumentInput): ImportAnalysis {
+  const { platform, html, finalUrl, canonical, productId, origin } = input;
+
   const redirectedToAuth = /\/(login|signin|sign-in|passport|verify|captcha|challenge)(\/|$)/i.test(
-    fetched.url.pathname,
+    finalUrl.pathname,
   );
-  const blockedReason = detectBlockedPage(fetched.html) ?? (redirectedToAuth ? "login_required" : null);
+  const blockedReason = detectBlockedPage(html) ?? (redirectedToAuth && origin === "server" ? "login_required" : null);
+
+  const url = finalUrl;
+  const fetched = { url: finalUrl, html };
+
+
 
 
   const ctx: ImporterContext = {
