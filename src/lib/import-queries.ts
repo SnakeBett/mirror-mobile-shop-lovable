@@ -35,11 +35,31 @@ export async function logImport(values: {
   missing_fields?: string[];
   error_detail?: string | null;
 }) {
-  const { error } = await supabase.from("product_imports").insert({
-    ...values,
-    missing_fields: values.missing_fields ?? [],
-  } as never);
+  const payload = { ...values, missing_fields: values.missing_fields ?? [] };
+
+  // Reanálise da mesma URL atualiza o registro existente em vez de duplicar.
+  if (!values.product_id) {
+    const { data: existing } = await supabase
+      .from("product_imports")
+      .select("id")
+      .eq("source_url", values.source_url)
+      .is("product_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const row = (existing ?? [])[0];
+    if (row) {
+      const { error: updateError } = await supabase
+        .from("product_imports")
+        .update(payload as never)
+        .eq("id", row.id);
+      if (updateError) throw updateError;
+      return;
+    }
+  }
+
+  const { error } = await supabase.from("product_imports").insert(payload as never);
   if (error) throw error;
+
 }
 
 /** Procura produtos já importados da mesma origem. */
