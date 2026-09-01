@@ -27,6 +27,7 @@ import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
+import { Route as ApiPublicWebhooksImperiumpayRouteImport } from './routes/api/public/webhooks/imperiumpay'
 import { Route as ApiPublicWebhooksPagamentoRouteImport } from './routes/api/public/webhooks/pagamento'
 
 const IndexRoute = IndexRouteImport.update({
@@ -122,6 +123,12 @@ const AdminAdminProdutosNovoRoute = AdminAdminProdutosNovoRouteImport.update({
   path: '/admin/produtos/novo',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicWebhooksImperiumpayRoute =
+  ApiPublicWebhooksImperiumpayRouteImport.update({
+    id: '/api/public/webhooks/imperiumpay',
+    path: '/api/public/webhooks/imperiumpay',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksPagamentoRoute =
   ApiPublicWebhooksPagamentoRouteImport.update({
     id: '/api/public/webhooks/pagamento',
@@ -146,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/admin/produtos/': typeof AdminAdminProdutosIndexRoute
 }
@@ -166,6 +174,7 @@ export interface FileRoutesByTo {
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/admin/produtos': typeof AdminAdminProdutosIndexRoute
 }
@@ -188,6 +197,7 @@ export interface FileRoutesById {
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/_admin/admin/produtos/': typeof AdminAdminProdutosIndexRoute
 }
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/admin/importar/navegador'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
     | '/admin/produtos/'
   fileRoutesByTo: FileRoutesByTo
@@ -230,6 +241,7 @@ export interface FileRouteTypes {
     | '/admin/importar/navegador'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
     | '/admin/produtos'
   id:
@@ -251,6 +263,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/importar/navegador'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
+    | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
     | '/_admin/admin/produtos/'
   fileRoutesById: FileRoutesById
@@ -262,6 +275,7 @@ export interface RootRouteChildren {
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiPublicMetaEventRoute: typeof ApiPublicMetaEventRoute
   ApiPublicTrackRoute: typeof ApiPublicTrackRoute
+  ApiPublicWebhooksImperiumpayRoute: typeof ApiPublicWebhooksImperiumpayRoute
   ApiPublicWebhooksPagamentoRoute: typeof ApiPublicWebhooksPagamentoRoute
 }
 
@@ -393,6 +407,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminProdutosNovoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/webhooks/imperiumpay': {
+      id: '/api/public/webhooks/imperiumpay'
+      path: '/api/public/webhooks/imperiumpay'
+      fullPath: '/api/public/webhooks/imperiumpay'
+      preLoaderRoute: typeof ApiPublicWebhooksImperiumpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/pagamento': {
       id: '/api/public/webhooks/pagamento'
       path: '/api/public/webhooks/pagamento'
@@ -452,6 +473,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiPublicMetaEventRoute: ApiPublicMetaEventRoute,
   ApiPublicTrackRoute: ApiPublicTrackRoute,
+  ApiPublicWebhooksImperiumpayRoute: ApiPublicWebhooksImperiumpayRoute,
   ApiPublicWebhooksPagamentoRoute: ApiPublicWebhooksPagamentoRoute,
 }
 export const routeTree = rootRouteImport

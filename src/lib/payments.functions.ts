@@ -32,8 +32,9 @@ export type WebhookLogRow = {
 };
 
 export type WebhookLogDetail = WebhookLogRow & {
-  headers_safe: unknown;
-  payload: unknown;
+  /** JSON já formatado (string) para exibição segura no admin. */
+  headers_safe_json: string;
+  payload_json: string;
 };
 
 export const listPaymentWebhookLogs = createServerFn({ method: "GET" })
@@ -64,7 +65,13 @@ export const getPaymentWebhookLog = createServerFn({ method: "GET" })
       .eq("id", data.id)
       .maybeSingle();
     if (error) throw new Error("Não foi possível carregar o webhook.");
-    return (row ?? null) as WebhookLogDetail | null;
+    if (!row) return null;
+    const { headers_safe, payload, ...rest } = row as Record<string, unknown>;
+    return {
+      ...(rest as unknown as WebhookLogRow),
+      headers_safe_json: JSON.stringify(headers_safe ?? {}, null, 2),
+      payload_json: JSON.stringify(payload ?? null, null, 2),
+    };
   });
 
 export type ImperiumPayStatus = {
