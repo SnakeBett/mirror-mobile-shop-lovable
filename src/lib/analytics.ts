@@ -6,6 +6,8 @@
  * - Envio assíncrono via sendBeacon (não bloqueia navegação nem redirecionamento).
  */
 
+import { getFbc, getFbp } from "./meta-client";
+
 export type AnalyticsEventName =
   | "page_view"
   | "product_view"
@@ -231,25 +233,78 @@ export function track(event: AnalyticsEventName, payload: TrackPayload = {}, opt
   }).catch(() => undefined);
 }
 
+/** Contexto de atribuição usado para montar a URL final do checkout. */
+export type CheckoutTrackingContext = {
+  visitor_id: string;
+  session_id: string;
+  first: Attribution;
+  last: Attribution;
+  fbp: string | null;
+  fbc: string | null;
+};
+
+export function getCheckoutTrackingContext(): CheckoutTrackingContext {
+  const { first, last } = captureAttribution();
+  return {
+    visitor_id: getVisitorId(),
+    session_id: getSessionId(),
+    first,
+    last,
+    fbp: getFbp(),
+    fbc: getFbc(),
+  };
+}
+
 /**
- * Anexa identificadores anônimos e UTMs ao link de checkout para que o
- * gateway possa devolvê-los no webhook e a venda ser atribuída corretamente.
+ * Monta a URL final do checkout preservando a atribuição.
+ *
+ * Regras: usa URL/URLSearchParams (nunca concatenação) e NUNCA sobrescreve um
+ * parâmetro que já exista na checkout_url original.
+ * `extraParams` recebe os parâmetros exigidos pela integração externa
+ * (ex.: UTMify) conforme configurados no admin.
  */
-export function appendCheckoutTracking(url: string): string {
-  if (!isBrowser() || !url.trim()) return url;
+export function buildCheckoutUrl(
+  url: string,
+  ctx: CheckoutTrackingContext,
+  extraParams: string[] = [],
+): string {
+  if (!url.trim()) return url;
+  const base = typeof window !== "undefined" ? window.location.origin : "https://localhost";
   try {
-    const parsed = new URL(url, window.location.origin);
-    const { first, last } = captureAttribution();
-    parsed.searchParams.set("vid", getVisitorId());
-    parsed.searchParams.set("sid", getSessionId());
-    for (const key of UTM_KEYS) {
-      const value = last[key];
-      if (value) parsed.searchParams.set(key, value);
+    const parsed = new URL(url, base);
+    const setIfAbsent = (key: string, value: string | null | undefined) => {
+      if (!value) return;
+      if (parsed.searchParams.has(key)) return;
+      parsed.searchParams.set(key, value);
+    };
+
+    setIfAbsent("vid", ctx.visitor_id);
+    setIfAbsent("sid", ctx.session_id);
+    for (const key of UTM_KEYS) setIfAbsent(key, ctx.last[key]);
+    setIfAbsent("first_utm_source", ctx.first.utm_source);
+    setIfAbsent("first_utm_campaign", ctx.first.utm_campaign);
+
+    // Identificadores de clique de anúncio (Meta/Google/TikTok).
+    if (ctx.last.click_id && ctx.last.click_source) setIfAbsent(ctx.last.click_source, ctx.last.click_id);
+    setIfAbsent("fbp", ctx.fbp);
+    setIfAbsent("fbc", ctx.fbc);
+
+    // Parâmetros adicionais exigidos pela integração externa configurada.
+    const source = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    for (const key of extraParams) {
+      const name = key.trim();
+      if (!name) continue;
+      setIfAbsent(name, source?.get(name) ?? null);
     }
-    if (first.utm_source) parsed.searchParams.set("first_utm_source", first.utm_source);
-    if (first.utm_campaign) parsed.searchParams.set("first_utm_campaign", first.utm_campaign);
+
     return parsed.toString();
   } catch {
     return url;
   }
+}
+
+/** Compatibilidade com o uso anterior. */
+export function appendCheckoutTracking(url: string, extraParams: string[] = []): string {
+  if (!isBrowser() || !url.trim()) return url;
+  return buildCheckoutUrl(url, getCheckoutTrackingContext(), extraParams);
 }
