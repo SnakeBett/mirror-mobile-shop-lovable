@@ -13,6 +13,8 @@ import {
 import {
   detectPlatform,
   displayImportTitle,
+  IMPORT_METHOD_LABELS,
+  type ImportMethod,
 
   FIELD_LABELS,
   PLATFORM_LABELS,
@@ -348,7 +350,9 @@ function ImportPage() {
               TENTAR NOVAMENTE
             </Button>
           )}
-          <span className="text-xs text-muted-foreground">Você também pode cadastrar manualmente</span>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/admin/importar/navegador">IMPORTAR PELO NAVEGADOR</Link>
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/produtos/novo">CADASTRO MANUAL</Link>
           </Button>
@@ -363,7 +367,12 @@ function ImportPage() {
             <p key={notice} className="text-xs text-muted-foreground">{notice}</p>
           ))}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={() => setAssistedOpen(true)}>IMPORTAÇÃO ASSISTIDA</Button>
+            <Button asChild size="sm">
+              <Link to="/admin/importar/navegador">IMPORTAR PELO NAVEGADOR</Link>
+            </Button>
+            <Button size="sm" variant="secondary" onClick={() => setAssistedOpen(true)}>
+              IMPORTAÇÃO ASSISTIDA
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/produtos/novo">CADASTRO MANUAL</Link>
             </Button>
@@ -790,6 +799,9 @@ function ImportPage() {
                 {new Date(row.created_at).toLocaleDateString("pt-BR")}
               </span>
               <span className="text-xs font-medium text-foreground">{STATUS_LABELS[row.status] ?? row.status}</span>
+              <span className="rounded border border-border px-2 py-0.5 text-[11px] text-muted-foreground">
+                {IMPORT_METHOD_LABELS[(row.import_method ?? "server") as ImportMethod] ?? row.import_method}
+              </span>
               {row.product_id && (
                 <Button asChild size="sm" variant="outline">
                   <Link to="/admin/produtos/$id" params={{ id: row.product_id }}>Abrir</Link>
