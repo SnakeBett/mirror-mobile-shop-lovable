@@ -18,8 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageSettingsPanel } from "@/components/admin/page-settings-panel";
+import { DEFAULT_PAGE_SETTINGS, type PageSettings } from "@/lib/page-settings";
 import {
   createProduct,
+  savePageSettings,
+
   deleteChild,
   getProduct,
   insertChild,
@@ -70,7 +74,9 @@ const TABS: Array<[string, string]> = [
   ["detalhes", "Detalhes"],
   ["descricao", "Descrição"],
   ["avaliacoes", "Avaliações"],
+  ["pagina", "Página"],
   ["checkout", "Checkout"],
+
 ];
 
 function Panel({ title, children }: { title?: string; children: React.ReactNode }) {
@@ -112,6 +118,8 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [baseline, setBaseline] = useState<Draft>(emptyDraft);
+  const [page, setPage] = useState<PageSettings>(DEFAULT_PAGE_SETTINGS);
+  const [pageBaseline, setPageBaseline] = useState<PageSettings>(DEFAULT_PAGE_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [tab, setTab] = useState("geral");
 
@@ -121,9 +129,19 @@ export function ProductEditor({ productId }: { productId?: string }) {
       setDraft(next);
       setBaseline(next);
     }
-  }, [query.data?.product]);
+    if (query.data?.page) {
+      setPage(query.data.page);
+      setPageBaseline(query.data.page);
+    }
+  }, [query.data?.product, query.data?.page]);
 
-  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline]);
+  const dirty = useMemo(
+    () =>
+      JSON.stringify(draft) !== JSON.stringify(baseline) ||
+      JSON.stringify(page) !== JSON.stringify(pageBaseline),
+    [draft, baseline, page, pageBaseline],
+  );
+
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
     setDraft((prev) => {
@@ -174,9 +192,12 @@ export function ProductEditor({ productId }: { productId?: string }) {
         return;
       }
       await updateProduct(productId!, values);
+      await savePageSettings(productId!, page);
       setBaseline(draft);
+      setPageBaseline(page);
       invalidate();
       toast.success("Produto atualizado com sucesso");
+
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível salvar.");
     } finally {
@@ -536,6 +557,29 @@ export function ProductEditor({ productId }: { productId?: string }) {
             </div>
           </Panel>
         </TabsContent>
+
+        {/* PÁGINA */}
+        <TabsContent value="pagina" className="mt-4">
+          {isNew ? (
+            <Panel title="Página">
+              <p className="text-sm text-muted-foreground">
+                Salve o produto para configurar a apresentação da página pública.
+              </p>
+            </Panel>
+          ) : (
+            <PageSettingsPanel
+              page={page}
+              onChange={setPage}
+              canPreview={!!previewUrl}
+              onPreview={() => previewUrl && window.open(previewUrl, "_blank", "noopener")}
+              onSaveAndPreview={async () => {
+                await save();
+                if (previewUrl) window.open(previewUrl, "_blank", "noopener");
+              }}
+            />
+          )}
+        </TabsContent>
+
       </Tabs>
 
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-background/95 px-4 py-3 backdrop-blur">

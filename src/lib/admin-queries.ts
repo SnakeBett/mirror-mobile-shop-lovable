@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PRODUCT_BUCKET, resolveImageUrls } from "./storage-images";
+import { resolvePageSettings, type PageSettings } from "./page-settings";
+
 import type {
   ProductDetailRow,
   ProductHighlightRow,
@@ -25,13 +27,14 @@ export async function listProducts(search = "") {
 }
 
 export async function getProduct(id: string) {
-  const [product, images, details, highlights, promotions, reviews] = await Promise.all([
+  const [product, images, details, highlights, promotions, reviews, settings] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("product_details").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("product_highlights").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("promotions").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("reviews").select("*").eq("product_id", id).order("sort_order"),
+    supabase.from("product_page_settings").select("*").eq("product_id", id).maybeSingle(),
   ]);
 
   if (product.error) throw product.error;
@@ -52,8 +55,20 @@ export async function getProduct(id: string) {
     promotions: (promotions.data ?? []) as ProductPromotionRow[],
     reviews: reviewRows,
     previews,
+    page: resolvePageSettings(
+      settings.error ? null : (settings.data as Record<string, unknown> | null),
+    ),
   };
 }
+
+/** Grava (ou cria) a configuração de página do produto. */
+export async function savePageSettings(productId: string, page: PageSettings) {
+  const { error } = await supabase
+    .from("product_page_settings")
+    .upsert({ product_id: productId, ...page } as never, { onConflict: "product_id" });
+  if (error) throw error;
+}
+
 
 export async function createProduct(values: Partial<ProductRow>) {
   const { data, error } = await supabase.from("products").insert(values as never).select("id").single();
@@ -212,5 +227,9 @@ export async function duplicateProduct(id: string): Promise<string> {
     if (error) throw error;
   }
 
+  // Copia também toda a configuração da aba "Página".
+  await savePageSettings(newId, source.page);
+
   return newId;
+
 }
