@@ -227,8 +227,10 @@ export async function duplicateProduct(id: string): Promise<string> {
     if (error) throw error;
   }
 
-  // Copia também toda a configuração da aba "Página".
+  // Copia também toda a configuração da aba "Página" e as recomendações manuais.
   await savePageSettings(newId, source.page);
+  const recommended = await listRecommendations(id);
+  if (recommended.length > 0) await saveRecommendations(newId, recommended);
 
   return newId;
 
