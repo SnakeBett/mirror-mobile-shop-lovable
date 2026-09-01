@@ -227,5 +227,9 @@ export async function duplicateProduct(id: string): Promise<string> {
     if (error) throw error;
   }
 
+  // Copia também toda a configuração da aba "Página".
+  await savePageSettings(newId, source.page);
+
   return newId;
+
 }
