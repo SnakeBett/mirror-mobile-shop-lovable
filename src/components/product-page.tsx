@@ -252,7 +252,7 @@ function ProductInfo({ data }: { data: ProductView }) {
           {showRating && <Stars />}
           {sections.rating && fields.rating_value && <b>{String(data.rating ?? "").replace(".", ",")}</b>}
           {sections.rating && fields.review_count && <span>({data.review_count ?? 0})</span>}
-          {showSales && <span>{data.sales_count}</span>}
+          {showSales && <span>{(data.sales_count_display ?? "").trim() || data.sales_count}</span>}
         </div>
       )}
     </section>
