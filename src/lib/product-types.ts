@@ -53,7 +53,9 @@ export type ProductView = ProductRow & {
   details: Array<[string, string]>;
   highlights: string[];
   reviews: Array<Omit<ProductReview, "image_url"> & { image_url: string | null }>;
+  page: import("./page-settings").PageSettings;
 };
+
 
 export function slugify(value: string) {
   return value
