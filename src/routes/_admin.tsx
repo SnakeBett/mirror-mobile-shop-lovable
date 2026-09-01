@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, LayoutDashboard, LogOut, Package, Receipt, Store } from "lucide-react";
+import { BarChart3, Download, LayoutDashboard, LogOut, Package, Plug, Receipt, Store } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { claimAdminIfFirst } from "@/lib/admin.functions";
@@ -89,6 +89,20 @@ function AdminLayout() {
           >
             <Receipt className="size-4" /> Pedidos
           </Link>
+          <Link
+            to="/admin/importar"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Download className="size-4" /> Importar produto
+          </Link>
+          <Link
+            to="/admin/configuracoes/integracoes"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Plug className="size-4" /> Integrações
+          </Link>
           <button
             type="button"
             onClick={openStore}
@@ -110,6 +124,7 @@ function AdminLayout() {
             <Link to="/admin/produtos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Produtos</Link>
             <Link to="/admin/vendas" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Vendas</Link>
             <Link to="/admin/pedidos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Pedidos</Link>
+            <Link to="/admin/importar" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Importar</Link>
             <Button variant="ghost" size="sm" onClick={openStore}>Loja</Button>
             <Button variant="ghost" size="sm" onClick={signOut}>Sair</Button>
           </div>

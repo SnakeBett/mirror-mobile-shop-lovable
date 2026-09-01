@@ -169,6 +169,56 @@ export type Database = {
           },
         ]
       }
+      product_imports: {
+        Row: {
+          created_at: string
+          error_detail: string | null
+          external_product_id: string | null
+          id: string
+          missing_fields: Json
+          product_id: string | null
+          source_platform: string
+          source_url: string
+          status: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_detail?: string | null
+          external_product_id?: string | null
+          id?: string
+          missing_fields?: Json
+          product_id?: string | null
+          source_platform?: string
+          source_url: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_detail?: string | null
+          external_product_id?: string | null
+          id?: string
+          missing_fields?: Json
+          product_id?: string | null
+          source_platform?: string
+          source_url?: string
+          status?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_imports_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_page_settings: {
         Row: {
           bottom_bar_settings: Json
@@ -291,6 +341,7 @@ export type Database = {
           customer_protection_text: string | null
           description: string | null
           discount_percentage: number | null
+          external_product_id: string | null
           five_star_count: number | null
           id: string
           installment_note: string | null
@@ -310,6 +361,8 @@ export type Database = {
           shipping_min_days: number
           shipping_promotion_text: string | null
           slug: string
+          source_platform: string | null
+          source_url: string | null
           updated_at: string
         }
         Insert: {
@@ -323,6 +376,7 @@ export type Database = {
           customer_protection_text?: string | null
           description?: string | null
           discount_percentage?: number | null
+          external_product_id?: string | null
           five_star_count?: number | null
           id?: string
           installment_note?: string | null
@@ -342,6 +396,8 @@ export type Database = {
           shipping_min_days?: number
           shipping_promotion_text?: string | null
           slug: string
+          source_platform?: string | null
+          source_url?: string | null
           updated_at?: string
         }
         Update: {
@@ -355,6 +411,7 @@ export type Database = {
           customer_protection_text?: string | null
           description?: string | null
           discount_percentage?: number | null
+          external_product_id?: string | null
           five_star_count?: number | null
           id?: string
           installment_note?: string | null
@@ -374,6 +431,8 @@ export type Database = {
           shipping_min_days?: number
           shipping_promotion_text?: string | null
           slug?: string
+          source_platform?: string | null
+          source_url?: string | null
           updated_at?: string
         }
         Relationships: []
