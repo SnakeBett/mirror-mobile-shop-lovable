@@ -20,6 +20,7 @@ import { formatShippingText, type ProductView } from "@/lib/product-types";
 import {
   resolveChatUrl,
   text,
+  RECOMMENDATION_TITLE_DEFAULT,
   TAB_DEFAULT_LABELS,
   TEXT_DEFAULTS,
   type PageSettings,
@@ -235,7 +236,7 @@ function ProductInfo({ data }: { data: ProductView }) {
   const [saved, setSaved] = useState(false);
   const sections = data.page.section_visibility;
   const fields = data.page.field_visibility;
-  const showSales = sections.sales && fields.sales_counter && !!(data.sales_count ?? "").trim();
+  const showSales = sections.sales && fields.sales_counter && !!(data.sales_count_display ?? data.sales_count ?? "").trim();
   const showRating = sections.rating && (fields.rating_value || fields.review_count);
 
   return (
@@ -401,11 +402,35 @@ function ProductDescription({ data }: { data: ProductView }) {
   );
 }
 
-function Recommendations() {
+function Recommendations({ data }: { data: ProductView }) {
+  const config = data.page.recommendation_settings;
+  const items = data.recommendations;
+  if (items.length === 0) return null;
+
   return (
     <section id="recommendations" className="recommendations product-padding scroll-target">
-      <h2>Recomendações</h2>
-      <p>Novas sugestões serão exibidas aqui em breve.</p>
+      <h2>{text(config.title, RECOMMENDATION_TITLE_DEFAULT)}</h2>
+      <div className="rec-row">
+        {items.map((item) => (
+          <a key={item.id} className="rec-card" href={`/produto/${item.slug}`}>
+            <div className="rec-thumb">
+              {item.image ? (
+                <img src={item.image} alt={item.name} loading="lazy" width={160} height={160} />
+              ) : (
+                <span aria-hidden="true" />
+              )}
+              {item.discount_percentage != null && (
+                <em className="rec-discount">-{item.discount_percentage}%</em>
+              )}
+            </div>
+            <strong className="rec-name">{item.name}</strong>
+            <span className="rec-price">{currency.format(Number(item.current_price))}</span>
+            {item.old_price != null && (
+              <del className="rec-old">{currency.format(Number(item.old_price))}</del>
+            )}
+          </a>
+        ))}
+      </div>
     </section>
   );
 }
@@ -521,7 +546,7 @@ export function ProductPage({ product }: { product: ProductView }) {
     reviews: sections.reviews ? <ReviewsSection key="reviews" data={product} /> : null,
     details: sections.details ? <ProductDetails key="details" data={product} /> : null,
     description: sections.description ? <ProductDescription key="description" data={product} /> : null,
-    recommendations: sections.recommendations ? <Recommendations key="recommendations" /> : null,
+    recommendations: sections.recommendations ? <Recommendations key="recommendations" data={product} /> : null,
   };
 
   // Divisores só aparecem entre seções realmente renderizadas — sem espaços vazios.
