@@ -202,6 +202,20 @@ export type ColorSettings = {
   price: string;
 };
 
+export type RecommendationMode = "manual" | "auto" | "manual_auto";
+export type RecommendationCriteria = "best_sellers" | "recent" | "random";
+
+export type RecommendationSettings = {
+  /** Vazio = usa "Compre também". */
+  title: string;
+  mode: RecommendationMode;
+  auto_criteria: RecommendationCriteria;
+  /** 2 a 6 itens. */
+  limit: number;
+};
+
+export const RECOMMENDATION_TITLE_DEFAULT = "Compre também";
+
 export type PageSettings = {
   section_visibility: SectionVisibility;
   section_order: SectionKey[];
@@ -216,7 +230,9 @@ export type PageSettings = {
   shipping_settings: ShippingSettings;
   protection_settings: ProtectionSettings;
   color_settings: ColorSettings;
+  recommendation_settings: RecommendationSettings;
 };
+
 
 export const DEFAULT_PAGE_SETTINGS: PageSettings = {
   section_visibility: {
@@ -287,6 +303,8 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = {
     whatsapp_message: "Olá, gostaria de saber mais sobre {product.name}",
   },
   review_settings: { initial_count: 0, show_see_more: true },
+  recommendation_settings: { title: "", mode: "manual_auto", auto_criteria: "best_sellers", limit: 4 },
+
   gallery_settings: { indicator: "counter", show_thumbnails: true, allow_swipe: true, allow_zoom: false },
   promotion_settings: { layout: "scroll" },
   shipping_settings: { template: SHIPPING_TEMPLATE_DEFAULT },
@@ -330,8 +348,23 @@ export function resolvePageSettings(row: Raw): PageSettings {
   const bottom = mergeGroup(DEFAULT_PAGE_SETTINGS.bottom_bar_settings, source["bottom_bar_settings"]);
   const gallery = mergeGroup(DEFAULT_PAGE_SETTINGS.gallery_settings, source["gallery_settings"]);
   const reviews = mergeGroup(DEFAULT_PAGE_SETTINGS.review_settings, source["review_settings"]);
+  const recommendation = mergeGroup(
+    DEFAULT_PAGE_SETTINGS.recommendation_settings,
+    source["recommendation_settings"],
+  );
 
   return {
+    recommendation_settings: {
+      ...recommendation,
+      mode: enums(recommendation.mode, ["manual", "auto", "manual_auto"] as const, "manual_auto"),
+      auto_criteria: enums(
+        recommendation.auto_criteria,
+        ["best_sellers", "recent", "random"] as const,
+        "best_sellers",
+      ),
+      limit: Math.min(6, Math.max(2, Math.round(Number(recommendation.limit)) || 4)),
+    },
+
     section_visibility: mergeGroup(DEFAULT_PAGE_SETTINGS.section_visibility, source["section_visibility"]),
     section_order: normalizeOrder(source["section_order"]),
     field_visibility: mergeGroup(DEFAULT_PAGE_SETTINGS.field_visibility, source["field_visibility"]),

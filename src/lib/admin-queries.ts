@@ -227,9 +227,60 @@ export async function duplicateProduct(id: string): Promise<string> {
     if (error) throw error;
   }
 
-  // Copia também toda a configuração da aba "Página".
+  // Copia também toda a configuração da aba "Página" e as recomendações manuais.
   await savePageSettings(newId, source.page);
+  const recommended = await listRecommendations(id);
+  if (recommended.length > 0) await saveRecommendations(newId, recommended);
 
   return newId;
 
+}
+
+// ================= RECOMENDAÇÕES =================
+
+export type RecommendationOption = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+};
+
+/** Produtos disponíveis para recomendar (exclui o próprio produto). */
+export async function listRecommendationOptions(excludeId?: string): Promise<RecommendationOption[]> {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, slug, is_active")
+    .order("name");
+  if (error) throw error;
+  return ((data ?? []) as RecommendationOption[]).filter((row) => row.id !== excludeId);
+}
+
+/** IDs recomendados manualmente, na ordem definida no admin. */
+export async function listRecommendations(productId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("product_recommendations")
+    .select("recommended_product_id, sort_order")
+    .eq("product_id", productId)
+    .order("sort_order");
+  if (error) throw error;
+  return (data ?? []).map((row) => row.recommended_product_id as string);
+}
+
+/** Regrava a lista completa de recomendações manuais preservando a ordem. */
+export async function saveRecommendations(productId: string, ids: string[]) {
+  const unique = Array.from(new Set(ids.filter((id) => id && id !== productId)));
+  const { error: clearError } = await supabase
+    .from("product_recommendations")
+    .delete()
+    .eq("product_id", productId);
+  if (clearError) throw clearError;
+  if (unique.length === 0) return;
+  const { error } = await supabase.from("product_recommendations").insert(
+    unique.map((id, index) => ({
+      product_id: productId,
+      recommended_product_id: id,
+      sort_order: index,
+    })) as never,
+  );
+  if (error) throw error;
 }

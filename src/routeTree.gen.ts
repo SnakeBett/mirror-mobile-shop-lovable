@@ -14,9 +14,12 @@ import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
+import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
+import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
+import { Route as ApiPublicWebhooksPagamentoRouteImport } from './routes/api/public/webhooks/pagamento'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -42,6 +45,16 @@ const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdminPedidosRoute = AdminAdminPedidosRouteImport.update({
+  id: '/admin/pedidos',
+  path: '/admin/pedidos',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminVendasRoute = AdminAdminVendasRouteImport.update({
+  id: '/admin/vendas',
+  path: '/admin/vendas',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAdminProdutosIndexRoute = AdminAdminProdutosIndexRouteImport.update({
   id: '/admin/produtos/',
   path: '/admin/produtos/',
@@ -57,23 +70,35 @@ const AdminAdminProdutosNovoRoute = AdminAdminProdutosNovoRouteImport.update({
   path: '/admin/produtos/novo',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicWebhooksPagamentoRoute =
+  ApiPublicWebhooksPagamentoRouteImport.update({
+    id: '/api/public/webhooks/pagamento',
+    path: '/api/public/webhooks/pagamento',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/pedidos': typeof AdminAdminPedidosRoute
+  '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/admin/produtos/': typeof AdminAdminProdutosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/pedidos': typeof AdminAdminPedidosRoute
+  '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin': typeof AdminAdminIndexRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/admin/produtos': typeof AdminAdminProdutosIndexRoute
 }
 export interface FileRoutesById {
@@ -82,9 +107,12 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
+  '/_admin/admin/vendas': typeof AdminAdminVendasRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/_admin/admin/produtos/': typeof AdminAdminProdutosIndexRoute
 }
 export interface FileRouteTypes {
@@ -93,18 +121,24 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/pedidos'
+    | '/admin/vendas'
     | '/admin/'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/public/webhooks/pagamento'
     | '/admin/produtos/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/pedidos'
+    | '/admin/vendas'
     | '/admin'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/public/webhooks/pagamento'
     | '/admin/produtos'
   id:
     | '__root__'
@@ -112,9 +146,12 @@ export interface FileRouteTypes {
     | '/_admin'
     | '/admin/login'
     | '/produto/$slug'
+    | '/_admin/admin/pedidos'
+    | '/_admin/admin/vendas'
     | '/_admin/admin/'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
+    | '/api/public/webhooks/pagamento'
     | '/_admin/admin/produtos/'
   fileRoutesById: FileRoutesById
 }
@@ -123,6 +160,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiPublicWebhooksPagamentoRoute: typeof ApiPublicWebhooksPagamentoRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -162,6 +200,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/pedidos': {
+      id: '/_admin/admin/pedidos'
+      path: '/admin/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AdminAdminPedidosRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/vendas': {
+      id: '/_admin/admin/vendas'
+      path: '/admin/vendas'
+      fullPath: '/admin/vendas'
+      preLoaderRoute: typeof AdminAdminVendasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/produtos/': {
       id: '/_admin/admin/produtos/'
       path: '/admin/produtos'
@@ -183,10 +235,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminProdutosNovoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/webhooks/pagamento': {
+      id: '/api/public/webhooks/pagamento'
+      path: '/api/public/webhooks/pagamento'
+      fullPath: '/api/public/webhooks/pagamento'
+      preLoaderRoute: typeof ApiPublicWebhooksPagamentoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
+  AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
   AdminAdminProdutosNovoRoute: typeof AdminAdminProdutosNovoRoute
@@ -194,6 +255,8 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminPedidosRoute: AdminAdminPedidosRoute,
+  AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
   AdminAdminProdutosNovoRoute: AdminAdminProdutosNovoRoute,
@@ -207,6 +270,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiPublicWebhooksPagamentoRoute: ApiPublicWebhooksPagamentoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

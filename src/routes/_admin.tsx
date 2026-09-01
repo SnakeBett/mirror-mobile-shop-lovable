@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { LayoutDashboard, LogOut, Package, Store } from "lucide-react";
+import { BarChart3, LayoutDashboard, LogOut, Package, Receipt, Store } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { claimAdminIfFirst } from "@/lib/admin.functions";
@@ -75,6 +75,20 @@ function AdminLayout() {
           >
             <Package className="size-4" /> Produtos
           </Link>
+          <Link
+            to="/admin/vendas"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <BarChart3 className="size-4" /> Vendas
+          </Link>
+          <Link
+            to="/admin/pedidos"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Receipt className="size-4" /> Pedidos
+          </Link>
           <button
             type="button"
             onClick={openStore}
@@ -94,6 +108,8 @@ function AdminLayout() {
           <div className="flex gap-1">
             <Link to="/admin" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Início</Link>
             <Link to="/admin/produtos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Produtos</Link>
+            <Link to="/admin/vendas" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Vendas</Link>
+            <Link to="/admin/pedidos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Pedidos</Link>
             <Button variant="ghost" size="sm" onClick={openStore}>Loja</Button>
             <Button variant="ghost" size="sm" onClick={signOut}>Sair</Button>
           </div>
