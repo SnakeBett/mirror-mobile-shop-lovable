@@ -69,7 +69,10 @@ function ProductsList() {
     <div className="mx-auto max-w-4xl">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-foreground">Produtos</h1>
-        <Button asChild size="sm"><Link to="/admin/produtos/novo">+ Novo produto</Link></Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild size="sm"><Link to="/admin/produtos/novo">+ Novo produto</Link></Button>
+          <Button asChild size="sm" variant="outline"><Link to="/admin/importar">IMPORTAR PRODUTO</Link></Button>
+        </div>
       </div>
 
       <Input

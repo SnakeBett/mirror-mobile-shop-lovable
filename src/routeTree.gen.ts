@@ -17,6 +17,7 @@ import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index
 import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.importar'
 import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
 import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
+import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
@@ -61,6 +62,12 @@ const AdminAdminVendasRoute = AdminAdminVendasRouteImport.update({
   path: '/admin/vendas',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdminConfiguracoesIntegracoesRoute =
+  AdminAdminConfiguracoesIntegracoesRouteImport.update({
+    id: '/admin/configuracoes/integracoes',
+    path: '/admin/configuracoes/integracoes',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAdminProdutosIndexRoute = AdminAdminProdutosIndexRouteImport.update({
   id: '/admin/produtos/',
   path: '/admin/produtos/',
@@ -91,6 +98,7 @@ export interface FileRoutesByFullPath {
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin/': typeof AdminAdminIndexRoute
+  '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
@@ -104,6 +112,7 @@ export interface FileRoutesByTo {
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin': typeof AdminAdminIndexRoute
+  '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
@@ -119,6 +128,7 @@ export interface FileRoutesById {
   '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
   '/_admin/admin/vendas': typeof AdminAdminVendasRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/vendas'
     | '/admin/'
+    | '/admin/configuracoes/integracoes'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/public/webhooks/pagamento'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
     | '/admin/pedidos'
     | '/admin/vendas'
     | '/admin'
+    | '/admin/configuracoes/integracoes'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
     | '/api/public/webhooks/pagamento'
@@ -161,6 +173,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/pedidos'
     | '/_admin/admin/vendas'
     | '/_admin/admin/'
+    | '/_admin/admin/configuracoes/integracoes'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
     | '/api/public/webhooks/pagamento'
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminVendasRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/configuracoes/integracoes': {
+      id: '/_admin/admin/configuracoes/integracoes'
+      path: '/admin/configuracoes/integracoes'
+      fullPath: '/admin/configuracoes/integracoes'
+      preLoaderRoute: typeof AdminAdminConfiguracoesIntegracoesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/produtos/': {
       id: '/_admin/admin/produtos/'
       path: '/admin/produtos'
@@ -269,6 +289,7 @@ interface AdminRouteChildren {
   AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
   AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
+  AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
   AdminAdminProdutosNovoRoute: typeof AdminAdminProdutosNovoRoute
   AdminAdminProdutosIndexRoute: typeof AdminAdminProdutosIndexRoute
@@ -279,6 +300,8 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminPedidosRoute: AdminAdminPedidosRoute,
   AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
+  AdminAdminConfiguracoesIntegracoesRoute:
+    AdminAdminConfiguracoesIntegracoesRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
   AdminAdminProdutosNovoRoute: AdminAdminProdutosNovoRoute,
   AdminAdminProdutosIndexRoute: AdminAdminProdutosIndexRoute,
