@@ -82,6 +82,8 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     return {
       ...(product as ProductView),
       ...computed,
+      page: resolvePageSettings(settings.error ? null : (settings.data as Record<string, unknown> | null)),
+
       images: imageRows.map((row) => urlMap[row.image_url]).filter(Boolean) as string[],
       promotions: (promotions.data ?? []).map((row) => row.text),
       details: (details.data ?? []).map((row) => [row.label, row.value ?? ""] as [string, string]),
