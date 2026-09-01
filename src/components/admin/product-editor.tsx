@@ -18,8 +18,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageSettingsPanel } from "@/components/admin/page-settings-panel";
+import { DEFAULT_PAGE_SETTINGS, type PageSettings } from "@/lib/page-settings";
 import {
   createProduct,
+  savePageSettings,
+
   deleteChild,
   getProduct,
   insertChild,
