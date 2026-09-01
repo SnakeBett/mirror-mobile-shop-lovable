@@ -341,11 +341,17 @@ function ImportPage() {
             {analyzing && <Loader2 className="mr-2 size-4 animate-spin" />}
             ANALISAR PRODUTO
           </Button>
+          {analysis && (
+            <Button variant="secondary" onClick={handleAnalyze} disabled={analyzing}>
+              TENTAR NOVAMENTE
+            </Button>
+          )}
           <span className="text-xs text-muted-foreground">Você também pode cadastrar manualmente</span>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/produtos/novo">CADASTRO MANUAL</Link>
           </Button>
         </div>
+
       </section>
 
       {(analysis?.status === "blocked" || analysis?.status === "failed") && (
