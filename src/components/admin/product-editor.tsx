@@ -608,7 +608,47 @@ export function ProductEditor({ productId }: { productId?: string }) {
               </Field>
             </div>
           </Panel>
+
+          <Panel title="Rastreamento">
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={draft.tracking_use_global !== false}
+                onChange={(e) => set("tracking_use_global", e.target.checked)}
+              />
+              Usar os pixels globais da loja
+            </label>
+            {draft.tracking_use_global === false && (
+              <div className="grid gap-4 md:grid-cols-3">
+                <Field label="Meta Pixel ID" id="metapx">
+                  <Input
+                    id="metapx"
+                    value={draft.meta_pixel_id ?? ""}
+                    onChange={(e) => set("meta_pixel_id", e.target.value)}
+                  />
+                </Field>
+                <Field label="TikTok Pixel ID" id="ttpx">
+                  <Input
+                    id="ttpx"
+                    value={draft.tiktok_pixel_id ?? ""}
+                    onChange={(e) => set("tiktok_pixel_id", e.target.value)}
+                  />
+                </Field>
+                <Field label="Google Analytics (GA4)" id="gapx">
+                  <Input
+                    id="gapx"
+                    value={draft.ga_measurement_id ?? ""}
+                    onChange={(e) => set("ga_measurement_id", e.target.value)}
+                  />
+                </Field>
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">
+              O evento de compra é registrado apenas com a confirmação do pagamento no webhook.
+            </p>
+          </Panel>
         </TabsContent>
+
 
         {/* PÁGINA */}
         <TabsContent value="pagina" className="mt-4">
