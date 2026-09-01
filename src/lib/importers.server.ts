@@ -1150,3 +1150,130 @@ export function integrationStatus() {
     tiktok_shop: process.env["TIKTOK_SHOP_API_KEY"] ? "connected" : "not_configured",
   } as const;
 }
+
+// ---------- captura pelo navegador (fallback sem evasão) ----------
+
+/** Remove variações de resolução da mesma imagem, mantendo a maior. */
+export function dedupeImagesByResolution(images: string[]): string[] {
+  const groups = new Map<string, { url: string; score: number }>();
+  for (const image of images) {
+    const key = image
+      .split("?")[0]!
+      .replace(/[_-]\d{2,4}x\d{2,4}(?=\.)/i, "")
+      .replace(/[_-]\d{2,4}(?:w|px)(?=\.)/i, "")
+      .replace(/~tplv-[^./]+/i, "")
+      .toLowerCase();
+    const score = imageScore(image) || image.length;
+    const current = groups.get(key);
+    if (!current || score > current.score) groups.set(key, { url: image, score });
+  }
+  return [...groups.values()].map((entry) => entry.url);
+}
+
+function flattenJson(value: unknown): unknown[] {
+  const out: unknown[] = [];
+  const push = (entry: unknown) => {
+    if (!entry || typeof entry !== "object") return;
+    out.push(entry);
+    const graph = (entry as Record<string, unknown>)["@graph"];
+    if (Array.isArray(graph)) out.push(...graph);
+  };
+  if (Array.isArray(value)) value.forEach(push);
+  else push(value);
+  return out;
+}
+
+export const MAX_CAPTURE_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Analisa conteúdo capturado pelo próprio administrador no navegador
+ * (HTML da página, JSON-LD ou JSON estruturado). Nada é executado: apenas
+ * parsing de texto. Reutiliza a mesma camada normalizada do importador.
+ */
+export function analyzeCapturedContent(
+  rawContent: string,
+  sourceUrlRaw: string,
+  platform: SourcePlatform,
+): ImportAnalysis {
+  const content = (rawContent ?? "").trim();
+  if (!content) {
+    return blocked("Cole os dados capturados da página.", [], "empty_capture");
+  }
+  if (content.length > MAX_CAPTURE_BYTES) {
+    return blocked(
+      "Conteúdo muito grande.",
+      [
+        "Cole apenas o JSON estruturado (JSON-LD) da página ou use a importação assistida.",
+      ],
+      "too_large",
+    );
+  }
+
+  let html = "";
+  let extraJson: unknown[] = [];
+  if (content.startsWith("{") || content.startsWith("[")) {
+    try {
+      extraJson = flattenJson(JSON.parse(content));
+    } catch {
+      return blocked(
+        "Não conseguimos interpretar o JSON colado.",
+        ["Confira se o conteúdo foi copiado por completo ou cole o HTML da página."],
+        "invalid_json",
+      );
+    }
+  } else {
+    html = content;
+  }
+
+  // URL de origem: informada pelo admin ou descoberta no próprio conteúdo.
+  const declared = parseProductUrl(sourceUrlRaw ?? "");
+  let sourceUrl: URL | null = "url" in declared ? declared.url : null;
+  if (!sourceUrl && html) {
+    const candidate =
+      metaContent(html, ["og:url"]) ??
+      html.match(/<link[^>]+rel=["']canonical["'][^>]*href=["']([^"']+)["']/i)?.[1] ??
+      null;
+    if (candidate) {
+      const parsed = parseProductUrl(decodeEntities(candidate));
+      if ("url" in parsed) sourceUrl = parsed.url;
+    }
+  }
+  if (!sourceUrl && extraJson.length > 0) {
+    for (const node of extraJson) {
+      const value = (node as Record<string, unknown>)?.["url"];
+      if (typeof value === "string") {
+        const parsed = parseProductUrl(value);
+        if ("url" in parsed) {
+          sourceUrl = parsed.url;
+          break;
+        }
+      }
+    }
+  }
+  if (!sourceUrl) {
+    return blocked(
+      "Informe a URL do produto para relacionar os dados capturados.",
+      ["Cole o endereço da página do produto no campo acima."],
+      "missing_url",
+    );
+  }
+
+  const detected = platform === "unknown" ? platform : platform;
+  const { canonical, productId } = canonicalizeProductUrl(sourceUrl, detected);
+
+  const analysis = analyzeDocument({
+    platform: detected,
+    html,
+    finalUrl: sourceUrl,
+    canonical,
+    productId,
+    origin: "browser",
+    extraJson,
+  });
+
+  if (analysis.product) {
+    analysis.product.images = dedupeImagesByResolution(analysis.product.images).slice(0, 24);
+    analysis.product.metadata["importMethod"] = "browser_capture";
+  }
+  return analysis;
+}
