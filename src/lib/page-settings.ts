@@ -303,6 +303,8 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = {
     whatsapp_message: "Olá, gostaria de saber mais sobre {product.name}",
   },
   review_settings: { initial_count: 0, show_see_more: true },
+  recommendation_settings: { title: "", mode: "manual_auto", auto_criteria: "best_sellers", limit: 4 },
+
   gallery_settings: { indicator: "counter", show_thumbnails: true, allow_swipe: true, allow_zoom: false },
   promotion_settings: { layout: "scroll" },
   shipping_settings: { template: SHIPPING_TEMPLATE_DEFAULT },
