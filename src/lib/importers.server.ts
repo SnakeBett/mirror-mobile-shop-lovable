@@ -1025,18 +1025,15 @@ export function analyzeDocument(input: DocumentInput): ImportAnalysis {
 
   const url = finalUrl;
   const fetched = { url: finalUrl, html };
-
-
-
-
   const ctx: ImporterContext = {
     url: fetched.url,
     canonicalUrl: canonical,
     productId,
     html: fetched.html,
-    json: collectJsonLd(fetched.html),
-    inlineJson: collectInlineJson(fetched.html),
+    json: [...collectJsonLd(fetched.html), ...(input.extraJson ?? [])],
+    inlineJson: [...collectInlineJson(fetched.html), ...(input.extraJson ?? [])],
   };
+
 
   const { product: base, strategies } = extractFromPage(platform, ctx);
   let product = base;
