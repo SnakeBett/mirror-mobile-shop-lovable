@@ -27,6 +27,10 @@ export type ProductRow = {
   sales_count_display: string | null;
   checkout_button_text: string;
   checkout_button_subtext: string | null;
+  tracking_use_global: boolean;
+  meta_pixel_id: string | null;
+  tiktok_pixel_id: string | null;
+  ga_measurement_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -66,6 +70,9 @@ export type ProductView = ProductRow & {
   reviews: Array<Omit<ProductReview, "image_url"> & { image_url: string | null }>;
   page: import("./page-settings").PageSettings;
   recommendations: RecommendedProduct[];
+  /** IDs de pixel já resolvidos (global ou específicos do produto). */
+  tracking: import("./tracking").TrackingIds;
+  currency: string;
 };
 
 

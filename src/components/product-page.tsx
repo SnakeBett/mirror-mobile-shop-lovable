@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import {
   ArrowLeft,
   Bookmark,
@@ -15,6 +15,12 @@ import {
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { appendCheckoutTracking, track } from "@/lib/analytics";
+import {
+  TrackingScripts,
+  firePixelInitiateCheckout,
+  firePixelViewContent,
+} from "@/components/tracking-scripts";
 import { cn } from "@/lib/utils";
 import { formatShippingText, type ProductView } from "@/lib/product-types";
 import {
@@ -405,14 +411,49 @@ function ProductDescription({ data }: { data: ProductView }) {
 function Recommendations({ data }: { data: ProductView }) {
   const config = data.page.recommendation_settings;
   const items = data.recommendations;
+  const sectionRef = useRef<HTMLElement | null>(null);
+
+  // view_recommendation só dispara quando a seção realmente entra na viewport.
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node || items.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          track(
+            "view_recommendation",
+            { product_id: data.id, metadata: { count: items.length } },
+            { once: `view_recommendation:${data.id}` },
+          );
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.4 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [data.id, items.length]);
+
   if (items.length === 0) return null;
 
   return (
-    <section id="recommendations" className="recommendations product-padding scroll-target">
+    <section ref={sectionRef} id="recommendations" className="recommendations product-padding scroll-target">
       <h2>{text(config.title, RECOMMENDATION_TITLE_DEFAULT)}</h2>
       <div className="rec-row">
         {items.map((item) => (
-          <a key={item.id} className="rec-card" href={`/produto/${item.slug}`}>
+          <a
+            key={item.id}
+            className="rec-card"
+            href={`/produto/${item.slug}`}
+            onClick={() =>
+              track("click_recommendation", {
+                product_id: data.id,
+                recommended_product_id: item.id,
+                metadata: { source_product_id: data.id, recommended_slug: item.slug },
+              })
+            }
+          >
             <div className="rec-thumb">
               {item.image ? (
                 <img src={item.image} alt={item.name} loading="lazy" width={160} height={160} />
@@ -483,7 +524,18 @@ function StickyPurchaseBar({ data }: { data: ProductView }) {
         <Button
           className="buy-button"
           disabled={!buyUrl}
-          onClick={() => openLink(buyUrl, bar.buy_target)}
+          onClick={() => {
+            const payload = { product_id: data.id, metadata: { value: Number(data.current_price) } };
+            track("click_buy", payload);
+            track("begin_checkout", payload);
+            firePixelInitiateCheckout({
+              id: data.id,
+              name: data.name,
+              price: Number(data.current_price),
+              currency: data.currency,
+            });
+            openLink(appendCheckoutTracking(buyUrl), bar.buy_target);
+          }}
         >
           <span>{text(bar.buy_label, data.checkout_button_text || "Comprar agora")}</span>
           {text(bar.buy_subtext, (data.checkout_button_subtext ?? "").trim()) && (
@@ -510,6 +562,19 @@ function colorStyle(page: PageSettings): CSSProperties {
 export function ProductPage({ product }: { product: ProductView }) {
   const page = product.page;
   const sections = page.section_visibility;
+
+  // Um único product_view por produto/sessão de página — rerenders não duplicam.
+  useEffect(() => {
+    track("page_view", { product_id: product.id }, { once: `page_view:${product.id}` });
+    track("product_view", { product_id: product.id }, { once: `product_view:${product.id}` });
+    track("view_content", { product_id: product.id }, { once: `view_content:${product.id}` });
+    firePixelViewContent({
+      id: product.id,
+      name: product.name,
+      price: Number(product.current_price),
+      currency: product.currency,
+    });
+  }, [product.id, product.name, product.current_price, product.currency]);
 
   const tabs = useMemo(() => {
     const available: Array<[TabKey, boolean]> = [
@@ -563,6 +628,7 @@ export function ProductPage({ product }: { product: ProductView }) {
 
   return (
     <main id="overview" className="product-shell" style={colorStyle(page)}>
+      <TrackingScripts ids={product.tracking} />
       <div className="sticky-top">
         <ProductHeader
           page={page}

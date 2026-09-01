@@ -1,0 +1,23 @@
+REVOKE EXECUTE ON FUNCTION public.admin_funnel(timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_revenue_breakdown(timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_product_conversion(timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_traffic_daily(timestamptz, timestamptz, text) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_product_funnel(uuid, timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_traffic_sources(timestamptz, timestamptz, uuid) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_campaigns(timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_sales_summary(timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_sales_daily(timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_sales_by_product(timestamptz, timestamptz) FROM anon, public;
+REVOKE EXECUTE ON FUNCTION public.admin_product_performance(uuid) FROM anon, public;
+
+GRANT EXECUTE ON FUNCTION public.admin_funnel(timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_revenue_breakdown(timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_product_conversion(timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_traffic_daily(timestamptz, timestamptz, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_product_funnel(uuid, timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_traffic_sources(timestamptz, timestamptz, uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_campaigns(timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_sales_summary(timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_sales_daily(timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_sales_by_product(timestamptz, timestamptz) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_product_performance(uuid) TO authenticated;

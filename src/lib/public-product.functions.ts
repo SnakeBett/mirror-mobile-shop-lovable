@@ -5,6 +5,7 @@ import { resolveImageUrls } from "./storage-images";
 import { resolvePageSettings } from "./page-settings";
 import type { ProductView, RecommendedProduct } from "./product-types";
 import type { PageSettings } from "./page-settings";
+import { normalizeAppSettings, resolveTrackingIds } from "./tracking";
 
 
 function createPublicClient() {
@@ -162,6 +163,9 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       supabase.from("product_page_settings").select("*").eq("product_id", product.id).maybeSingle(),
     ]);
 
+    const { data: settingsRow } = await supabase.from("app_settings").select("*").maybeSingle();
+    const appSettings = normalizeAppSettings(settingsRow as Record<string, unknown> | null);
+
 
     const imageRows = images.data ?? [];
     const reviewRows = reviews.data ?? [];
@@ -195,6 +199,8 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       ...computed,
       page,
       recommendations,
+      tracking: resolveTrackingIds(product as Record<string, never>, appSettings),
+      currency: appSettings.currency,
 
       images: imageRows.map((row) => urlMap[row.image_url]).filter(Boolean) as string[],
       promotions: (promotions.data ?? []).map((row) => row.text),
