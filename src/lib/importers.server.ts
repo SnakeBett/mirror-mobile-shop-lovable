@@ -55,6 +55,9 @@ const BLOCK_PATTERNS: Array<{ re: RegExp; reason: string }> = [
   { re: /acesso\s+negado/i, reason: "access_denied" },
   { re: /attention\s+required/i, reason: "challenge" },
   { re: /checking\s+your\s+browser/i, reason: "challenge" },
+  { re: /^(entrar|log\s*in|login|sign\s*in|iniciar\s+sess(ã|a)o)\b/i, reason: "login_required" },
+  { re: /^fa(ç|c)a\s+login\b/i, reason: "login_required" },
+
 ];
 
 /** Retorna o motivo do bloqueio quando o texto parece uma página de proteção. */
