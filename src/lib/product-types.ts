@@ -24,6 +24,7 @@ export type ProductRow = {
   shipping_business_days: boolean;
   installment_note: string | null;
   custom_stats_enabled: boolean;
+  sales_count_display: string | null;
   checkout_button_text: string;
   checkout_button_subtext: string | null;
   created_at: string;
@@ -46,6 +47,16 @@ export type ProductHighlightRow = { id: string; text: string; sort_order: number
 export type ProductPromotionRow = { id: string; text: string; sort_order: number; is_active: boolean };
 export type ProductImageRow = { id: string; image_url: string; sort_order: number };
 
+export type RecommendedProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  current_price: number;
+  old_price: number | null;
+  discount_percentage: number | null;
+  image: string | null;
+};
+
 /** Everything the public product page needs, with image URLs already resolved. */
 export type ProductView = ProductRow & {
   images: string[];
@@ -54,6 +65,7 @@ export type ProductView = ProductRow & {
   highlights: string[];
   reviews: Array<Omit<ProductReview, "image_url"> & { image_url: string | null }>;
   page: import("./page-settings").PageSettings;
+  recommendations: RecommendedProduct[];
 };
 
 
