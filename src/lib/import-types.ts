@@ -43,6 +43,8 @@ export type ImportAnalysis = {
   message: string | null;
   /** Avaliações individuais nunca são inventadas. */
   individualReviewsAvailable: boolean;
+  /** Quantidade de informações efetivamente encontradas. */
+  foundCount: number;
 };
 
 export const PLATFORM_LABELS: Record<SourcePlatform, string> = {
