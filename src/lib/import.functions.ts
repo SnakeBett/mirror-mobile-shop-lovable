@@ -83,7 +83,7 @@ export const importImagesToStorage = createServerFn({ method: "POST" })
 
     for (const raw of data.urls) {
       const parsed = parseProductUrl(raw);
-      if ("error" in parsed || parsed.url.protocol !== "https:" || !isAllowedSourceHost(parsed.url.hostname)) {
+      if ("error" in parsed || parsed.url.protocol !== "https:") {
         skipped.push(raw);
         continue;
       }
