@@ -298,6 +298,63 @@ export type Database = {
           },
         ]
       }
+      payment_webhook_logs: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          external_event_id: string | null
+          external_order_id: string | null
+          external_transaction_id: string | null
+          gateway: string
+          headers_safe: Json
+          http_method: string
+          id: string
+          normalized_status: string | null
+          original_status: string | null
+          payload: Json | null
+          processed_at: string | null
+          processing_status: string
+          received_at: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          external_event_id?: string | null
+          external_order_id?: string | null
+          external_transaction_id?: string | null
+          gateway?: string
+          headers_safe?: Json
+          http_method?: string
+          id?: string
+          normalized_status?: string | null
+          original_status?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          external_event_id?: string | null
+          external_order_id?: string | null
+          external_transaction_id?: string | null
+          gateway?: string
+          headers_safe?: Json
+          http_method?: string
+          id?: string
+          normalized_status?: string | null
+          original_status?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          processing_status?: string
+          received_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_details: {
         Row: {
           created_at: string
