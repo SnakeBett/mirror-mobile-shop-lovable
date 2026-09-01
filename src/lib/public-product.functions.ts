@@ -5,7 +5,7 @@ import { resolveImageUrls } from "./storage-images";
 import { resolvePageSettings } from "./page-settings";
 import type { ProductView, RecommendedProduct } from "./product-types";
 import type { PageSettings } from "./page-settings";
-import { normalizeAppSettings, resolveTrackingIds } from "./tracking";
+import { EMPTY_PUBLIC_TRACKING, normalizeAppSettings, resolveTrackingIds } from "./tracking";
 
 
 function createPublicClient() {
@@ -166,6 +166,13 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     const { data: settingsRow } = await supabase.from("app_settings").select("*").maybeSingle();
     const appSettings = normalizeAppSettings(settingsRow as Record<string, unknown> | null);
 
+    // Config de Meta/UTMify: lida só no servidor; devolvemos apenas a parte pública.
+    const { loadTrackingSettings, toPublicTrackingConfig } = await import("./meta.server");
+    const trackingSettings = await loadTrackingSettings().catch(() => null);
+    const trackingConfig = trackingSettings
+      ? toPublicTrackingConfig(trackingSettings)
+      : EMPTY_PUBLIC_TRACKING;
+
 
     const imageRows = images.data ?? [];
     const reviewRows = reviews.data ?? [];
@@ -199,7 +206,15 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       ...computed,
       page,
       recommendations,
-      tracking: resolveTrackingIds(product as Record<string, never>, appSettings),
+      tracking: {
+        ...resolveTrackingIds(product as Record<string, never>, appSettings),
+        // Pixel do Meta: override do produto > configuração Meta > pixel legado.
+        meta_pixel_id: trackingConfig.meta_enabled
+          ? (resolveTrackingIds(product as Record<string, never>, appSettings).meta_pixel_id ??
+            trackingConfig.meta_pixel_id)
+          : null,
+      },
+      tracking_config: trackingConfig,
       currency: appSettings.currency,
 
       images: imageRows.map((row) => urlMap[row.image_url]).filter(Boolean) as string[],
