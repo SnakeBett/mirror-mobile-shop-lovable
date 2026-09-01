@@ -8,6 +8,8 @@
  * gravado em logs.
  */
 
+import type { PublicTrackingConfig } from "./tracking";
+
 export type TrackingSettings = {
   meta_enabled: boolean;
   meta_pixel_id: string | null;
@@ -19,18 +21,6 @@ export type TrackingSettings = {
   utmify_pixel_script: string;
   utmify_utm_script: string;
   utmify_api_token: string | null;
-  utmify_checkout_params: string[];
-};
-
-/** Configuração que PODE ir para o navegador (sem nenhum segredo). */
-export type PublicTrackingConfig = {
-  meta_enabled: boolean;
-  meta_pixel_id: string | null;
-  meta_capi_ready: boolean;
-  utmify_enabled: boolean;
-  utmify_pixel_id: string | null;
-  utmify_pixel_script: string | null;
-  utmify_utm_script: string | null;
   utmify_checkout_params: string[];
 };
 
