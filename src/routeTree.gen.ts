@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
+import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
@@ -43,6 +44,11 @@ const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   path: '/admin/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdminVendasRoute = AdminAdminVendasRouteImport.update({
+  id: '/admin/vendas',
+  path: '/admin/vendas',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAdminProdutosIndexRoute = AdminAdminProdutosIndexRouteImport.update({
   id: '/admin/produtos/',
   path: '/admin/produtos/',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -79,6 +86,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/vendas': typeof AdminAdminVendasRoute
   '/admin': typeof AdminAdminIndexRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -91,6 +99,7 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/_admin/admin/vendas': typeof AdminAdminVendasRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/vendas'
     | '/admin/'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
@@ -113,6 +123,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/vendas'
     | '/admin'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
@@ -124,6 +135,7 @@ export interface FileRouteTypes {
     | '/_admin'
     | '/admin/login'
     | '/produto/$slug'
+    | '/_admin/admin/vendas'
     | '/_admin/admin/'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
@@ -176,6 +188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/vendas': {
+      id: '/_admin/admin/vendas'
+      path: '/admin/vendas'
+      fullPath: '/admin/vendas'
+      preLoaderRoute: typeof AdminAdminVendasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/produtos/': {
       id: '/_admin/admin/produtos/'
       path: '/admin/produtos'
@@ -208,6 +227,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
   AdminAdminProdutosNovoRoute: typeof AdminAdminProdutosNovoRoute
@@ -215,6 +235,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
   AdminAdminProdutosNovoRoute: AdminAdminProdutosNovoRoute,
