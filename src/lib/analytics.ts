@@ -267,6 +267,7 @@ export function buildCheckoutUrl(
   url: string,
   ctx: CheckoutTrackingContext,
   extraParams: string[] = [],
+  sourceParams?: URLSearchParams,
 ): string {
   if (!url.trim()) return url;
   const base = typeof window !== "undefined" ? window.location.origin : "https://localhost";
@@ -290,7 +291,8 @@ export function buildCheckoutUrl(
     setIfAbsent("fbc", ctx.fbc);
 
     // Parâmetros adicionais exigidos pela integração externa configurada.
-    const source = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const source =
+      sourceParams ?? (typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null);
     for (const key of extraParams) {
       const name = key.trim();
       if (!name) continue;
