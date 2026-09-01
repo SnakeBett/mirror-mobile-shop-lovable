@@ -72,6 +72,8 @@ export type ProductView = ProductRow & {
   recommendations: RecommendedProduct[];
   /** IDs de pixel já resolvidos (global ou específicos do produto). */
   tracking: import("./tracking").TrackingIds;
+  /** Configuração pública de Meta/UTMify (nunca contém tokens). */
+  tracking_config: import("./tracking").PublicTrackingConfig;
   currency: string;
 };
 

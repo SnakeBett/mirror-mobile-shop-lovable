@@ -16,6 +16,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { appendCheckoutTracking, track } from "@/lib/analytics";
+import { newEventId, sendMetaServerEvent } from "@/lib/meta-client";
 import {
   TrackingScripts,
   firePixelInitiateCheckout,
@@ -526,15 +527,37 @@ function StickyPurchaseBar({ data }: { data: ProductView }) {
           disabled={!buyUrl}
           onClick={() => {
             const payload = { product_id: data.id, metadata: { value: Number(data.current_price) } };
+            // 1-2. analytics interno
             track("click_buy", payload);
             track("begin_checkout", payload);
-            firePixelInitiateCheckout({
-              id: data.id,
-              name: data.name,
-              price: Number(data.current_price),
-              currency: data.currency,
-            });
-            openLink(appendCheckoutTracking(buyUrl), bar.buy_target);
+
+            // 3. Meta: Pixel + CAPI com o MESMO event_id (deduplicação).
+            const eventId = newEventId("ic");
+            const metaOn = data.tracking_config.meta_enabled;
+            if (metaOn) {
+              firePixelInitiateCheckout(
+                {
+                  id: data.id,
+                  name: data.name,
+                  price: Number(data.current_price),
+                  currency: data.currency,
+                },
+                eventId,
+              );
+              sendMetaServerEvent({
+                event_name: "InitiateCheckout",
+                event_id: eventId,
+                product_id: data.id,
+                pixel_sent: Boolean(data.tracking.meta_pixel_id),
+                num_items: 1,
+              });
+            }
+
+            // 4-7. atribuição preservada e redirecionamento imediato.
+            openLink(
+              appendCheckoutTracking(buyUrl, data.tracking_config.utmify_checkout_params),
+              bar.buy_target,
+            );
           }}
         >
           <span>{text(bar.buy_label, data.checkout_button_text || "Comprar agora")}</span>
@@ -563,18 +586,51 @@ export function ProductPage({ product }: { product: ProductView }) {
   const page = product.page;
   const sections = page.section_visibility;
 
+  // event_ids estáveis por montagem: Pixel e CAPI enviam o mesmo id.
+  const eventIds = useMemo(
+    () => ({ pageView: newEventId("pv"), viewContent: newEventId("vc") }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [product.id],
+  );
+
   // Um único product_view por produto/sessão de página — rerenders não duplicam.
+  const metaEnabled = product.tracking_config.meta_enabled;
+  const pixelId = product.tracking.meta_pixel_id;
   useEffect(() => {
     track("page_view", { product_id: product.id }, { once: `page_view:${product.id}` });
     track("product_view", { product_id: product.id }, { once: `product_view:${product.id}` });
     track("view_content", { product_id: product.id }, { once: `view_content:${product.id}` });
-    firePixelViewContent({
-      id: product.id,
-      name: product.name,
-      price: Number(product.current_price),
-      currency: product.currency,
+    if (!metaEnabled) return;
+    firePixelViewContent(
+      {
+        id: product.id,
+        name: product.name,
+        price: Number(product.current_price),
+        currency: product.currency,
+      },
+      eventIds.viewContent,
+    );
+    sendMetaServerEvent({
+      event_name: "PageView",
+      event_id: eventIds.pageView,
+      product_id: product.id,
+      pixel_sent: Boolean(pixelId),
     });
-  }, [product.id, product.name, product.current_price, product.currency]);
+    sendMetaServerEvent({
+      event_name: "ViewContent",
+      event_id: eventIds.viewContent,
+      product_id: product.id,
+      pixel_sent: Boolean(pixelId),
+    });
+  }, [
+    product.id,
+    product.name,
+    product.current_price,
+    product.currency,
+    metaEnabled,
+    pixelId,
+    eventIds,
+  ]);
 
   const tabs = useMemo(() => {
     const available: Array<[TabKey, boolean]> = [
@@ -628,7 +684,11 @@ export function ProductPage({ product }: { product: ProductView }) {
 
   return (
     <main id="overview" className="product-shell" style={colorStyle(page)}>
-      <TrackingScripts ids={product.tracking} />
+      <TrackingScripts
+        ids={product.tracking}
+        config={product.tracking_config}
+        pageViewEventId={eventIds.pageView}
+      />
       <div className="sticky-top">
         <ProductHeader
           page={page}

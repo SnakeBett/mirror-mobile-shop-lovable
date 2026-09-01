@@ -137,17 +137,85 @@ export type Database = {
         }
         Relationships: []
       }
+      meta_event_log: {
+        Row: {
+          attempts: number
+          capi_status: string
+          created_at: string
+          error_message: string | null
+          event_id: string
+          event_name: string
+          event_source_url: string | null
+          http_status: number | null
+          id: string
+          order_id: string | null
+          pixel_sent: boolean
+          product_id: string | null
+          test_event: boolean
+        }
+        Insert: {
+          attempts?: number
+          capi_status?: string
+          created_at?: string
+          error_message?: string | null
+          event_id: string
+          event_name: string
+          event_source_url?: string | null
+          http_status?: number | null
+          id?: string
+          order_id?: string | null
+          pixel_sent?: boolean
+          product_id?: string | null
+          test_event?: boolean
+        }
+        Update: {
+          attempts?: number
+          capi_status?: string
+          created_at?: string
+          error_message?: string | null
+          event_id?: string
+          event_name?: string
+          event_source_url?: string | null
+          http_status?: number | null
+          id?: string
+          order_id?: string | null
+          pixel_sent?: boolean
+          product_id?: string | null
+          test_event?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meta_event_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "meta_event_log_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           amount: number
+          client_user_agent: string | null
           created_at: string
           customer_email: string | null
           customer_name: string | null
           external_order_id: string
+          fbc: string | null
+          fbp: string | null
           first_utm_campaign: string | null
           first_utm_source: string | null
           id: string
           is_test: boolean
+          meta_purchase_event_id: string | null
+          meta_purchase_sent_at: string | null
           metadata: Json | null
           paid_at: string | null
           payment_method: string | null
@@ -164,14 +232,19 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          client_user_agent?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           external_order_id: string
+          fbc?: string | null
+          fbp?: string | null
           first_utm_campaign?: string | null
           first_utm_source?: string | null
           id?: string
           is_test?: boolean
+          meta_purchase_event_id?: string | null
+          meta_purchase_sent_at?: string | null
           metadata?: Json | null
           paid_at?: string | null
           payment_method?: string | null
@@ -188,14 +261,19 @@ export type Database = {
         }
         Update: {
           amount?: number
+          client_user_agent?: string | null
           created_at?: string
           customer_email?: string | null
           customer_name?: string | null
           external_order_id?: string
+          fbc?: string | null
+          fbp?: string | null
           first_utm_campaign?: string | null
           first_utm_source?: string | null
           id?: string
           is_test?: boolean
+          meta_purchase_event_id?: string | null
+          meta_purchase_sent_at?: string | null
           metadata?: Json | null
           paid_at?: string | null
           payment_method?: string | null
@@ -686,6 +764,60 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      tracking_settings: {
+        Row: {
+          created_at: string
+          id: string
+          meta_capi_token: string | null
+          meta_enabled: boolean
+          meta_graph_version: string
+          meta_pixel_id: string | null
+          meta_test_event_code: string | null
+          singleton: boolean
+          updated_at: string
+          utmify_api_token: string | null
+          utmify_checkout_params: Json
+          utmify_enabled: boolean
+          utmify_pixel_id: string | null
+          utmify_pixel_script: string
+          utmify_utm_script: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meta_capi_token?: string | null
+          meta_enabled?: boolean
+          meta_graph_version?: string
+          meta_pixel_id?: string | null
+          meta_test_event_code?: string | null
+          singleton?: boolean
+          updated_at?: string
+          utmify_api_token?: string | null
+          utmify_checkout_params?: Json
+          utmify_enabled?: boolean
+          utmify_pixel_id?: string | null
+          utmify_pixel_script?: string
+          utmify_utm_script?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meta_capi_token?: string | null
+          meta_enabled?: boolean
+          meta_graph_version?: string
+          meta_pixel_id?: string | null
+          meta_test_event_code?: string | null
+          singleton?: boolean
+          updated_at?: string
+          utmify_api_token?: string | null
+          utmify_checkout_params?: Json
+          utmify_enabled?: boolean
+          utmify_pixel_id?: string | null
+          utmify_pixel_script?: string
+          utmify_utm_script?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {

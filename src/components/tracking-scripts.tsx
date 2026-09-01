@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-import type { TrackingIds } from "@/lib/tracking";
+import type { PublicTrackingConfig, TrackingIds } from "@/lib/tracking";
 
 /**
  * Carrega Meta Pixel, TikTok Pixel e Google Analytics apenas quando o ID
@@ -10,6 +10,7 @@ import type { TrackingIds } from "@/lib/tracking";
 
 declare global {
   interface Window {
+    pixelId?: string;
     fbq?: (...args: unknown[]) => void;
     _fbq?: unknown;
     ttq?: { track?: (...args: unknown[]) => void; page?: () => void };
@@ -18,16 +19,18 @@ declare global {
   }
 }
 
-function loadScript(src: string, id: string) {
+function loadScript(src: string, id: string, attrs: Record<string, string> = {}) {
   if (document.getElementById(id)) return;
   const script = document.createElement("script");
   script.async = true;
+  script.defer = true;
   script.src = src;
   script.id = id;
+  for (const [key, value] of Object.entries(attrs)) script.setAttribute(key, value);
   document.head.appendChild(script);
 }
 
-function initMeta(pixelId: string) {
+function initMeta(pixelId: string, pageViewEventId?: string) {
   if (!window.fbq) {
     const fbq = function (...args: unknown[]) {
       const self = fbq as unknown as { callMethod?: (...a: unknown[]) => void; queue: unknown[] };
@@ -40,7 +43,8 @@ function initMeta(pixelId: string) {
     loadScript("https://connect.facebook.net/en_US/fbevents.js", "meta-pixel");
   }
   window.fbq?.("init", pixelId);
-  window.fbq?.("track", "PageView");
+  // eventID permite deduplicar o PageView com o envio da Conversions API.
+  window.fbq?.("track", "PageView", {}, pageViewEventId ? { eventID: pageViewEventId } : undefined);
 }
 
 function initTikTok(pixelId: string) {
@@ -77,15 +81,21 @@ export type PixelProduct = {
   currency?: string;
 };
 
-export function firePixelViewContent(product: PixelProduct) {
+export function firePixelViewContent(product: PixelProduct, eventId?: string) {
   const currency = product.currency ?? "BRL";
-  window.fbq?.("track", "ViewContent", {
-    content_ids: [product.id],
-    content_name: product.name,
-    content_type: "product",
-    value: product.price,
-    currency,
-  });
+  window.fbq?.(
+    "track",
+    "ViewContent",
+    {
+      content_ids: [product.id],
+      content_name: product.name,
+      content_type: "product",
+      contents: [{ id: product.id, quantity: 1, item_price: product.price }],
+      value: product.price,
+      currency,
+    },
+    eventId ? { eventID: eventId } : undefined,
+  );
   window.ttq?.track?.("ViewContent", {
     content_id: product.id,
     content_name: product.name,
@@ -99,14 +109,22 @@ export function firePixelViewContent(product: PixelProduct) {
   });
 }
 
-export function firePixelInitiateCheckout(product: PixelProduct) {
+export function firePixelInitiateCheckout(product: PixelProduct, eventId?: string) {
   const currency = product.currency ?? "BRL";
-  window.fbq?.("track", "InitiateCheckout", {
-    content_ids: [product.id],
-    content_name: product.name,
-    value: product.price,
-    currency,
-  });
+  window.fbq?.(
+    "track",
+    "InitiateCheckout",
+    {
+      content_ids: [product.id],
+      content_name: product.name,
+      content_type: "product",
+      contents: [{ id: product.id, quantity: 1, item_price: product.price }],
+      num_items: 1,
+      value: product.price,
+      currency,
+    },
+    eventId ? { eventID: eventId } : undefined,
+  );
   window.ttq?.track?.("InitiateCheckout", {
     content_id: product.id,
     content_name: product.name,
@@ -120,12 +138,46 @@ export function firePixelInitiateCheckout(product: PixelProduct) {
   });
 }
 
-export function TrackingScripts({ ids }: { ids: TrackingIds }) {
+/**
+ * Scripts da UTMify. Carregados somente quando a integração está ativa e
+ * apenas uma vez por sessão de página (o id do script evita duplicação em
+ * navegação SPA / rerender).
+ */
+function UtmifyScripts({ config }: { config: PublicTrackingConfig }) {
+  const { utmify_enabled: enabled, utmify_pixel_id: pixelId, utmify_pixel_script: pixelSrc, utmify_utm_script: utmSrc } =
+    config;
+
+  useEffect(() => {
+    if (!enabled || !utmSrc) return;
+    loadScript(utmSrc, "utmify-utms", {
+      "data-utmify-prevent-xcod-sck": "",
+      "data-utmify-prevent-subids": "",
+    });
+  }, [enabled, utmSrc]);
+
+  useEffect(() => {
+    if (!enabled || !pixelId || !pixelSrc) return;
+    window.pixelId = pixelId;
+    loadScript(pixelSrc, "utmify-pixel");
+  }, [enabled, pixelId, pixelSrc]);
+
+  return null;
+}
+
+export function TrackingScripts({
+  ids,
+  config,
+  pageViewEventId,
+}: {
+  ids: TrackingIds;
+  config: PublicTrackingConfig;
+  pageViewEventId?: string;
+}) {
   const { meta_pixel_id: meta, tiktok_pixel_id: tiktok, ga_measurement_id: ga } = ids;
 
   useEffect(() => {
-    if (meta) initMeta(meta);
-  }, [meta]);
+    if (meta) initMeta(meta, pageViewEventId);
+  }, [meta, pageViewEventId]);
 
   useEffect(() => {
     if (tiktok) initTikTok(tiktok);
@@ -135,5 +187,5 @@ export function TrackingScripts({ ids }: { ids: TrackingIds }) {
     if (ga) initGA(ga);
   }, [ga]);
 
-  return null;
+  return <UtmifyScripts config={config} />;
 }

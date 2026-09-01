@@ -5,6 +5,29 @@ export type TrackingIds = {
   ga_measurement_id: string | null;
 };
 
+/** Configuração de tracking que PODE ir para o navegador (sem segredos). */
+export type PublicTrackingConfig = {
+  meta_enabled: boolean;
+  meta_pixel_id: string | null;
+  meta_capi_ready: boolean;
+  utmify_enabled: boolean;
+  utmify_pixel_id: string | null;
+  utmify_pixel_script: string | null;
+  utmify_utm_script: string | null;
+  utmify_checkout_params: string[];
+};
+
+export const EMPTY_PUBLIC_TRACKING: PublicTrackingConfig = {
+  meta_enabled: false,
+  meta_pixel_id: null,
+  meta_capi_ready: false,
+  utmify_enabled: false,
+  utmify_pixel_id: null,
+  utmify_pixel_script: null,
+  utmify_utm_script: null,
+  utmify_checkout_params: [],
+};
+
 export type AppSettings = {
   timezone: string;
   currency: string;
