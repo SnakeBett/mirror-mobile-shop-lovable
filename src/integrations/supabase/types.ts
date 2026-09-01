@@ -115,15 +115,19 @@ export type Database = {
       }
       products: {
         Row: {
+          checkout_button_subtext: string | null
+          checkout_button_text: string
           checkout_url: string | null
           closing_text: string | null
           created_at: string
           current_price: number
+          custom_stats_enabled: boolean
           customer_protection_text: string | null
           description: string | null
           discount_percentage: number | null
           five_star_count: number | null
           id: string
+          installment_note: string | null
           installment_text: string | null
           is_active: boolean
           name: string
@@ -132,22 +136,29 @@ export type Database = {
           review_count: number | null
           sales_count: string | null
           search_placeholder: string | null
+          shipping_business_days: boolean
           shipping_discount_text: string | null
           shipping_fee: string | null
+          shipping_max_days: number
+          shipping_min_days: number
           shipping_promotion_text: string | null
           slug: string
           updated_at: string
         }
         Insert: {
+          checkout_button_subtext?: string | null
+          checkout_button_text?: string
           checkout_url?: string | null
           closing_text?: string | null
           created_at?: string
           current_price?: number
+          custom_stats_enabled?: boolean
           customer_protection_text?: string | null
           description?: string | null
           discount_percentage?: number | null
           five_star_count?: number | null
           id?: string
+          installment_note?: string | null
           installment_text?: string | null
           is_active?: boolean
           name: string
@@ -156,22 +167,29 @@ export type Database = {
           review_count?: number | null
           sales_count?: string | null
           search_placeholder?: string | null
+          shipping_business_days?: boolean
           shipping_discount_text?: string | null
           shipping_fee?: string | null
+          shipping_max_days?: number
+          shipping_min_days?: number
           shipping_promotion_text?: string | null
           slug: string
           updated_at?: string
         }
         Update: {
+          checkout_button_subtext?: string | null
+          checkout_button_text?: string
           checkout_url?: string | null
           closing_text?: string | null
           created_at?: string
           current_price?: number
+          custom_stats_enabled?: boolean
           customer_protection_text?: string | null
           description?: string | null
           discount_percentage?: number | null
           five_star_count?: number | null
           id?: string
+          installment_note?: string | null
           installment_text?: string | null
           is_active?: boolean
           name?: string
@@ -180,8 +198,11 @@ export type Database = {
           review_count?: number | null
           sales_count?: string | null
           search_placeholder?: string | null
+          shipping_business_days?: boolean
           shipping_discount_text?: string | null
           shipping_fee?: string | null
+          shipping_max_days?: number
+          shipping_min_days?: number
           shipping_promotion_text?: string | null
           slug?: string
           updated_at?: string
