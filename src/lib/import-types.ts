@@ -29,7 +29,7 @@ export type ImportedProduct = {
   attributes: ImportedAttribute[];
   variants: ImportedVariantOption[];
   availability: string | null;
-  metadata: Record<string, unknown>;
+  metadata: Record<string, string | number | boolean | null>;
 };
 
 export type ImportAnalysis = {
