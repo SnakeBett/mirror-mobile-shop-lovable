@@ -37,6 +37,17 @@ function AdminLayout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  async function openStore() {
+    const { data } = await supabase
+      .from("products")
+      .select("slug")
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    window.open(data?.slug ? `/produto/${data.slug}` : "/", "_blank", "noopener");
+  }
+
   async function signOut() {
     await queryClient.cancelQueries();
     queryClient.clear();
@@ -64,12 +75,13 @@ function AdminLayout() {
           >
             <Package className="size-4" /> Produtos
           </Link>
-          <Link
-            to="/"
-            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          <button
+            type="button"
+            onClick={openStore}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <Store className="size-4" /> Ver loja
-          </Link>
+          </button>
         </nav>
         <Button variant="ghost" className="mt-auto justify-start gap-2 text-sm" onClick={signOut}>
           <LogOut className="size-4" /> Sair
@@ -82,6 +94,7 @@ function AdminLayout() {
           <div className="flex gap-1">
             <Link to="/admin" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Início</Link>
             <Link to="/admin/produtos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Produtos</Link>
+            <Button variant="ghost" size="sm" onClick={openStore}>Loja</Button>
             <Button variant="ghost" size="sm" onClick={signOut}>Sair</Button>
           </div>
         </header>

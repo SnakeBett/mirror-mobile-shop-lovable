@@ -61,8 +61,24 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       ...reviewRows.map((row) => row.image_url),
     ]);
 
+    // Quando "números personalizados" está desativado, as estatísticas exibidas
+    // são calculadas a partir das avaliações ativas.
+    const computed = product.custom_stats_enabled
+      ? {}
+      : {
+          rating:
+            reviewRows.length > 0
+              ? Math.round(
+                  (reviewRows.reduce((sum, row) => sum + (row.rating ?? 0), 0) / reviewRows.length) * 10,
+                ) / 10
+              : null,
+          review_count: reviewRows.length,
+          five_star_count: reviewRows.filter((row) => row.rating === 5).length,
+        };
+
     return {
       ...(product as ProductView),
+      ...computed,
       images: imageRows.map((row) => urlMap[row.image_url]).filter(Boolean) as string[],
       promotions: (promotions.data ?? []).map((row) => row.text),
       details: (details.data ?? []).map((row) => [row.label, row.value ?? ""] as [string, string]),

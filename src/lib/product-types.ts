@@ -19,6 +19,13 @@ export type ProductRow = {
   closing_text: string | null;
   checkout_url: string | null;
   is_active: boolean;
+  shipping_min_days: number;
+  shipping_max_days: number;
+  shipping_business_days: boolean;
+  installment_note: string | null;
+  custom_stats_enabled: boolean;
+  checkout_button_text: string;
+  checkout_button_subtext: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -69,11 +76,29 @@ function formatShippingDate(date: Date) {
     .replace(".", "");
 }
 
-/** Prazo de entrega automático: hoje + 3 dias até hoje + 6 dias. */
-export function getShippingRange(from: Date = new Date()) {
-  const start = new Date(from);
-  const end = new Date(from);
-  start.setDate(start.getDate() + 3);
-  end.setDate(end.getDate() + 6);
-  return `${formatShippingDate(start)} e ${formatShippingDate(end)}`;
+function addDays(from: Date, days: number, businessOnly: boolean) {
+  const date = new Date(from);
+  let remaining = Math.max(0, Math.round(days));
+  if (!businessOnly) {
+    date.setDate(date.getDate() + remaining);
+    return date;
+  }
+  while (remaining > 0) {
+    date.setDate(date.getDate() + 1);
+    const weekday = date.getDay();
+    if (weekday !== 0 && weekday !== 6) remaining -= 1;
+  }
+  return date;
+}
+
+/** Prazo de entrega calculado a partir de hoje, usando a configuração do produto. */
+export function getShippingRange(
+  minDays = 3,
+  maxDays = 6,
+  businessDays = false,
+  from: Date = new Date(),
+) {
+  const min = Math.min(minDays, maxDays);
+  const max = Math.max(minDays, maxDays);
+  return `${formatShippingDate(addDays(from, min, businessDays))} e ${formatShippingDate(addDays(from, max, businessDays))}`;
 }

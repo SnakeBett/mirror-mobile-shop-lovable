@@ -127,7 +127,7 @@ function ProductPrice({ data }: { data: ProductView }) {
         <strong>{currency.format(Number(data.current_price))}</strong>
         {data.old_price != null && <del>{currency.format(Number(data.old_price))}</del>}
       </div>
-      <p>{data.installment_text}</p>
+      <p>{data.installment_text}{data.installment_note ? ` ${data.installment_note}` : ""}</p>
     </section>
   );
 }
@@ -163,7 +163,7 @@ function ShippingInfo({ data }: { data: ProductView }) {
     <section className="product-padding shipping-section">
       <Truck aria-hidden="true" />
       <div>
-        <h2>Receba entre {getShippingRange()}</h2>
+        <h2>Receba entre {getShippingRange(data.shipping_min_days, data.shipping_max_days, data.shipping_business_days)}</h2>
         <p>{data.shipping_fee} | <em>{data.shipping_promotion_text}</em></p>
         <p className="shipping-discount">{data.shipping_discount_text}</p>
       </div>
@@ -249,7 +249,8 @@ function StickyPurchaseBar({ data }: { data: ProductView }) {
         disabled={!checkoutUrl}
         onClick={() => { if (checkoutUrl) window.location.href = checkoutUrl; }}
       >
-        <span>Comprar agora</span><small>Promoção de {currency.format(Number(data.current_price))}</small>
+        <span>{data.checkout_button_text || "Comprar agora"}</span>
+        {(data.checkout_button_subtext ?? "").trim() && <small>{data.checkout_button_subtext}</small>}
       </Button>
     </footer>
   );

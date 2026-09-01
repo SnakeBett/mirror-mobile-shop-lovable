@@ -1,8 +1,6 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 
-import { ProductForm } from "@/components/admin/product-form";
-import { createProduct } from "@/lib/admin-queries";
+import { ProductEditor } from "@/components/admin/product-editor";
 
 export const Route = createFileRoute("/_admin/admin/produtos/novo")({
   head: () => ({
@@ -20,25 +18,5 @@ export const Route = createFileRoute("/_admin/admin/produtos/novo")({
 });
 
 function NewProduct() {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-
-  return (
-    <div className="mx-auto max-w-3xl">
-      <h1 className="text-xl font-semibold text-foreground">Novo produto</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Após salvar você poderá adicionar imagens, avaliações, detalhes e promoções.
-      </p>
-      <div className="mt-6">
-        <ProductForm
-          submitLabel="Criar produto"
-          onSubmit={async (values) => {
-            const id = await createProduct(values);
-            queryClient.invalidateQueries({ queryKey: ["admin"] });
-            navigate({ to: "/admin/produtos/$id", params: { id } });
-          }}
-        />
-      </div>
-    </div>
-  );
+  return <ProductEditor />;
 }
