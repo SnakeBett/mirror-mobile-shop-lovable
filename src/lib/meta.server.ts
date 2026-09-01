@@ -120,13 +120,13 @@ async function hashPhone(phone: string | null | undefined) {
 }
 
 export type UserSignals = {
-  email?: string | null;
-  phone?: string | null;
-  fbp?: string | null;
-  fbc?: string | null;
-  client_ip_address?: string | null;
-  client_user_agent?: string | null;
-  external_id?: string | null;
+  email?: string | null | undefined;
+  phone?: string | null | undefined;
+  fbp?: string | null | undefined;
+  fbc?: string | null | undefined;
+  client_ip_address?: string | null | undefined;
+  client_user_agent?: string | null | undefined;
+  external_id?: string | null | undefined;
 };
 
 /** Monta user_data somente com sinais realmente disponíveis. Nada é inventado. */
@@ -151,9 +151,9 @@ export async function buildUserData(signals: UserSignals) {
 export type CapiEvent = {
   event_name: "PageView" | "ViewContent" | "InitiateCheckout" | "Purchase" | "AddToCart" | "Search";
   event_id: string;
-  event_time?: number;
-  event_source_url?: string | null;
-  action_source?: "website" | "other";
+  event_time?: number | undefined;
+  event_source_url?: string | null | undefined;
+  action_source?: "website" | "other" | undefined;
   user_data: Record<string, unknown>;
   custom_data?: Record<string, unknown>;
 };
@@ -176,7 +176,7 @@ const RETRYABLE = new Set([408, 429, 500, 502, 503, 504]);
 export async function sendCapiEvent(
   settings: TrackingSettings,
   event: CapiEvent,
-  options: { maxAttempts?: number; testEventCode?: string | null } = {},
+  options: { maxAttempts?: number | undefined; testEventCode?: string | null | undefined } = {},
 ): Promise<CapiResult> {
   if (!settings.meta_enabled) return { ok: false, status: null, error: null, attempts: 0, skipped: "meta_disabled" };
   if (!settings.meta_pixel_id || !settings.meta_capi_token) {
@@ -248,12 +248,12 @@ function safeError(message: string, token: string | null) {
 export async function logMetaEvent(entry: {
   event_name: string;
   event_id: string;
-  product_id?: string | null;
-  order_id?: string | null;
-  pixel_sent?: boolean;
+  product_id?: string | null | undefined;
+  order_id?: string | null | undefined;
+  pixel_sent?: boolean | undefined;
   capi: CapiResult;
-  test_event?: boolean;
-  event_source_url?: string | null;
+  test_event?: boolean | undefined;
+  event_source_url?: string | null | undefined;
 }) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const capiStatus = entry.capi.skipped ? "skipped" : entry.capi.ok ? "success" : "error";

@@ -18,6 +18,7 @@ import { Route as AdminAdminFunilRouteImport } from './routes/_admin.admin.funil
 import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.importar'
 import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
 import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
+import { Route as ApiPublicMetaEventRouteImport } from './routes/api/public/meta-event'
 import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
 import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admin.admin.configuracoes.geral'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
@@ -70,6 +71,11 @@ const AdminAdminVendasRoute = AdminAdminVendasRouteImport.update({
   id: '/admin/vendas',
   path: '/admin/vendas',
   getParentRoute: () => AdminRoute,
+} as any)
+const ApiPublicMetaEventRoute = ApiPublicMetaEventRouteImport.update({
+  id: '/api/public/meta-event',
+  path: '/api/public/meta-event',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicTrackRoute = ApiPublicTrackRouteImport.update({
   id: '/api/public/track',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
+  '/api/public/meta-event': typeof ApiPublicMetaEventRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
@@ -142,6 +149,7 @@ export interface FileRoutesByTo {
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
+  '/api/public/meta-event': typeof ApiPublicMetaEventRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/admin': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
@@ -162,6 +170,7 @@ export interface FileRoutesById {
   '/_admin/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
   '/_admin/admin/vendas': typeof AdminAdminVendasRoute
+  '/api/public/meta-event': typeof ApiPublicMetaEventRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
@@ -182,6 +191,7 @@ export interface FileRouteTypes {
     | '/admin/importar'
     | '/admin/pedidos'
     | '/admin/vendas'
+    | '/api/public/meta-event'
     | '/api/public/track'
     | '/admin/'
     | '/admin/configuracoes/geral'
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/admin/importar'
     | '/admin/pedidos'
     | '/admin/vendas'
+    | '/api/public/meta-event'
     | '/api/public/track'
     | '/admin'
     | '/admin/configuracoes/geral'
@@ -219,6 +230,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/importar'
     | '/_admin/admin/pedidos'
     | '/_admin/admin/vendas'
+    | '/api/public/meta-event'
     | '/api/public/track'
     | '/_admin/admin/'
     | '/_admin/admin/configuracoes/geral'
@@ -235,6 +247,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
+  ApiPublicMetaEventRoute: typeof ApiPublicMetaEventRoute
   ApiPublicTrackRoute: typeof ApiPublicTrackRoute
   ApiPublicWebhooksPagamentoRoute: typeof ApiPublicWebhooksPagamentoRoute
 }
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/vendas'
       preLoaderRoute: typeof AdminAdminVendasRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/api/public/meta-event': {
+      id: '/api/public/meta-event'
+      path: '/api/public/meta-event'
+      fullPath: '/api/public/meta-event'
+      preLoaderRoute: typeof ApiPublicMetaEventRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/track': {
       id: '/api/public/track'
@@ -408,6 +428,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
+  ApiPublicMetaEventRoute: ApiPublicMetaEventRoute,
   ApiPublicTrackRoute: ApiPublicTrackRoute,
   ApiPublicWebhooksPagamentoRoute: ApiPublicWebhooksPagamentoRoute,
 }
