@@ -53,6 +53,36 @@ export const analyzeImportUrl = createServerFn({ method: "POST" })
     }
   });
 
+/**
+ * Analisa dados capturados pelo administrador no próprio navegador
+ * (HTML/JSON colado). Conteúdo tratado como não confiável: apenas parsing.
+ */
+export const analyzeCapturedData = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { content: string; sourceUrl: string }) => ({
+    content: String(input?.content ?? "").slice(0, 6 * 1024 * 1024),
+    sourceUrl: String(input?.sourceUrl ?? ""),
+  }))
+  .handler(async ({ data, context }): Promise<ImportAnalysis> => {
+    await assertAdmin(context as never);
+    const platform = detectPlatform(data.sourceUrl);
+    const { analyzeCapturedContent } = await import("./importers.server");
+    try {
+      return analyzeCapturedContent(data.content, data.sourceUrl, platform);
+    } catch (error) {
+      console.error("[import] browser capture failed", error);
+      return {
+        status: "failed",
+        product: null,
+        missingFields: [],
+        notices: ["Confira se o conteúdo foi copiado por completo."],
+        message: "Não conseguimos interpretar os dados colados.",
+        individualReviewsAvailable: false,
+        foundCount: 0,
+      };
+    }
+  });
+
 /** Situação das integrações (sem expor chaves). */
 export const getIntegrationStatus = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
 import { slugify } from "./product-types";
-import type { ImportedProduct, SourcePlatform } from "./import-types";
+import type { ImportedProduct, ImportMethod, SourcePlatform } from "./import-types";
 
 export type ImportHistoryRow = {
   id: string;
@@ -12,13 +12,14 @@ export type ImportHistoryRow = {
   status: string;
   title: string | null;
   missing_fields: string[];
+  import_method: string | null;
   created_at: string;
 };
 
 export async function listRecentImports(limit = 20): Promise<ImportHistoryRow[]> {
   const { data, error } = await supabase
     .from("product_imports")
-    .select("id, source_platform, source_url, external_product_id, product_id, status, title, missing_fields, created_at")
+    .select("id, source_platform, source_url, external_product_id, product_id, status, title, missing_fields, import_method, created_at")
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -34,8 +35,13 @@ export async function logImport(values: {
   title?: string | null;
   missing_fields?: string[];
   error_detail?: string | null;
+  import_method?: ImportMethod;
 }) {
-  const payload = { ...values, missing_fields: values.missing_fields ?? [] };
+  const payload = {
+    ...values,
+    missing_fields: values.missing_fields ?? [],
+    import_method: values.import_method ?? "server",
+  };
 
   // Reanálise da mesma URL atualiza o registro existente em vez de duplicar.
   if (!values.product_id) {
@@ -105,6 +111,7 @@ export type CreateFromImportInput = {
   selectedImagePaths: string[];
   selectedAttributes: Array<{ label: string; value: string }>;
   selectedVariants: Array<{ name: string; values: string[] }>;
+  importMethod?: ImportMethod;
 };
 
 /** Cria o produto SEMPRE como rascunho (inativo) a partir dos dados revisados. */
@@ -132,6 +139,7 @@ export async function createProductFromImport(input: CreateFromImportInput): Pro
       source_platform: input.imported.source,
       source_url: input.imported.sourceUrl,
       external_product_id: input.imported.externalId,
+      import_method: input.importMethod ?? "server",
     } as never)
     .select("id")
     .single();
@@ -180,6 +188,7 @@ export type AssistedImportInput = {
   attributes: Array<{ label: string; value: string }>;
   sourceUrl: string | null;
   sourcePlatform: SourcePlatform;
+  importMethod?: ImportMethod;
 };
 
 /** Cadastro assistido: usado quando a página bloqueia a leitura automática. */
@@ -205,6 +214,7 @@ export async function createProductAssisted(input: AssistedImportInput): Promise
       is_active: false,
       source_platform: input.sourcePlatform,
       source_url: input.sourceUrl,
+      import_method: input.importMethod ?? "manual",
     } as never)
     .select("id")
     .single();
