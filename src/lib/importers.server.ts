@@ -984,7 +984,11 @@ export async function analyzePublicUrl(url: URL, platform: SourcePlatform): Prom
     );
   }
 
-  const blockedReason = detectBlockedPage(fetched.html);
+  const redirectedToAuth = /\/(login|signin|sign-in|passport|verify|captcha|challenge)(\/|$)/i.test(
+    fetched.url.pathname,
+  );
+  const blockedReason = detectBlockedPage(fetched.html) ?? (redirectedToAuth ? "login_required" : null);
+
 
   const ctx: ImporterContext = {
     url: fetched.url,
