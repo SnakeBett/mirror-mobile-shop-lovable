@@ -36,7 +36,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     if (error) throw new Error("Não foi possível carregar o produto.");
     if (!product) return null;
 
-    const [images, promotions, details, highlights, reviews] = await Promise.all([
+    const [images, promotions, details, highlights, reviews, settings] = await Promise.all([
       supabase.from("product_images").select("*").eq("product_id", product.id).order("sort_order"),
       supabase
         .from("promotions")
@@ -52,7 +52,10 @@ export const getPublicProduct = createServerFn({ method: "GET" })
         .eq("product_id", product.id)
         .eq("is_active", true)
         .order("sort_order"),
+      // Falha aqui nunca quebra a página: cai nos defaults (visual original).
+      supabase.from("product_page_settings").select("*").eq("product_id", product.id).maybeSingle(),
     ]);
+
 
     const imageRows = images.data ?? [];
     const reviewRows = reviews.data ?? [];
