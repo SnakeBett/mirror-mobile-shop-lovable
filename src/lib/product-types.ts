@@ -51,6 +51,25 @@ export type ProductHighlightRow = { id: string; text: string; sort_order: number
 export type ProductPromotionRow = { id: string; text: string; sort_order: number; is_active: boolean };
 export type ProductImageRow = { id: string; image_url: string; sort_order: number };
 
+export type ProductOffer = {
+  id: string;
+  product_id: string;
+  title: string;
+  subtitle: string | null;
+  offer_type: "discount" | "percentage" | "free_shipping" | "bundle" | "pix" | "coupon" | "custom";
+  discount_type: "none" | "fixed" | "percentage";
+  discount_value: number | null;
+  coupon_code: string | null;
+  button_text: string | null;
+  button_action: "select" | "copy_coupon" | "apply_coupon" | "open_link" | "none";
+  button_url: string | null;
+  icon: "tag" | "truck" | "percent" | "gift" | "zap" | "ticket";
+  is_active: boolean;
+  starts_at: string | null;
+  ends_at: string | null;
+  sort_order: number;
+};
+
 export type RecommendedProduct = {
   id: string;
   slug: string;
@@ -70,6 +89,7 @@ export type ProductView = ProductRow & {
   reviews: Array<Omit<ProductReview, "image_url"> & { image_url: string | null }>;
   page: import("./page-settings").PageSettings;
   recommendations: RecommendedProduct[];
+  offers: ProductOffer[];
   /** IDs de pixel já resolvidos (global ou específicos do produto). */
   tracking: import("./tracking").TrackingIds;
   /** Configuração pública de Meta/UTMify (nunca contém tokens). */
