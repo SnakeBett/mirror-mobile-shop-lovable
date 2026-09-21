@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ExternalLink, GripVertical, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, ExternalLink, GripVertical, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -860,6 +860,24 @@ function OffersManager({ productId, rows, onChange }: { productId: string; rows:
               <strong className="truncate text-sm">{index + 1}. {row.title}</strong>
               <div className="flex items-center gap-1">
                 <Switch checked={row.is_active} onCheckedChange={async (is_active) => { await updateChild("product_offers", row.id, { is_active }); onChange(); }} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Duplicar oferta"
+                  onClick={async () => {
+                    const { id: _id, created_at: _created, updated_at: _updated, ...copy } = row;
+                    await insertChild("product_offers", {
+                      ...copy,
+                      title: `${row.title} (cópia)`,
+                      product_id: productId,
+                      sort_order: rows.length,
+                    });
+                    onChange();
+                    toast.success("Oferta duplicada.");
+                  }}
+                >
+                  <Copy className="size-4" />
+                </Button>
                 <Button variant="ghost" size="icon" aria-label="Subir" disabled={index === 0} onClick={async () => { await reorderChild("product_offers", rows, index, index - 1); onChange(); }}><ArrowUp className="size-4" /></Button>
                 <Button variant="ghost" size="icon" aria-label="Descer" disabled={index === rows.length - 1} onClick={async () => { await reorderChild("product_offers", rows, index, index + 1); onChange(); }}><ArrowDown className="size-4" /></Button>
                 <Button variant="ghost" size="icon" aria-label="Excluir oferta" className="text-destructive" onClick={async () => { await deleteChild("product_offers", row.id); onChange(); }}><Trash2 className="size-4" /></Button>

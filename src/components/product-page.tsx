@@ -304,7 +304,23 @@ function OffersSection({ data }: { data: ProductView }) {
       toast.info("Consulte as condições desta oferta.");
       return;
     }
-    await navigator.clipboard.writeText(offer.coupon_code.trim());
+    const coupon = offer.coupon_code.trim();
+    try {
+      await navigator.clipboard.writeText(coupon);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = coupon;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      const copied = document.execCommand("copy");
+      input.remove();
+      if (!copied) {
+        toast.error("Não foi possível copiar o cupom.");
+        return;
+      }
+    }
     track("coupon_copy", {
       product_id: data.id,
       offer_id: offer.id,
