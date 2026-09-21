@@ -597,6 +597,8 @@ export type Database = {
           gallery_settings: Json
           header_settings: Json
           id: string
+          offer_banner_settings: Json
+          offers_settings: Json
           product_id: string
           promotion_settings: Json
           protection_settings: Json
@@ -617,6 +619,8 @@ export type Database = {
           gallery_settings?: Json
           header_settings?: Json
           id?: string
+          offer_banner_settings?: Json
+          offers_settings?: Json
           product_id: string
           promotion_settings?: Json
           protection_settings?: Json
@@ -637,6 +641,8 @@ export type Database = {
           gallery_settings?: Json
           header_settings?: Json
           id?: string
+          offer_banner_settings?: Json
+          offers_settings?: Json
           product_id?: string
           promotion_settings?: Json
           protection_settings?: Json
