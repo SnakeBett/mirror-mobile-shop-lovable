@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, ExternalLink, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, ExternalLink, GripVertical, Plus, RotateCcw, Trash2, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,7 @@ import {
   updateProduct,
   uploadProductImage,
 } from "@/lib/admin-queries";
-import { calcDiscount, slugify, type ProductRow } from "@/lib/product-types";
+import { calcDiscount, slugify, type ProductOffer, type ProductRow } from "@/lib/product-types";
 import { currencyBRL, getProductPerformance } from "@/lib/sales-queries";
 import {
   getAppSettings,
@@ -412,11 +412,35 @@ export function ProductEditor({ productId }: { productId?: string }) {
             </div>
           </Panel>
 
+          <Panel title="Faixa promocional">
+            <div className="flex items-center gap-3">
+              <Switch
+                id="offer-banner-enabled"
+                checked={page.offer_banner_settings.enabled}
+                onCheckedChange={(enabled) => setPage((current) => ({
+                  ...current,
+                  offer_banner_settings: { ...current.offer_banner_settings, enabled },
+                }))}
+              />
+              <Label htmlFor="offer-banner-enabled">Exibir faixa promocional</Label>
+            </div>
+            <BannerSettingsEditor
+              settings={page.offer_banner_settings}
+              onChange={(patch) => setPage((current) => ({
+                ...current,
+                offer_banner_settings: { ...current.offer_banner_settings, ...patch },
+              }))}
+            />
+          </Panel>
+
           {data ? (
-            <ChipsManager productId={data.product.id} rows={data.promotions} onChange={invalidate} />
+            <>
+              <OffersManager productId={data.product.id} rows={data.offers} onChange={invalidate} />
+              <ChipsManager productId={data.product.id} rows={data.promotions} onChange={invalidate} />
+            </>
           ) : (
-            <Panel title="Chips promocionais">
-              <p className="text-sm text-muted-foreground">Salve o produto para adicionar chips.</p>
+            <Panel title="Ofertas e benefícios">
+              <p className="text-sm text-muted-foreground">Salve o produto para adicionar ofertas.</p>
             </Panel>
           )}
         </TabsContent>
@@ -694,6 +718,199 @@ export function ProductEditor({ productId }: { productId?: string }) {
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* --------------------------- FAIXA PROMOCIONAL -------------------------- */
+
+function BannerSettingsEditor({
+  settings,
+  onChange,
+}: {
+  settings: PageSettings["offer_banner_settings"];
+  onChange: (patch: Partial<PageSettings["offer_banner_settings"]>) => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
+        <Field label="Tipo de oferta">
+          <Select value={settings.offer_type} onValueChange={(value) => onChange({ offer_type: value as typeof settings.offer_type })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="flash">Oferta Relâmpago</SelectItem>
+              <SelectItem value="special">Oferta Especial</SelectItem>
+              <SelectItem value="promotion">Promoção</SelectItem>
+              <SelectItem value="last_units">Últimas unidades</SelectItem>
+              <SelectItem value="custom">Personalizado</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label="Ícone (opcional)"><Input value={settings.icon} maxLength={4} onChange={(e) => onChange({ icon: e.target.value })} /></Field>
+        {settings.offer_type === "custom" && (
+          <Field label="Texto personalizado"><Input value={settings.custom_text} onChange={(e) => onChange({ custom_text: e.target.value })} /></Field>
+        )}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Preço exibido">
+          <Select value={settings.current_price_source} onValueChange={(value) => onChange({ current_price_source: value as "product" | "custom" })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="product">Usar preço do produto</SelectItem><SelectItem value="custom">Preço personalizado</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        {settings.current_price_source === "custom" && <Field label="Preço personalizado (R$)"><Input type="number" min="0" step="0.01" value={settings.current_price} onChange={(e) => onChange({ current_price: Number(e.target.value) })} /></Field>}
+        <Field label="Preço anterior">
+          <Select value={settings.old_price_source} onValueChange={(value) => onChange({ old_price_source: value as "product" | "custom" })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="product">Usar preço anterior do produto</SelectItem><SelectItem value="custom">Preço personalizado</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        {settings.old_price_source === "custom" && <Field label="Preço anterior personalizado (R$)"><Input type="number" min="0" step="0.01" value={settings.old_price} onChange={(e) => onChange({ old_price: Number(e.target.value) })} /></Field>}
+        <Field label="Desconto">
+          <Select value={settings.discount_mode} onValueChange={(value) => onChange({ discount_mode: value as "automatic" | "manual" })}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="automatic">Automático</SelectItem><SelectItem value="manual">Manual</SelectItem></SelectContent>
+          </Select>
+        </Field>
+        {settings.discount_mode === "manual" && <Field label="Desconto manual (%)"><Input type="number" min="0" max="99" value={settings.manual_discount} onChange={(e) => onChange({ manual_discount: Number(e.target.value) })} /></Field>}
+      </div>
+      <div className="flex items-center gap-3">
+        <Switch id="offer-show-from" checked={settings.show_from} onCheckedChange={(show_from) => onChange({ show_from })} />
+        <Label htmlFor="offer-show-from">Mostrar “A partir de”</Label>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Cor inicial do degradê"><Input type="color" value={settings.gradient_start} onChange={(e) => onChange({ gradient_start: e.target.value })} /></Field>
+        <Field label="Cor final do degradê"><Input type="color" value={settings.gradient_end} onChange={(e) => onChange({ gradient_end: e.target.value })} /></Field>
+      </div>
+      <Button type="button" variant="outline" size="sm" onClick={() => onChange({ gradient_start: "#ff7a18", gradient_end: "#ff4d22" })}>
+        <RotateCcw className="size-4" /> Restaurar cores padrão
+      </Button>
+    </div>
+  );
+}
+
+/* -------------------------- OFERTAS E BENEFÍCIOS ------------------------ */
+
+const blankOffer = {
+  title: "",
+  subtitle: "",
+  offer_type: "discount",
+  discount_type: "none",
+  discount_value: null,
+  coupon_code: "",
+  button_text: "Resgatar",
+  button_action: "none",
+  button_url: "",
+  icon: "tag",
+  is_active: true,
+  starts_at: "",
+  ends_at: "",
+} as const;
+
+function OffersManager({ productId, rows, onChange }: { productId: string; rows: ProductOffer[]; onChange: () => void }) {
+  const [draft, setDraft] = useState<Record<string, unknown>>({ ...blankOffer });
+  const [dragIndex, setDragIndex] = useState<number | null>(null);
+  const patchDraft = (key: string, value: unknown) => setDraft((current) => ({ ...current, [key]: value }));
+
+  async function addOffer() {
+    const title = String(draft["title"] ?? "").trim();
+    if (!title) {
+      toast.error("Informe o título da oferta.");
+      return;
+    }
+    await insertChild("product_offers", {
+      ...draft,
+      title,
+      subtitle: String(draft["subtitle"] ?? "").trim() || null,
+      coupon_code: String(draft["coupon_code"] ?? "").trim() || null,
+      button_text: String(draft["button_text"] ?? "").trim() || null,
+      button_url: String(draft["button_url"] ?? "").trim() || null,
+      starts_at: draft["starts_at"] || null,
+      ends_at: draft["ends_at"] || null,
+      product_id: productId,
+      sort_order: rows.length,
+    });
+    setDraft({ ...blankOffer });
+    onChange();
+    toast.success("Oferta adicionada.");
+  }
+
+  return (
+    <Panel title="Ofertas e benefícios">
+      <p className="text-xs text-muted-foreground">As ofertas ativas aparecem em um carrossel na ordem abaixo.</p>
+      <OfferFields value={draft} onChange={patchDraft} />
+      <Button type="button" size="sm" onClick={() => void addOffer()}><Plus className="size-4" /> Adicionar oferta</Button>
+      <div className="space-y-2">
+        {rows.map((row, index) => (
+          <div
+            key={row.id}
+            draggable
+            onDragStart={() => setDragIndex(index)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={async (event) => {
+              event.preventDefault();
+              if (dragIndex !== null && dragIndex !== index) await reorderChild("product_offers", rows, dragIndex, index);
+              setDragIndex(null);
+              onChange();
+            }}
+            className="space-y-3 rounded-md border border-border p-3"
+          >
+            <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
+              <GripVertical className="size-4 cursor-grab text-muted-foreground" />
+              <strong className="truncate text-sm">{index + 1}. {row.title}</strong>
+              <div className="flex items-center gap-1">
+                <Switch checked={row.is_active} onCheckedChange={async (is_active) => { await updateChild("product_offers", row.id, { is_active }); onChange(); }} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Duplicar oferta"
+                  onClick={async () => {
+                    const { id: _id, ...copy } = row;
+                    await insertChild("product_offers", {
+                      ...copy,
+                      title: `${row.title} (cópia)`,
+                      product_id: productId,
+                      sort_order: rows.length,
+                    });
+                    onChange();
+                    toast.success("Oferta duplicada.");
+                  }}
+                >
+                  <Copy className="size-4" />
+                </Button>
+                <Button variant="ghost" size="icon" aria-label="Subir" disabled={index === 0} onClick={async () => { await reorderChild("product_offers", rows, index, index - 1); onChange(); }}><ArrowUp className="size-4" /></Button>
+                <Button variant="ghost" size="icon" aria-label="Descer" disabled={index === rows.length - 1} onClick={async () => { await reorderChild("product_offers", rows, index, index + 1); onChange(); }}><ArrowDown className="size-4" /></Button>
+                <Button variant="ghost" size="icon" aria-label="Excluir oferta" className="text-destructive" onClick={async () => { await deleteChild("product_offers", row.id); onChange(); }}><Trash2 className="size-4" /></Button>
+              </div>
+            </div>
+            <OfferFields
+              value={row as unknown as Record<string, unknown>}
+              onChange={(key, value) => void updateChild("product_offers", row.id, { [key]: value === "" && (key === "starts_at" || key === "ends_at") ? null : value }).then(onChange)}
+            />
+          </div>
+        ))}
+        {rows.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma oferta cadastrada.</p>}
+      </div>
+    </Panel>
+  );
+}
+
+function OfferFields({ value, onChange }: { value: Record<string, unknown>; onChange: (key: string, value: unknown) => void }) {
+  const textValue = (key: string) => String(value[key] ?? "");
+  return (
+    <div className="grid gap-3 md:grid-cols-2">
+      <Field label="Título"><Input value={textValue("title")} onChange={(e) => onChange("title", e.target.value)} /></Field>
+      <Field label="Subtítulo"><Input value={textValue("subtitle")} onChange={(e) => onChange("subtitle", e.target.value)} /></Field>
+      <Field label="Tipo de benefício"><Select value={textValue("offer_type")} onValueChange={(v) => onChange("offer_type", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="discount">Desconto</SelectItem><SelectItem value="percentage">Percentual</SelectItem><SelectItem value="free_shipping">Frete grátis</SelectItem><SelectItem value="bundle">Leve mais</SelectItem><SelectItem value="pix">PIX</SelectItem><SelectItem value="coupon">Cupom</SelectItem><SelectItem value="custom">Personalizado</SelectItem></SelectContent></Select></Field>
+      <Field label="Formato do valor"><Select value={textValue("discount_type")} onValueChange={(v) => onChange("discount_type", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Sem valor numérico</SelectItem><SelectItem value="fixed">Valor em reais</SelectItem><SelectItem value="percentage">Percentual</SelectItem></SelectContent></Select></Field>
+      <Field label="Valor"><Input type="number" min="0" step="0.01" value={value["discount_value"] == null ? "" : Number(value["discount_value"])} onChange={(e) => onChange("discount_value", e.target.value === "" ? null : Number(e.target.value))} /></Field>
+      <Field label="Código do cupom (opcional)"><Input value={textValue("coupon_code")} onChange={(e) => onChange("coupon_code", e.target.value)} /></Field>
+      <Field label="Ícone"><Select value={textValue("icon")} onValueChange={(v) => onChange("icon", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tag">Etiqueta</SelectItem><SelectItem value="truck">Envio/Frete</SelectItem><SelectItem value="percent">Percentual</SelectItem><SelectItem value="gift">Presente</SelectItem><SelectItem value="zap">Relâmpago</SelectItem><SelectItem value="ticket">Cupom</SelectItem></SelectContent></Select></Field>
+      <Field label="Texto do botão"><Input value={textValue("button_text")} onChange={(e) => onChange("button_text", e.target.value)} /></Field>
+      <Field label="Ação do botão"><Select value={textValue("button_action")} onValueChange={(v) => onChange("button_action", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="select">Apenas selecionar oferta</SelectItem><SelectItem value="copy_coupon">Copiar cupom</SelectItem><SelectItem value="apply_coupon">Aplicar cupom</SelectItem><SelectItem value="open_link">Abrir link</SelectItem><SelectItem value="none">Sem ação</SelectItem></SelectContent></Select></Field>
+      {textValue("button_action") === "open_link" && <Field label="Link"><Input type="url" value={textValue("button_url")} onChange={(e) => onChange("button_url", e.target.value)} /></Field>}
+      <Field label="Início (opcional)"><Input type="datetime-local" value={textValue("starts_at").slice(0, 16)} onChange={(e) => onChange("starts_at", e.target.value ? new Date(e.target.value).toISOString() : "")} /></Field>
+      <Field label="Fim (opcional)"><Input type="datetime-local" value={textValue("ends_at").slice(0, 16)} onChange={(e) => onChange("ends_at", e.target.value ? new Date(e.target.value).toISOString() : "")} /></Field>
     </div>
   );
 }

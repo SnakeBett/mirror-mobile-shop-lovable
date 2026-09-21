@@ -5,14 +5,20 @@ import {
   Check,
   ChevronRight,
   Ellipsis,
+  Gift,
   MessageCircle,
+  Percent,
   Search,
   Share2,
   ShieldCheck,
   ShoppingCart,
   Store,
+  Tag,
+  Ticket,
   Truck,
+  Zap,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { appendCheckoutTracking, track } from "@/lib/analytics";
@@ -23,7 +29,7 @@ import {
   firePixelViewContent,
 } from "@/components/tracking-scripts";
 import { cn } from "@/lib/utils";
-import { formatShippingText, type ProductView } from "@/lib/product-types";
+import { calcDiscount, formatShippingText, type ProductOffer, type ProductView } from "@/lib/product-types";
 import {
   resolveChatUrl,
   text,
@@ -220,6 +226,153 @@ function ProductPrice({ data }: { data: ProductView }) {
         {fields.old_price && data.old_price != null && <del>{currency.format(Number(data.old_price))}</del>}
       </div>
       {fields.installment && installment && <p>{installment}</p>}
+    </section>
+  );
+}
+
+const BANNER_LABELS = {
+  flash: "Oferta Relâmpago",
+  special: "Oferta Especial",
+  promotion: "Promoção",
+  last_units: "Últimas unidades",
+  custom: "Oferta",
+} as const;
+
+function safeHex(value: string, fallback: string) {
+  return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
+}
+
+function OfferBanner({ data }: { data: ProductView }) {
+  const settings = data.page.offer_banner_settings;
+  if (!settings.enabled) return null;
+  const current = settings.current_price_source === "custom" ? settings.current_price : Number(data.current_price);
+  const old = settings.old_price_source === "custom" ? settings.old_price : Number(data.old_price ?? 0);
+  const automatic = calcDiscount(old || null, current || null);
+  const discount = settings.discount_mode === "manual" ? settings.manual_discount : automatic;
+  const label = settings.offer_type === "custom"
+    ? text(settings.custom_text, BANNER_LABELS.custom)
+    : BANNER_LABELS[settings.offer_type];
+  const style = {
+    "--offer-gradient-start": safeHex(settings.gradient_start, "#ff7a18"),
+    "--offer-gradient-end": safeHex(settings.gradient_end, "#ff4d22"),
+  } as CSSProperties;
+
+  return (
+    <section className="offer-banner" style={style} aria-label={label}>
+      <div className="offer-banner-pricing">
+        <div className="offer-banner-current">
+          {discount != null && discount > 0 && <span className="offer-banner-badge">-{discount}%</span>}
+          <strong><small>{settings.show_from ? "A partir de " : ""}</small>{currency.format(current)}</strong>
+        </div>
+        {old > current && <del>{currency.format(old)}</del>}
+      </div>
+      <div className="offer-banner-label">
+        {settings.icon.trim() && <span aria-hidden="true">{settings.icon.trim()}</span>}
+        <b>{label}</b>
+      </div>
+    </section>
+  );
+}
+
+const OFFER_ICONS = { tag: Tag, truck: Truck, percent: Percent, gift: Gift, zap: Zap, ticket: Ticket };
+
+function OffersSection({ data }: { data: ProductView }) {
+  const [selected, setSelected] = useState<string | null>(null);
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const offers = data.offers;
+
+  useEffect(() => {
+    const node = sectionRef.current;
+    if (!node || offers.length === 0) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (!entries.some((entry) => entry.isIntersecting)) return;
+      offers.forEach((offer) => track("offer_view", {
+        product_id: data.id,
+        offer_id: offer.id,
+        metadata: { offer_type: offer.offer_type },
+      }, { once: `offer_view:${data.id}:${offer.id}` }));
+      observer.disconnect();
+    }, { threshold: 0.35 });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [data.id, offers]);
+
+  if (offers.length === 0) return null;
+
+  async function copyCoupon(offer: ProductOffer, applying = false) {
+    if (!offer.coupon_code?.trim()) {
+      toast.info("Consulte as condições desta oferta.");
+      return;
+    }
+    const coupon = offer.coupon_code.trim();
+    try {
+      await navigator.clipboard.writeText(coupon);
+    } catch {
+      const input = document.createElement("textarea");
+      input.value = coupon;
+      input.style.position = "fixed";
+      input.style.opacity = "0";
+      document.body.appendChild(input);
+      input.select();
+      const copied = document.execCommand("copy");
+      input.remove();
+      if (!copied) {
+        toast.error("Não foi possível copiar o cupom.");
+        return;
+      }
+    }
+    track("coupon_copy", {
+      product_id: data.id,
+      offer_id: offer.id,
+      metadata: { offer_type: offer.offer_type },
+    });
+    toast.success(applying ? "Cupom copiado. Cole no checkout." : "Cupom copiado");
+  }
+
+  function handleAction(offer: ProductOffer) {
+    track("offer_click", {
+      product_id: data.id,
+      offer_id: offer.id,
+      metadata: { offer_type: offer.offer_type, action: offer.button_action },
+    });
+    if (offer.button_action === "select") {
+      setSelected(offer.id);
+      toast.success("Oferta selecionada");
+    } else if (offer.button_action === "copy_coupon") {
+      void copyCoupon(offer);
+    } else if (offer.button_action === "apply_coupon") {
+      void copyCoupon(offer, true);
+    } else if (offer.button_action === "open_link" && offer.button_url) {
+      openLink(offer.button_url, "new");
+    }
+  }
+
+  return (
+    <section ref={sectionRef} className="offers-section product-padding">
+      <div className="offers-heading">
+        <h2>{text(data.page.offers_settings.title, "Ofertas")}</h2>
+        <ChevronRight aria-hidden="true" />
+      </div>
+      <div className="offers-row">
+        {offers.map((offer) => {
+          const Icon = OFFER_ICONS[offer.icon] ?? Tag;
+          const hasAction = offer.button_action !== "none" && Boolean(offer.button_text?.trim());
+          return (
+            <article key={offer.id} className={cn("offer-card", selected === offer.id && "offer-card-selected")}>
+              <span className="offer-card-icon"><Icon aria-hidden="true" /></span>
+              <div className="offer-card-copy">
+                <strong>{offer.title}</strong>
+                {offer.subtitle && <small>{offer.subtitle}</small>}
+              </div>
+              {hasAction && (
+                <Button variant="ghost" size="sm" onClick={() => handleAction(offer)}>
+                  {offer.button_text}
+                </Button>
+              )}
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }
@@ -649,7 +802,10 @@ export function ProductPage({ product }: { product: ProductView }) {
 
   const blocks: Record<SectionKey, ReactNode> = {
     gallery: sections.gallery ? (
-      <ProductGallery key="gallery" images={product.images} name={product.name} page={page} />
+      <div key="gallery">
+        <ProductGallery images={product.images} name={product.name} page={page} />
+        <OfferBanner data={product} />
+      </div>
     ) : null,
     offer:
       sections.price || sections.promotions ? (
@@ -664,6 +820,7 @@ export function ProductPage({ product }: { product: ProductView }) {
       sections.protection && page.field_visibility.protection ? (
         <CustomerProtection key="protection" data={product} />
       ) : null,
+    offers: sections.offers && product.offers.length > 0 ? <OffersSection key="offers" data={product} /> : null,
     reviews: sections.reviews ? <ReviewsSection key="reviews" data={product} /> : null,
     details: sections.details ? <ProductDetails key="details" data={product} /> : null,
     description: sections.description ? <ProductDescription key="description" data={product} /> : null,

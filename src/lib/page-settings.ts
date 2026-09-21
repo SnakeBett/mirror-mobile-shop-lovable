@@ -12,6 +12,7 @@ export type SectionKey =
   | "info"
   | "shipping"
   | "protection"
+  | "offers"
   | "reviews"
   | "details"
   | "description"
@@ -23,6 +24,7 @@ export const SECTION_ORDER_LABELS: Array<[SectionKey, string]> = [
   ["info", "Informações do produto"],
   ["shipping", "Entrega"],
   ["protection", "Proteção"],
+  ["offers", "Ofertas"],
   ["reviews", "Avaliações"],
   ["details", "Detalhes"],
   ["description", "Descrição"],
@@ -39,6 +41,7 @@ export type SectionVisibility = {
   sales: boolean;
   shipping: boolean;
   protection: boolean;
+  offers: boolean;
   reviews: boolean;
   details: boolean;
   description: boolean;
@@ -54,6 +57,7 @@ export const SECTION_VISIBILITY_LABELS: Array<[keyof SectionVisibility, string]>
   ["sales", "Quantidade vendida"],
   ["shipping", "Entrega"],
   ["protection", "Proteção ao cliente"],
+  ["offers", "Ofertas e benefícios"],
   ["reviews", "Avaliações"],
   ["details", "Detalhes do produto"],
   ["description", "Descrição"],
@@ -189,6 +193,24 @@ export type GallerySettings = {
 
 export type PromotionSettings = { layout: "scroll" | "wrap" };
 
+export type OfferBannerSettings = {
+  enabled: boolean;
+  offer_type: "flash" | "special" | "promotion" | "last_units" | "custom";
+  custom_text: string;
+  icon: string;
+  current_price_source: "product" | "custom";
+  current_price: number;
+  old_price_source: "product" | "custom";
+  old_price: number;
+  discount_mode: "automatic" | "manual";
+  manual_discount: number;
+  show_from: boolean;
+  gradient_start: string;
+  gradient_end: string;
+};
+
+export type OffersSettings = { title: string };
+
 export type ShippingSettings = { template: string };
 
 export const SHIPPING_TEMPLATE_DEFAULT = "Receba entre {min_date} e {max_date}";
@@ -227,6 +249,8 @@ export type PageSettings = {
   review_settings: ReviewSettings;
   gallery_settings: GallerySettings;
   promotion_settings: PromotionSettings;
+  offer_banner_settings: OfferBannerSettings;
+  offers_settings: OffersSettings;
   shipping_settings: ShippingSettings;
   protection_settings: ProtectionSettings;
   color_settings: ColorSettings;
@@ -243,6 +267,7 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = {
     sales: true,
     shipping: true,
     protection: true,
+    offers: true,
     reviews: true,
     details: true,
     description: true,
@@ -307,6 +332,22 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = {
 
   gallery_settings: { indicator: "counter", show_thumbnails: true, allow_swipe: true, allow_zoom: false },
   promotion_settings: { layout: "scroll" },
+  offer_banner_settings: {
+    enabled: false,
+    offer_type: "flash",
+    custom_text: "",
+    icon: "⚡",
+    current_price_source: "product",
+    current_price: 0,
+    old_price_source: "product",
+    old_price: 0,
+    discount_mode: "automatic",
+    manual_discount: 0,
+    show_from: false,
+    gradient_start: "#ff7a18",
+    gradient_end: "#ff4d22",
+  },
+  offers_settings: { title: "" },
   shipping_settings: { template: SHIPPING_TEMPLATE_DEFAULT },
   protection_settings: { title: "", description: "", url: "" },
   color_settings: { primary: "", secondary: "", buy: "", price: "" },
@@ -352,6 +393,7 @@ export function resolvePageSettings(row: Raw): PageSettings {
     DEFAULT_PAGE_SETTINGS.recommendation_settings,
     source["recommendation_settings"],
   );
+  const offerBanner = mergeGroup(DEFAULT_PAGE_SETTINGS.offer_banner_settings, source["offer_banner_settings"]);
 
   return {
     recommendation_settings: {
@@ -390,6 +432,17 @@ export function resolvePageSettings(row: Raw): PageSettings {
     promotion_settings: {
       layout: enums(obj(source["promotion_settings"])["layout"], ["scroll", "wrap"] as const, "scroll"),
     },
+    offer_banner_settings: {
+      ...offerBanner,
+      offer_type: enums(offerBanner.offer_type, ["flash", "special", "promotion", "last_units", "custom"] as const, "flash"),
+      current_price_source: enums(offerBanner.current_price_source, ["product", "custom"] as const, "product"),
+      old_price_source: enums(offerBanner.old_price_source, ["product", "custom"] as const, "product"),
+      discount_mode: enums(offerBanner.discount_mode, ["automatic", "manual"] as const, "automatic"),
+      current_price: Math.max(0, Number(offerBanner.current_price) || 0),
+      old_price: Math.max(0, Number(offerBanner.old_price) || 0),
+      manual_discount: Math.min(99, Math.max(0, Math.round(Number(offerBanner.manual_discount) || 0))),
+    },
+    offers_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.offers_settings, source["offers_settings"]),
     shipping_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.shipping_settings, source["shipping_settings"]),
     protection_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.protection_settings, source["protection_settings"]),
     color_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.color_settings, source["color_settings"]),

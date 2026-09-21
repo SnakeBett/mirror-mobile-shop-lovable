@@ -15,7 +15,10 @@ export type AnalyticsEventName =
   | "click_buy"
   | "begin_checkout"
   | "view_recommendation"
-  | "click_recommendation";
+  | "click_recommendation"
+  | "offer_view"
+  | "offer_click"
+  | "coupon_copy";
 
 export type Attribution = {
   utm_source: string | null;
@@ -180,6 +183,7 @@ export function getAttribution() {
 type TrackPayload = {
   product_id?: string | null;
   recommended_product_id?: string | null;
+  offer_id?: string | null;
   metadata?: Record<string, string | number | boolean | null>;
 };
 
@@ -200,6 +204,7 @@ export function track(event: AnalyticsEventName, payload: TrackPayload = {}, opt
     session_id: getSessionId(),
     product_id: payload.product_id ?? null,
     recommended_product_id: payload.recommended_product_id ?? null,
+    offer_id: payload.offer_id ?? null,
     path: window.location.pathname.slice(0, 300),
     referrer: last.referrer ?? (document.referrer || null),
     device_type: getDeviceType(),

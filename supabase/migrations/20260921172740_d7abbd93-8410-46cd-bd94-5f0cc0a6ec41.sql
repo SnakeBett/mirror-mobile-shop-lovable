@@ -1,0 +1,3 @@
+ALTER TABLE public.product_page_settings
+ADD COLUMN offer_banner_settings jsonb NOT NULL DEFAULT '{"enabled":false,"offer_type":"flash","custom_text":"","icon":"⚡","current_price_source":"product","current_price":0,"old_price_source":"product","old_price":0,"discount_mode":"automatic","manual_discount":0,"show_from":false,"gradient_start":"#ff7a18","gradient_end":"#ff4d22"}'::jsonb,
+ADD COLUMN offers_settings jsonb NOT NULL DEFAULT '{"title":""}'::jsonb;

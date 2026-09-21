@@ -143,7 +143,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     if (error) throw new Error("Não foi possível carregar o produto.");
     if (!product) return null;
 
-    const [images, promotions, details, highlights, reviews, settings] = await Promise.all([
+    const [images, promotions, details, highlights, reviews, settings, offers] = await Promise.all([
       supabase.from("product_images").select("*").eq("product_id", product.id).order("sort_order"),
       supabase
         .from("promotions")
@@ -161,6 +161,14 @@ export const getPublicProduct = createServerFn({ method: "GET" })
         .order("sort_order"),
       // Falha aqui nunca quebra a página: cai nos defaults (visual original).
       supabase.from("product_page_settings").select("*").eq("product_id", product.id).maybeSingle(),
+      supabase
+        .from("product_offers")
+        .select("*")
+        .eq("product_id", product.id)
+        .eq("is_active", true)
+        .or(`starts_at.is.null,starts_at.lte.${new Date().toISOString()}`)
+        .or(`ends_at.is.null,ends_at.gte.${new Date().toISOString()}`)
+        .order("sort_order"),
     ]);
 
     const { data: settingsRow } = await supabase.from("app_settings").select("*").maybeSingle();
@@ -206,6 +214,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       ...computed,
       page,
       recommendations,
+      offers: (offers.data ?? []) as ProductView["offers"],
       tracking: {
         ...resolveTrackingIds(product as Record<string, never>, appSettings),
         // Pixel do Meta: override do produto > configuração Meta > pixel legado.
