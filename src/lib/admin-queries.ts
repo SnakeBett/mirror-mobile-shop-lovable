@@ -17,7 +17,7 @@ export type ChildTable =
   | "product_details"
   | "product_highlights"
   | "promotions"
-  | "reviews";
+  | "reviews"
   | "product_offers";
 
 export async function listProducts(search = "") {

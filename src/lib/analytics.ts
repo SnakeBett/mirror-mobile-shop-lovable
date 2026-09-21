@@ -15,7 +15,7 @@ export type AnalyticsEventName =
   | "click_buy"
   | "begin_checkout"
   | "view_recommendation"
-  | "click_recommendation";
+  | "click_recommendation"
   | "offer_view"
   | "offer_click"
   | "coupon_copy";
