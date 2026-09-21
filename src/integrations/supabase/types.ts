@@ -26,6 +26,7 @@ export type Database = {
           first_utm_source: string | null
           id: string
           metadata: Json | null
+          offer_id: string | null
           path: string | null
           product_id: string | null
           recommended_product_id: string | null
@@ -49,6 +50,7 @@ export type Database = {
           first_utm_source?: string | null
           id?: string
           metadata?: Json | null
+          offer_id?: string | null
           path?: string | null
           product_id?: string | null
           recommended_product_id?: string | null
@@ -72,6 +74,7 @@ export type Database = {
           first_utm_source?: string | null
           id?: string
           metadata?: Json | null
+          offer_id?: string | null
           path?: string | null
           product_id?: string | null
           recommended_product_id?: string | null
@@ -85,6 +88,13 @@ export type Database = {
           visitor_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "analytics_events_offer_id_fkey"
+            columns: ["offer_id"]
+            isOneToOne: false
+            referencedRelation: "product_offers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "analytics_events_product_id_fkey"
             columns: ["product_id"]
@@ -500,6 +510,77 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "product_imports_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_offers: {
+        Row: {
+          button_action: string
+          button_text: string | null
+          button_url: string | null
+          coupon_code: string | null
+          created_at: string
+          discount_type: string
+          discount_value: number | null
+          ends_at: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          offer_type: string
+          product_id: string
+          sort_order: number
+          starts_at: string | null
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          button_action?: string
+          button_text?: string | null
+          button_url?: string | null
+          coupon_code?: string | null
+          created_at?: string
+          discount_type?: string
+          discount_value?: number | null
+          ends_at?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          offer_type?: string
+          product_id: string
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          button_action?: string
+          button_text?: string | null
+          button_url?: string | null
+          coupon_code?: string | null
+          created_at?: string
+          discount_type?: string
+          discount_value?: number | null
+          ends_at?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          offer_type?: string
+          product_id?: string
+          sort_order?: number
+          starts_at?: string | null
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_offers_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
