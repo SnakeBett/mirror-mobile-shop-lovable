@@ -247,6 +247,16 @@
 .offer-card-copy strong { overflow: hidden; font-size: 11px; line-height: 1.25; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .offer-card-copy small { overflow: hidden; color: var(--muted-foreground); font-size: 9px; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 .offer-card button { height: 28px; padding-inline: 5px; color: var(--primary); font-size: 9px; font-weight: 800; text-transform: uppercase; }
+@media (max-width: 350px) {
+  .offer-banner { gap: 6px; padding-inline: 10px; }
+  .offer-banner-current { gap: 4px; }
+  .offer-banner-current strong { font-size: 18px; }
+  .offer-banner-label { max-width: 98px; }
+  .offer-banner-label b { font-size: 9px; }
+  .offer-banner-pricing del { margin-left: 35px; }
+  .offer-card { flex-basis: calc(100% - 20px); grid-template-columns: 30px minmax(0,1fr) auto; gap: 5px; }
+  .offer-card-icon { width: 28px; }
+}
 .section { padding-top: 13px; padding-bottom: 13px; }
 .section h2, .recommendations h2 { margin: 0; font-size: 13px; font-weight: 700; }
 .section-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 5px; }
