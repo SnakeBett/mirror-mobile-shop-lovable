@@ -865,7 +865,7 @@ function OffersManager({ productId, rows, onChange }: { productId: string; rows:
                   size="icon"
                   aria-label="Duplicar oferta"
                   onClick={async () => {
-                    const { id: _id, created_at: _created, updated_at: _updated, ...copy } = row;
+                    const { id: _id, ...copy } = row;
                     await insertChild("product_offers", {
                       ...copy,
                       title: `${row.title} (cópia)`,
