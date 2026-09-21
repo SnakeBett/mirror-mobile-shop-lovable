@@ -321,6 +321,17 @@ export function PageSettingsPanel({
         </div>
       </Panel>
 
+      <Panel title="Seção de ofertas" description="O título só aparece quando houver ao menos uma oferta ativa e válida.">
+        <div className="sm:max-w-xs">
+          <TextField
+            label="Título"
+            placeholder="Ofertas"
+            value={page.offers_settings.title}
+            onChange={(title) => patch("offers_settings", { title })}
+          />
+        </div>
+      </Panel>
+
       <Panel title="Entrega" description="Use {min_date} e {max_date} no texto.">
         <TextField
           label="Formato do texto da entrega"

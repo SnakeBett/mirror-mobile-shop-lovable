@@ -813,17 +813,20 @@ function OffersManager({ productId, rows, onChange }: { productId: string; rows:
   const patchDraft = (key: string, value: unknown) => setDraft((current) => ({ ...current, [key]: value }));
 
   async function addOffer() {
-    const title = String(draft.title ?? "").trim();
-    if (!title) return toast.error("Informe o título da oferta.");
+    const title = String(draft["title"] ?? "").trim();
+    if (!title) {
+      toast.error("Informe o título da oferta.");
+      return;
+    }
     await insertChild("product_offers", {
       ...draft,
       title,
-      subtitle: String(draft.subtitle ?? "").trim() || null,
-      coupon_code: String(draft.coupon_code ?? "").trim() || null,
-      button_text: String(draft.button_text ?? "").trim() || null,
-      button_url: String(draft.button_url ?? "").trim() || null,
-      starts_at: draft.starts_at || null,
-      ends_at: draft.ends_at || null,
+      subtitle: String(draft["subtitle"] ?? "").trim() || null,
+      coupon_code: String(draft["coupon_code"] ?? "").trim() || null,
+      button_text: String(draft["button_text"] ?? "").trim() || null,
+      button_url: String(draft["button_url"] ?? "").trim() || null,
+      starts_at: draft["starts_at"] || null,
+      ends_at: draft["ends_at"] || null,
       product_id: productId,
       sort_order: rows.length,
     });
@@ -881,7 +884,8 @@ function OfferFields({ value, onChange }: { value: Record<string, unknown>; onCh
       <Field label="Título"><Input value={textValue("title")} onChange={(e) => onChange("title", e.target.value)} /></Field>
       <Field label="Subtítulo"><Input value={textValue("subtitle")} onChange={(e) => onChange("subtitle", e.target.value)} /></Field>
       <Field label="Tipo de benefício"><Select value={textValue("offer_type")} onValueChange={(v) => onChange("offer_type", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="discount">Desconto</SelectItem><SelectItem value="percentage">Percentual</SelectItem><SelectItem value="free_shipping">Frete grátis</SelectItem><SelectItem value="bundle">Leve mais</SelectItem><SelectItem value="pix">PIX</SelectItem><SelectItem value="coupon">Cupom</SelectItem><SelectItem value="custom">Personalizado</SelectItem></SelectContent></Select></Field>
-      <Field label="Valor"><Input type="number" min="0" step="0.01" value={value.discount_value == null ? "" : Number(value.discount_value)} onChange={(e) => onChange("discount_value", e.target.value === "" ? null : Number(e.target.value))} /></Field>
+      <Field label="Formato do valor"><Select value={textValue("discount_type")} onValueChange={(v) => onChange("discount_type", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Sem valor numérico</SelectItem><SelectItem value="fixed">Valor em reais</SelectItem><SelectItem value="percentage">Percentual</SelectItem></SelectContent></Select></Field>
+      <Field label="Valor"><Input type="number" min="0" step="0.01" value={value["discount_value"] == null ? "" : Number(value["discount_value"])} onChange={(e) => onChange("discount_value", e.target.value === "" ? null : Number(e.target.value))} /></Field>
       <Field label="Código do cupom (opcional)"><Input value={textValue("coupon_code")} onChange={(e) => onChange("coupon_code", e.target.value)} /></Field>
       <Field label="Ícone"><Select value={textValue("icon")} onValueChange={(v) => onChange("icon", v)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="tag">Etiqueta</SelectItem><SelectItem value="truck">Envio/Frete</SelectItem><SelectItem value="percent">Percentual</SelectItem><SelectItem value="gift">Presente</SelectItem><SelectItem value="zap">Relâmpago</SelectItem><SelectItem value="ticket">Cupom</SelectItem></SelectContent></Select></Field>
       <Field label="Texto do botão"><Input value={textValue("button_text")} onChange={(e) => onChange("button_text", e.target.value)} /></Field>
