@@ -808,9 +808,11 @@ export function ProductPage({ product }: { product: ProductView }) {
       </div>
     ) : null,
     offer:
-      sections.price || sections.promotions ? (
+      // Com a faixa de oferta ativa, o preço/desconto/antigo aparecem dentro dela;
+      // o bloco de preço padrão é removido por completo (sem espaço vazio).
+      (sections.price && !page.offer_banner_settings.enabled) || sections.promotions ? (
         <div key="offer">
-          {sections.price && <ProductPrice data={product} />}
+          {sections.price && !page.offer_banner_settings.enabled && <ProductPrice data={product} />}
           {sections.promotions && <PromotionChips promotions={product.promotions} page={page} />}
         </div>
       ) : null,
