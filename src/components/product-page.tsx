@@ -461,16 +461,22 @@ function CustomerProtection({ data }: { data: ProductView }) {
   const settings = data.page.protection_settings;
   const title = text(settings.title, data.customer_protection_text || "Proteção ao cliente");
   const url = (settings.url ?? "").trim();
-  const description = (settings.description ?? "").trim();
+  const benefits = [settings.benefit_1, settings.benefit_2, settings.benefit_3, settings.benefit_4]
+    .map((benefit) => benefit.trim())
+    .filter(Boolean);
 
   const row = (
     <>
-      <ShieldCheck />
-      <span>
-        {title}
-        {description && <span className="protection-note"> {description}</span>}
+      <span className="protection-heading">
+        <ShieldCheck aria-hidden="true" />
+        <span>{title}</span>
+        <ChevronRight aria-hidden="true" />
       </span>
-      <ChevronRight />
+      <span className="protection-benefits">
+        {benefits.map((benefit) => (
+          <span key={benefit}><Check aria-hidden="true" />{benefit}</span>
+        ))}
+      </span>
     </>
   );
 
@@ -481,7 +487,7 @@ function CustomerProtection({ data }: { data: ProductView }) {
       </Button>
     );
   }
-  return <Button variant="ghost" className="protection-row product-padding">{row}</Button>;
+  return <div className="protection-row product-padding">{row}</div>;
 }
 
 function ReviewsSection({ data }: { data: ProductView }) {

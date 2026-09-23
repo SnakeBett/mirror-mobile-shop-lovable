@@ -215,7 +215,15 @@ export type ShippingSettings = { template: string };
 
 export const SHIPPING_TEMPLATE_DEFAULT = "Receba entre {min_date} e {max_date}";
 
-export type ProtectionSettings = { title: string; description: string; url: string };
+export type ProtectionSettings = {
+  title: string;
+  description: string;
+  url: string;
+  benefit_1: string;
+  benefit_2: string;
+  benefit_3: string;
+  benefit_4: string;
+};
 
 export type ColorSettings = {
   primary: string;
@@ -349,7 +357,15 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = {
   },
   offers_settings: { title: "" },
   shipping_settings: { template: SHIPPING_TEMPLATE_DEFAULT },
-  protection_settings: { title: "", description: "", url: "" },
+  protection_settings: {
+    title: "Proteção do cliente",
+    description: "",
+    url: "",
+    benefit_1: "Devolução gratuita",
+    benefit_2: "Garantia de pontualidade",
+    benefit_3: "Pagamento seguro",
+    benefit_4: "Reembolso se algo der errado",
+  },
   color_settings: { primary: "", secondary: "", buy: "", price: "" },
 };
 
