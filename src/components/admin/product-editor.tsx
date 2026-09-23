@@ -240,7 +240,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
       if (!productId) throw new Error("Produto não encontrado.");
       if (productDirty) {
         await updateProduct(productId, values);
-        setBaseline(values);
+        setBaseline(draft);
       }
       if (pageDirty) {
         await savePageSettings(productId, page);
