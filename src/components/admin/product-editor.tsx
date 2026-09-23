@@ -184,12 +184,9 @@ export function ProductEditor({ productId }: { productId?: string }) {
     }
   }, [query.data?.product, query.data?.page]);
 
-  const dirty = useMemo(
-    () =>
-      JSON.stringify(draft) !== JSON.stringify(baseline) ||
-      JSON.stringify(page) !== JSON.stringify(pageBaseline),
-    [draft, baseline, page, pageBaseline],
-  );
+  const productDirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline]);
+  const pageDirty = useMemo(() => JSON.stringify(page) !== JSON.stringify(pageBaseline), [page, pageBaseline]);
+  const dirty = productDirty || pageDirty;
 
 
   function set<K extends keyof Draft>(key: K, value: Draft[K]) {
@@ -240,15 +237,26 @@ export function ProductEditor({ productId }: { productId?: string }) {
         navigate({ to: "/admin/produtos/$id", params: { id } });
         return;
       }
-      await updateProduct(productId!, values);
-      await savePageSettings(productId!, page);
-      setBaseline(draft);
-      setPageBaseline(page);
+      if (!productId) throw new Error("Produto não encontrado.");
+      if (productDirty) {
+        await updateProduct(productId, values);
+        setBaseline(values);
+      }
+      if (pageDirty) {
+        await savePageSettings(productId, page);
+        setPageBaseline(page);
+      }
       invalidate();
       toast.success("Produto atualizado com sucesso");
 
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível salvar.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : typeof error === "object" && error !== null && "message" in error
+            ? String(error.message)
+            : "Não foi possível salvar.";
+      toast.error(message);
     } finally {
       setSaving(false);
     }
