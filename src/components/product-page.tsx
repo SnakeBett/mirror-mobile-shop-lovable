@@ -459,7 +459,7 @@ function ShippingInfo({ data }: { data: ProductView }) {
 
 function CustomerProtection({ data }: { data: ProductView }) {
   const settings = data.page.protection_settings;
-  const title = text(settings.title, data.customer_protection_text || "Proteção ao cliente");
+  const title = text(settings.title, "Proteção do cliente");
   const url = (settings.url ?? "").trim();
   const benefits = [settings.benefit_1, settings.benefit_2, settings.benefit_3, settings.benefit_4]
     .map((benefit) => benefit.trim())
