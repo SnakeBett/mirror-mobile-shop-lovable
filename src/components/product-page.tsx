@@ -388,8 +388,15 @@ function PromotionChips({ promotions, page }: { promotions: string[]; page: Page
   );
 }
 
-function Stars() {
-  return <span className="stars" aria-label="5 estrelas">★★★★★</span>;
+function Stars({ rating = 5 }: { rating?: number }) {
+  const normalized = Math.min(5, Math.max(0, Number(rating) || 0));
+  const fill = `${(normalized / 5) * 100}%`;
+  return (
+    <span className="stars" aria-label={`${String(normalized).replace(".", ",")} de 5 estrelas`}>
+      <span className="stars-empty" aria-hidden="true">★★★★★</span>
+      <span className="stars-filled" aria-hidden="true" style={{ width: fill }}>★★★★★</span>
+    </span>
+  );
 }
 
 function ProductInfo({ data }: { data: ProductView }) {
@@ -409,7 +416,7 @@ function ProductInfo({ data }: { data: ProductView }) {
       </div>
       {(showRating || showSales) && (
         <div className="rating-line">
-          {showRating && <Stars />}
+          {showRating && <Stars rating={data.rating ?? 0} />}
           {sections.rating && fields.rating_value && <b>{String(data.rating ?? "").replace(".", ",")}</b>}
           {sections.rating && fields.review_count && <span>({data.review_count ?? 0})</span>}
           {showSales && <span>{(data.sales_count_display ?? "").trim() || data.sales_count}</span>}
@@ -510,7 +517,7 @@ function ReviewsSection({ data }: { data: ProductView }) {
           <article className="review" key={review.id}>
             <div className="review-avatar">{review.avatar_initial || review.customer_name.charAt(0)}</div>
             <div className="review-body">
-              <div><Stars /><span>{review.customer_name}</span></div>
+              <div><Stars rating={review.rating} /><span>{review.customer_name}</span></div>
               {fields.review_images && review.image_url && (
                 <img
                   src={review.image_url}

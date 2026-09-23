@@ -120,6 +120,40 @@ function Field({
   );
 }
 
+function RatingInput({ value, onChange }: { value: number | null | undefined; onChange: (value: number | null) => void }) {
+  const [display, setDisplay] = useState(value == null ? "" : String(value).replace(".", ","));
+
+  useEffect(() => {
+    setDisplay(value == null ? "" : String(value).replace(".", ","));
+  }, [value]);
+
+  return (
+    <Input
+      id="rating"
+      type="text"
+      inputMode="decimal"
+      placeholder="Ex.: 4,8"
+      value={display}
+      onChange={(event) => {
+        const next = event.target.value;
+        if (!/^\d?(?:[.,]\d?)?$/.test(next)) return;
+        const parsed = Number(next.replace(",", "."));
+        if (next && !Number.isNaN(parsed) && parsed > 5) return;
+        setDisplay(next);
+        if (next === "") onChange(null);
+        else if (!/[.,]$/.test(next)) onChange(parsed);
+      }}
+      onBlur={() => {
+        if (display.endsWith(",") || display.endsWith(".")) {
+          const parsed = Number(display.slice(0, -1));
+          setDisplay(String(parsed).replace(".", ","));
+          onChange(parsed);
+        }
+      }}
+    />
+  );
+}
+
 export function ProductEditor({ productId }: { productId?: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -303,15 +337,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
             {draft.custom_stats_enabled && (
               <div className="grid gap-4 md:grid-cols-3">
                 <Field label="Nota exibida" id="rating">
-                  <Input
-                    id="rating"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="5"
-                    value={draft.rating ?? ""}
-                    onChange={(e) => set("rating", e.target.value === "" ? null : Number(e.target.value))}
-                  />
+                  <RatingInput value={draft.rating} onChange={(value) => set("rating", value)} />
                 </Field>
                 <Field label="Avaliações exibidas" id="rc">
                   <Input
