@@ -372,6 +372,26 @@ export function PageSettingsPanel({
             onChange={(value) => patch("protection_settings", { description: value })}
           />
           <TextField
+            label="Benefício 1"
+            value={page.protection_settings.benefit_1}
+            onChange={(value) => patch("protection_settings", { benefit_1: value })}
+          />
+          <TextField
+            label="Benefício 2"
+            value={page.protection_settings.benefit_2}
+            onChange={(value) => patch("protection_settings", { benefit_2: value })}
+          />
+          <TextField
+            label="Benefício 3"
+            value={page.protection_settings.benefit_3}
+            onChange={(value) => patch("protection_settings", { benefit_3: value })}
+          />
+          <TextField
+            label="Benefício 4"
+            value={page.protection_settings.benefit_4}
+            onChange={(value) => patch("protection_settings", { benefit_4: value })}
+          />
+          <TextField
             label="URL (opcional)"
             placeholder="https://..."
             value={page.protection_settings.url}

@@ -232,9 +232,13 @@
 .shipping-section p { margin: 3px 0; color: var(--muted-foreground); font-size: 12px; line-height: 1.5; }
 .shipping-section em { color: var(--success); font-style: normal; }
 .shipping-section .shipping-discount { color: var(--success); }
-.protection-row { width: 100%; min-height: 44px; display: grid; grid-template-columns: 20px minmax(0,1fr) 16px; justify-items: start; border-top: 1px solid var(--border); border-radius: 0; font-size: 13px; font-weight: 400; }
-.protection-row svg { width: 16px; height: 16px; }
-.protection-row svg:last-child { justify-self: end; }
+.protection-row { width: 100%; min-height: 76px; display: block; padding-top: 11px; padding-bottom: 11px; border-top: 1px solid var(--border); border-radius: 0; color: var(--foreground); font-size: 13px; font-weight: 400; }
+.protection-heading { display: grid; grid-template-columns: 18px minmax(0,1fr) 16px; align-items: center; gap: 5px; color: var(--protection, var(--foreground)); }
+.protection-heading svg { width: 15px; height: 15px; }
+.protection-heading svg:last-child { justify-self: end; color: var(--muted-foreground); }
+.protection-benefits { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 3px 12px; margin: 7px 16px 0 21px; color: var(--foreground); font-size: 12px; line-height: 1.25; }
+.protection-benefits > span { display: flex; min-width: 0; align-items: flex-start; gap: 3px; }
+.protection-benefits svg { width: 11px; height: 11px; flex: 0 0 auto; margin-top: 1px; color: var(--protection, var(--foreground)); stroke-width: 2.2; }
 .offers-section { padding-top: 13px; padding-bottom: 13px; overflow: hidden; }
 .offers-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; }
 .offers-heading h2 { margin: 0; font-size: 13px; font-weight: 700; }
@@ -355,4 +359,4 @@
 .promotion-wrap { flex-wrap: wrap; overflow-x: visible; }
 .lightbox { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; border: 0; background: color-mix(in oklab, var(--foreground) 86%, transparent); }
 .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
-.protection-note { margin: 0; color: var(--muted-foreground); font-size: 9px; }
+@media (max-width: 350px) { .protection-benefits { grid-template-columns: 1fr; } }
