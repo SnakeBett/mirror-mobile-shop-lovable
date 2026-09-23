@@ -305,12 +305,15 @@ export function ProductEditor({ productId }: { productId?: string }) {
                 <Field label="Nota exibida" id="rating">
                   <Input
                     id="rating"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="5"
-                    value={draft.rating ?? ""}
-                    onChange={(e) => set("rating", e.target.value === "" ? null : Number(e.target.value))}
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="Ex.: 4,8"
+                    value={draft.rating == null ? "" : String(draft.rating).replace(".", ",")}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(",", ".");
+                      if (value === "") set("rating", null);
+                      else if (/^\d(?:\.\d?)?$/.test(value)) set("rating", Math.min(5, Number(value)));
+                    }}
                   />
                 </Field>
                 <Field label="Avaliações exibidas" id="rc">

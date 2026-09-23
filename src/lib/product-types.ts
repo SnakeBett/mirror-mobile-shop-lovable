@@ -114,7 +114,7 @@ export function calcDiscount(oldPrice: number | null, currentPrice: number | nul
 }
 
 function formatShippingDate(date: Date) {
-  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short" })
+  return new Intl.DateTimeFormat("pt-BR", { day: "numeric", month: "short", timeZone: "UTC" })
     .format(date)
     .replace(".", "");
 }
@@ -123,12 +123,12 @@ function addDays(from: Date, days: number, businessOnly: boolean) {
   const date = new Date(from);
   let remaining = Math.max(0, Math.round(days));
   if (!businessOnly) {
-    date.setDate(date.getDate() + remaining);
+    date.setUTCDate(date.getUTCDate() + remaining);
     return date;
   }
   while (remaining > 0) {
-    date.setDate(date.getDate() + 1);
-    const weekday = date.getDay();
+    date.setUTCDate(date.getUTCDate() + 1);
+    const weekday = date.getUTCDay();
     if (weekday !== 0 && weekday !== 6) remaining -= 1;
   }
   return date;
