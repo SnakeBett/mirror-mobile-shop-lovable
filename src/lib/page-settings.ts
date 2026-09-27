@@ -1,3 +1,4 @@
+import { DEFAULT_VARIANT_SETTINGS, type VariantSettings } from "./variants";
 /**
  * Configurações de apresentação da página pública, por produto.
  *
@@ -263,6 +264,7 @@ export type PageSettings = {
   protection_settings: ProtectionSettings;
   color_settings: ColorSettings;
   recommendation_settings: RecommendationSettings;
+  variant_settings: VariantSettings;
 };
 
 
@@ -367,6 +369,7 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = {
     benefit_4: "Reembolso se algo der errado",
   },
   color_settings: { primary: "", secondary: "", buy: "", price: "" },
+  variant_settings: { ...DEFAULT_VARIANT_SETTINGS },
 };
 
 type Raw = Record<string, unknown> | null | undefined;
@@ -462,6 +465,7 @@ export function resolvePageSettings(row: Raw): PageSettings {
     shipping_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.shipping_settings, source["shipping_settings"]),
     protection_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.protection_settings, source["protection_settings"]),
     color_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.color_settings, source["color_settings"]),
+    variant_settings: mergeGroup(DEFAULT_PAGE_SETTINGS.variant_settings, source["variant_settings"]),
   };
 }
 
