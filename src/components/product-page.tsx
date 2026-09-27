@@ -29,6 +29,15 @@ import {
   firePixelViewContent,
 } from "@/components/tracking-scripts";
 import { cn } from "@/lib/utils";
+import { PurchaseOptions, type PurchaseSelection } from "@/components/purchase-options";
+import {
+  computePricing,
+  findVariant,
+  missingSelection,
+  saveCheckoutContext,
+  unitLabel,
+  type CheckoutContext,
+} from "@/lib/variants";
 import { calcDiscount, formatShippingText, type ProductOffer, type ProductView } from "@/lib/product-types";
 import {
   resolveChatUrl,
@@ -242,13 +251,16 @@ function safeHex(value: string, fallback: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value) ? value : fallback;
 }
 
-function OfferBanner({ data }: { data: ProductView }) {
+function OfferBanner({ data, override = false }: { data: ProductView; override?: boolean }) {
   const settings = data.page.offer_banner_settings;
   if (!settings.enabled) return null;
-  const current = settings.current_price_source === "custom" ? settings.current_price : Number(data.current_price);
-  const old = settings.old_price_source === "custom" ? settings.old_price : Number(data.old_price ?? 0);
+  // Com kit/variação alterando o preço, a faixa mostra o valor real da seleção.
+  const current = !override && settings.current_price_source === "custom" ? settings.current_price : Number(data.current_price);
+  const old = !override && settings.old_price_source === "custom" ? settings.old_price : Number(data.old_price ?? 0);
   const automatic = calcDiscount(old || null, current || null);
-  const discount = settings.discount_mode === "manual" ? settings.manual_discount : automatic;
+  const discount = override
+    ? data.discount_percentage
+    : settings.discount_mode === "manual" ? settings.manual_discount : automatic;
   const label = settings.offer_type === "custom"
     ? text(settings.custom_text, BANNER_LABELS.custom)
     : BANNER_LABELS[settings.offer_type];
@@ -643,7 +655,17 @@ function Recommendations({ data }: { data: ProductView }) {
   );
 }
 
-function StickyPurchaseBar({ data }: { data: ProductView }) {
+type BuyContext = {
+  /** Retorna mensagem de pendência (impede o redirecionamento) ou null. */
+  validate: () => string | null;
+  quantity: number;
+  total: number;
+  quantityOfferId: string | null;
+  variantIds: string[];
+  context: CheckoutContext;
+};
+
+function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }) {
   const bar = data.page.bottom_bar_settings;
   const checkoutUrl = (data.checkout_url ?? "").trim();
   const buyUrl = bar.use_main_checkout ? checkoutUrl : (bar.buy_url ?? "").trim() || checkoutUrl;
@@ -692,7 +714,17 @@ function StickyPurchaseBar({ data }: { data: ProductView }) {
           className="buy-button"
           disabled={!buyUrl}
           onClick={() => {
-            const payload = { product_id: data.id, metadata: { value: Number(data.current_price) } };
+            const pending = buy.validate();
+            if (pending) return;
+            saveCheckoutContext({ ...buy.context, created_at: new Date().toISOString() });
+            const payload = {
+              product_id: data.id,
+              quantity_offer_id: buy.quantityOfferId,
+              quantity: buy.quantity,
+              variant_ids: buy.variantIds.length ? buy.variantIds : null,
+              total_value: buy.total,
+              metadata: { value: buy.total, quantity: buy.quantity },
+            };
             // 1-2. analytics interno
             track("click_buy", payload);
             track("begin_checkout", payload);
@@ -709,13 +741,15 @@ function StickyPurchaseBar({ data }: { data: ProductView }) {
                   currency: data.currency,
                 },
                 eventId,
+                { quantity: buy.quantity, value: buy.total },
               );
               sendMetaServerEvent({
                 event_name: "InitiateCheckout",
                 event_id: eventId,
                 product_id: data.id,
                 pixel_sent: Boolean(data.tracking.meta_pixel_id),
-                num_items: 1,
+                num_items: buy.quantity,
+                value: buy.total,
               });
             }
 
@@ -798,6 +832,100 @@ export function ProductPage({ product }: { product: ProductView }) {
     eventIds,
   ]);
 
+  // ===== Kits por quantidade + variações =====
+  const variantCfg = page.variant_settings;
+  const kits = product.quantity_offers ?? [];
+  const attributes = product.attributes ?? [];
+  const variantRows = product.variants ?? [];
+  const variantsOn = variantCfg.variants_enabled && attributes.length > 0;
+  const [selection, setSelection] = useState<PurchaseSelection>(() => ({
+    kitId: (kits.find((kit) => kit.is_popular) ?? kits[0])?.id ?? null,
+    sameForAll: variantCfg.same_variant_default,
+    units: [],
+  }));
+  const [buyError, setBuyError] = useState<string | null>(null);
+  const kit = kits.find((row) => row.id === selection.kitId) ?? null;
+  const quantity = kit?.quantity ?? 1;
+  const effectiveUnits = Array.from({ length: quantity }, (_, index) =>
+    selection.sameForAll ? (selection.units[0] ?? {}) : (selection.units[index] ?? {}),
+  );
+  const pricing = computePricing({
+    basePrice: Number(product.current_price),
+    baseOld: product.old_price == null ? null : Number(product.old_price),
+    baseDiscount: product.discount_percentage == null ? null : Number(product.discount_percentage),
+    kit,
+    units: effectiveUnits,
+    attributes,
+    variants: variantRows,
+    variantsOn,
+  });
+  const priced: ProductView = pricing.overridden
+    ? { ...product, current_price: pricing.total, old_price: pricing.old, discount_percentage: pricing.discount }
+    : product;
+  const unitVariants = variantsOn ? effectiveUnits.map((unit) => findVariant(variantRows, attributes, unit)) : [];
+  const galleryImages = useMemo(() => {
+    if (!variantsOn) return product.images;
+    const first = effectiveUnits[0] ?? {};
+    const colorAttr = attributes.find((attr) => attr.display_type === "color") ?? attributes[0];
+    const valueImage = colorAttr?.values.find((value) => value.id === first[colorAttr.id])?.image_url ?? null;
+    const variantImage = unitVariants[0]?.image_url ?? null;
+    const picks = [variantImage, valueImage].filter((img): img is string => Boolean(img));
+    if (picks.length === 0) return product.images;
+    return Array.from(new Set([...picks, ...product.images]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variantsOn, product.images, JSON.stringify(effectiveUnits), attributes, variantRows]);
+  const lines = variantsOn
+    ? effectiveUnits.map((unit) => `1x ${unitLabel(unit, attributes) || "—"}`)
+    : [];
+  const summary =
+    (kit || variantsOn) && (quantity > 1 || variantsOn)
+      ? { lines, total: pricing.total, offerName: kit?.name || null, quantity }
+      : null;
+  const showOptions = kits.length > 0 || variantsOn;
+  const updateSelection = (next: PurchaseSelection) => {
+    setSelection(next);
+    setBuyError(null);
+  };
+  const buy: BuyContext = {
+    validate: () => {
+      if (!variantsOn) return null;
+      const message = missingSelection(
+        selection.units,
+        quantity,
+        selection.sameForAll || quantity === 1,
+        attributes,
+        variantRows,
+        variantCfg,
+      );
+      setBuyError(message);
+      if (message) {
+        document.getElementById("purchase-options")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return message;
+    },
+    quantity,
+    total: pricing.total,
+    quantityOfferId: kit?.id ?? null,
+    variantIds: unitVariants.map((variant) => variant?.id).filter((id): id is string => Boolean(id)),
+    context: {
+      product_id: product.id,
+      product_name: product.name,
+      offer_id: kit?.id ?? null,
+      offer_name: kit?.name ?? null,
+      quantity,
+      selected_variants: effectiveUnits.map((unit, index) => ({
+        unit: index + 1,
+        variant_id: unitVariants[index]?.id ?? null,
+        sku: unitVariants[index]?.sku ?? null,
+        label: variantsOn ? unitLabel(unit, attributes) : product.name,
+      })),
+      unit_price: Math.round((pricing.total / quantity) * 100) / 100,
+      total: pricing.total,
+      currency: product.currency,
+      created_at: "",
+    },
+  };
+
   const tabs = useMemo(() => {
     const available: Array<[TabKey, boolean]> = [
       ["overview", page.tab_settings.overview],
@@ -816,17 +944,32 @@ export function ProductPage({ product }: { product: ProductView }) {
   const blocks: Record<SectionKey, ReactNode> = {
     gallery: sections.gallery ? (
       <div key="gallery">
-        <ProductGallery images={product.images} name={product.name} page={page} />
-        <OfferBanner data={product} />
+        <ProductGallery key={galleryImages[0] ?? "none"} images={galleryImages} name={product.name} page={page} />
+        <OfferBanner data={priced} override={pricing.overridden} />
       </div>
     ) : null,
     offer:
       // Com a faixa de oferta ativa, o preço/desconto/antigo aparecem dentro dela;
       // o bloco de preço padrão é removido por completo (sem espaço vazio).
-      (sections.price && !page.offer_banner_settings.enabled) || sections.promotions ? (
+      (sections.price && !page.offer_banner_settings.enabled) || sections.promotions || showOptions ? (
         <div key="offer">
-          {sections.price && !page.offer_banner_settings.enabled && <ProductPrice data={product} />}
+          {sections.price && !page.offer_banner_settings.enabled && <ProductPrice data={priced} />}
           {sections.promotions && <PromotionChips promotions={product.promotions} page={page} />}
+          {showOptions && (
+            <div id="purchase-options">
+              <PurchaseOptions
+                basePrice={Number(product.current_price)}
+                kits={kits}
+                attributes={variantsOn ? attributes : []}
+                variants={variantRows}
+                settings={variantCfg}
+                selection={selection}
+                onChange={updateSelection}
+                error={buyError}
+                summary={summary}
+              />
+            </div>
+          )}
         </div>
       ) : null,
     info: <ProductInfo key="info" data={product} />,
@@ -871,7 +1014,7 @@ export function ProductPage({ product }: { product: ProductView }) {
         <ProductTabs tabs={tabs} />
       </div>
       {rendered}
-      <StickyPurchaseBar data={product} />
+      <StickyPurchaseBar data={product} buy={buy} />
     </main>
   );
 }
