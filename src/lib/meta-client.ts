@@ -63,6 +63,8 @@ export type MetaBridgeEvent = {
   product_id?: string | null;
   pixel_sent?: boolean;
   num_items?: number;
+  /** Valor total real da seleção (kit/variação). */
+  value?: number;
 };
 
 /**

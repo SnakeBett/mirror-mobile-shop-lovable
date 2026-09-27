@@ -28,6 +28,7 @@ const schema = z.object({
   visitor_id: z.string().max(64).nullish(),
   pixel_sent: z.boolean().optional(),
   num_items: z.number().int().min(1).max(50).optional(),
+  value: z.number().min(0).max(1000000).optional(),
 });
 
 function clientIp(request: Request) {
@@ -68,12 +69,13 @@ export const Route = createFileRoute("/api/public/meta-event")({
             productId = product.id;
             const price = Number(product.current_price ?? 0);
             const quantity = data.num_items ?? 1;
+            const total = data.value ?? price * quantity;
             custom = {
               content_ids: [product.id],
               content_name: product.name,
               content_type: "product",
-              contents: [{ id: product.id, quantity, item_price: price }],
-              value: price * quantity,
+              contents: [{ id: product.id, quantity, item_price: Math.round((total / quantity) * 100) / 100 }],
+              value: total,
               currency: "BRL",
               ...(data.event_name === "InitiateCheckout" ? { num_items: quantity } : {}),
             };

@@ -184,6 +184,10 @@ type TrackPayload = {
   product_id?: string | null;
   recommended_product_id?: string | null;
   offer_id?: string | null;
+  quantity_offer_id?: string | null;
+  quantity?: number | null;
+  variant_ids?: string[] | null;
+  total_value?: number | null;
   metadata?: Record<string, string | number | boolean | null>;
 };
 
@@ -205,6 +209,10 @@ export function track(event: AnalyticsEventName, payload: TrackPayload = {}, opt
     product_id: payload.product_id ?? null,
     recommended_product_id: payload.recommended_product_id ?? null,
     offer_id: payload.offer_id ?? null,
+    quantity_offer_id: payload.quantity_offer_id ?? null,
+    quantity: payload.quantity ?? null,
+    variant_ids: payload.variant_ids ?? null,
+    total_value: payload.total_value ?? null,
     path: window.location.pathname.slice(0, 300),
     referrer: last.referrer ?? (document.referrer || null),
     device_type: getDeviceType(),
