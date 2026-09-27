@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { appendCheckoutTracking, track } from "@/lib/analytics";
+import { appendCheckoutTracking, getCheckoutTrackingContext, track } from "@/lib/analytics";
 import { newEventId, sendMetaServerEvent } from "@/lib/meta-client";
 import {
   TrackingScripts,
@@ -34,6 +34,7 @@ import {
   computePricing,
   findVariant,
   missingSelection,
+  resolveCheckoutUrl,
   saveCheckoutContext,
   unitLabel,
   type CheckoutContext,
@@ -662,13 +663,18 @@ type BuyContext = {
   total: number;
   quantityOfferId: string | null;
   variantIds: string[];
+  /** URL resolvida pela regra única (SKU → oferta → padrão). */
+  checkoutUrl: string;
   context: CheckoutContext;
 };
 
 function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }) {
   const bar = data.page.bottom_bar_settings;
-  const checkoutUrl = (data.checkout_url ?? "").trim();
-  const buyUrl = bar.use_main_checkout ? checkoutUrl : (bar.buy_url ?? "").trim() || checkoutUrl;
+  const checkoutUrl = buy.checkoutUrl;
+  // Checkout de oferta/SKU sempre vence; o link alternativo da barra só substitui o padrão.
+  const specific = buy.context.checkout_source === "sku" || buy.context.checkout_source === "offer";
+  const buyUrl =
+    bar.use_main_checkout || specific ? checkoutUrl : (bar.buy_url ?? "").trim() || checkoutUrl;
   const chatUrl = resolveChatUrl(bar, data.name);
 
   const tracks = [
@@ -716,14 +722,35 @@ function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }
           onClick={() => {
             const pending = buy.validate();
             if (pending) return;
-            saveCheckoutContext({ ...buy.context, created_at: new Date().toISOString() });
+            const trackingCtx = getCheckoutTrackingContext();
+            const finalUrl = appendCheckoutTracking(buyUrl, data.tracking_config.utmify_checkout_params);
+            const context = {
+              ...buy.context,
+              created_at: new Date().toISOString(),
+              checkout_url_resolved: buyUrl,
+              visitor_id: trackingCtx.visitor_id,
+              session_id: trackingCtx.session_id,
+              utms: { ...trackingCtx.last } as Record<string, string | null>,
+            };
+            saveCheckoutContext(context);
             const payload = {
               product_id: data.id,
               quantity_offer_id: buy.quantityOfferId,
               quantity: buy.quantity,
               variant_ids: buy.variantIds.length ? buy.variantIds : null,
               total_value: buy.total,
-              metadata: { value: buy.total, quantity: buy.quantity },
+              metadata: {
+                value: buy.total,
+                quantity: buy.quantity,
+                offer_name: context.offer_name,
+                selected_variants: context.selected_variants.map((v) => `${v.unit}: ${v.label}`).join(" | "),
+                selected_skus: (context.selected_skus ?? []).join(",") || null,
+                base_price: context.base_price ?? null,
+                variation_adjustments: context.variation_adjustments ?? null,
+                final_price: context.final_price ?? null,
+                checkout_url_resolved: buyUrl,
+                checkout_source: context.checkout_source ?? null,
+              },
             };
             // 1-2. analytics interno
             track("click_buy", payload);
@@ -737,7 +764,7 @@ function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }
                 {
                   id: data.id,
                   name: data.name,
-                  price: Number(data.current_price),
+                  price: buy.context.unit_price,
                   currency: data.currency,
                 },
                 eventId,
@@ -754,10 +781,7 @@ function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }
             }
 
             // 4-7. atribuição preservada e redirecionamento imediato.
-            openLink(
-              appendCheckoutTracking(buyUrl, data.tracking_config.utmify_checkout_params),
-              bar.buy_target,
-            );
+            openLink(finalUrl, bar.buy_target);
           }}
         >
           <span>{text(bar.buy_label, data.checkout_button_text || "Comprar agora")}</span>
@@ -886,7 +910,18 @@ export function ProductPage({ product }: { product: ProductView }) {
     setSelection(next);
     setBuyError(null);
   };
+  const resolvedCheckout = resolveCheckoutUrl({
+    defaultUrl: product.checkout_url,
+    offer: kit,
+    variants: unitVariants,
+  });
+  const basePrice = Number(product.current_price);
+  const variationAdjustments =
+    Math.round(
+      unitVariants.reduce((sum, v) => sum + (v?.price != null ? Number(v.price) - basePrice : 0), 0) * 100,
+    ) / 100;
   const buy: BuyContext = {
+    checkoutUrl: resolvedCheckout.url ?? "",
     validate: () => {
       if (!variantsOn) return null;
       const message = missingSelection(
@@ -923,6 +958,12 @@ export function ProductPage({ product }: { product: ProductView }) {
       total: pricing.total,
       currency: product.currency,
       created_at: "",
+      selected_skus: unitVariants.map((v) => v?.sku).filter((sku): sku is string => Boolean(sku)),
+      base_price: kit ? Number(kit.total_price) : basePrice,
+      variation_adjustments: variationAdjustments,
+      final_price: pricing.total,
+      checkout_url_resolved: resolvedCheckout.url,
+      checkout_source: resolvedCheckout.source,
     },
   };
 

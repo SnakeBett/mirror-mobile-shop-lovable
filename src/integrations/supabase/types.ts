@@ -766,6 +766,7 @@ export type Database = {
       product_quantity_offers: {
         Row: {
           badge: string | null
+          checkout_url: string | null
           created_at: string
           helper_text: string | null
           id: string
@@ -782,6 +783,7 @@ export type Database = {
         }
         Insert: {
           badge?: string | null
+          checkout_url?: string | null
           created_at?: string
           helper_text?: string | null
           id?: string
@@ -798,6 +800,7 @@ export type Database = {
         }
         Update: {
           badge?: string | null
+          checkout_url?: string | null
           created_at?: string
           helper_text?: string | null
           id?: string
@@ -863,6 +866,7 @@ export type Database = {
       }
       product_variants: {
         Row: {
+          checkout_url: string | null
           created_at: string
           id: string
           image_url: string | null
@@ -875,8 +879,10 @@ export type Database = {
           sort_order: number
           stock: number
           updated_at: string
+          use_custom_checkout: boolean
         }
         Insert: {
+          checkout_url?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -889,8 +895,10 @@ export type Database = {
           sort_order?: number
           stock?: number
           updated_at?: string
+          use_custom_checkout?: boolean
         }
         Update: {
+          checkout_url?: string | null
           created_at?: string
           id?: string
           image_url?: string | null
@@ -903,6 +911,7 @@ export type Database = {
           sort_order?: number
           stock?: number
           updated_at?: string
+          use_custom_checkout?: boolean
         }
         Relationships: [
           {

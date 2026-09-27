@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowUp, GripVertical, Plus, Trash2, Wand2 } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, ExternalLink, GripVertical, Plus, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ import { deleteChild, insertChild, reorderChild, updateChild } from "@/lib/admin
 import { supabase } from "@/integrations/supabase/client";
 import {
   generateCombinations,
+  isValidCheckoutUrl,
   kitDiscount,
   kitSavings,
   sameCombination,
@@ -42,6 +43,30 @@ function parseMoney(raw: string): number | null {
   const normalized = clean.includes(",") ? clean.replace(/\./g, "").replace(",", ".") : clean;
   const value = Number(normalized);
   return Number.isFinite(value) && value >= 0 ? Math.round(value * 100) / 100 : null;
+}
+
+/** Abre a URL em nova aba sem alterar nada no produto. */
+function testCheckout(url: string | null | undefined) {
+  if (!isValidCheckoutUrl(url)) {
+    toast.error("Informe uma URL válida começando com http:// ou https://");
+    return;
+  }
+  window.open((url ?? "").trim(), "_blank", "noopener");
+}
+
+function CheckoutUrlField({ value, onCommit, label = "URL do checkout" }: { value: string | null; onCommit: (v: string | null) => void; label?: string }) {
+  return (
+    <div className="space-y-1">
+      <Label>{label}</Label>
+      <div className="flex gap-2">
+        <BlurInput type="url" placeholder="https://..." value={value ?? ""}
+          onCommit={(v) => onCommit(v.trim() || null)} />
+        <Button type="button" variant="outline" size="sm" className="h-9 shrink-0" onClick={() => testCheckout(value)}>
+          <ExternalLink /> Testar
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function moneyText(value: number | null | undefined) {
@@ -89,9 +114,11 @@ export function QuantityOffersManager({
   enabled,
   onToggle,
   onChange,
+  defaultCheckoutUrl = null,
 }: {
   productId: string;
   basePrice: number;
+  defaultCheckoutUrl?: string | null;
   rows: QuantityOffer[];
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
@@ -219,12 +246,16 @@ export function QuantityOffersManager({
                   <BlurInput value={row.helper_text ?? ""} placeholder="Frete grátis no kit"
                     onCommit={(v) => patch(row.id, { helper_text: v.trim() || null })} />
                 </div>
+                <div className="sm:col-span-3">
+                  <CheckoutUrlField value={row.checkout_url} onCommit={(v) => patch(row.id, { checkout_url: v })} />
+                </div>
                 <div className="flex items-end gap-2 pb-2">
                   <Switch id={`pop-${row.id}`} checked={row.is_popular}
                     onCheckedChange={(value) => patch(row.id, { is_popular: value })} />
                   <Label htmlFor={`pop-${row.id}`}>Mais popular (pré-selecionada)</Label>
                 </div>
               </div>
+              <CheckoutStatus own={isValidCheckoutUrl(row.checkout_url)} fallback={isValidCheckoutUrl(defaultCheckoutUrl)} />
               <p className="text-xs text-muted-foreground">
                 Sem desconto: {brl.format(basePrice * row.quantity)} · Economia: {brl.format(savings)}
                 {discount ? ` · ${discount}% off` : ""} · {brl.format(row.total_price / Math.max(1, row.quantity))} cada
@@ -234,6 +265,12 @@ export function QuantityOffersManager({
         })}
     </Panel>
   );
+}
+
+function CheckoutStatus({ own, fallback }: { own: boolean; fallback: boolean }) {
+  if (own) return <p className="flex items-center gap-1 text-xs font-medium text-success"><CheckCircle2 className="size-3.5" /> Checkout ✓</p>;
+  if (fallback) return <p className="text-xs text-muted-foreground">Usando checkout padrão</p>;
+  return <p className="flex items-center gap-1 text-xs font-medium text-destructive"><AlertTriangle className="size-3.5" /> Checkout ausente ⚠ — configure aqui ou na aba Checkout.</p>;
 }
 
 // ================= VARIAÇÕES =================
@@ -453,7 +490,8 @@ export function VariantsManager({
             </p>
             <div className="space-y-2">
               {variants.map((variant) => (
-                <div key={variant.id} className="grid items-center gap-2 rounded-md border border-border p-2 md:grid-cols-[1.3fr_1fr_0.8fr_0.8fr_0.6fr_1fr_auto_auto]">
+                <div key={variant.id} className="space-y-2 rounded-md border border-border p-2">
+                <div className="grid items-center gap-2 md:grid-cols-[1.3fr_1fr_0.8fr_0.8fr_0.6fr_1fr_auto_auto]">
                   <span className="truncate text-sm font-medium">{unitLabel(variant.option_values, attributes) || "—"}</span>
                   <BlurInput placeholder="SKU" value={variant.sku ?? ""}
                     onCommit={(v) => patchVariant(variant.id, { sku: v.trim() || null })} />
@@ -471,6 +509,21 @@ export function VariantsManager({
                     onClick={() => run(() => deleteChild("product_variants", variant.id))}>
                     <Trash2 />
                   </Button>
+                </div>
+                {variant.price != null && Number(variant.price) !== basePrice && (
+                  <p className="flex items-center gap-1 text-xs text-destructive">
+                    <AlertTriangle className="size-3.5" /> Esta variação altera o preço. Verifique se o checkout correspondente cobra o valor correto.
+                  </p>
+                )}
+                <div className="flex items-center gap-2">
+                  <Switch id={`ck-${variant.id}`} checked={variant.use_custom_checkout}
+                    onCheckedChange={(value) => patchVariant(variant.id, { use_custom_checkout: value })} />
+                  <Label htmlFor={`ck-${variant.id}`} className="text-xs">Usar checkout específico (avançado)</Label>
+                </div>
+                {variant.use_custom_checkout && (
+                  <CheckoutUrlField label="URL do checkout desta combinação" value={variant.checkout_url}
+                    onCommit={(v) => patchVariant(variant.id, { checkout_url: v })} />
+                )}
                 </div>
               ))}
             </div>

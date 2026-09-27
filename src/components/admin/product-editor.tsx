@@ -474,6 +474,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
               <QuantityOffersManager
                 productId={data.product.id}
                 basePrice={Number(draft.current_price ?? 0)}
+                defaultCheckoutUrl={draft.checkout_url ?? null}
                 rows={data.quantityOffers}
                 enabled={page.variant_settings.quantity_offers_enabled}
                 onToggle={(enabled) => setPage((current) => ({
@@ -658,7 +659,10 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
         {/* CHECKOUT */}
         <TabsContent value="checkout" className="mt-4">
-          <Panel title="Checkout">
+          <Panel title="Checkout padrão">
+            <p className="text-xs text-muted-foreground">
+              Usado como fallback quando a oferta ou variação não possui checkout próprio.
+            </p>
             <Field label="URL do checkout" id="checkout">
               <Input
                 id="checkout"

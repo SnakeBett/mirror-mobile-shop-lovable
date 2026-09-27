@@ -17,6 +17,8 @@ export type QuantityOffer = {
   is_popular: boolean;
   is_active: boolean;
   sort_order: number;
+  /** Checkout específico da oferta (vazio = usa o checkout padrão do produto). */
+  checkout_url: string | null;
 };
 
 export type AttributeDisplay = "color" | "buttons" | "list";
@@ -53,6 +55,9 @@ export type ProductVariant = {
   image_url: string | null;
   is_active: boolean;
   sort_order: number;
+  /** Avançado: checkout exclusivo desta combinação. */
+  use_custom_checkout: boolean;
+  checkout_url: string | null;
 };
 
 export type VariantSettings = {
@@ -197,6 +202,37 @@ export function missingSelection(
   return null;
 }
 
+export function isValidCheckoutUrl(url: string | null | undefined) {
+  const value = (url ?? "").trim();
+  if (!value) return false;
+  try {
+    return /^https?:$/.test(new URL(value).protocol);
+  } catch {
+    return false;
+  }
+}
+
+export type CheckoutSource = "sku" | "offer" | "default" | "none";
+
+/**
+ * Regra ÚNICA de checkout:
+ * 1. checkout do SKU (se ativado e válido) → 2. checkout da oferta → 3. checkout padrão.
+ * Com várias unidades, usa o primeiro SKU com checkout próprio.
+ */
+export function resolveCheckoutUrl(input: {
+  defaultUrl: string | null | undefined;
+  offer: Pick<QuantityOffer, "checkout_url"> | null;
+  variants: Array<Pick<ProductVariant, "use_custom_checkout" | "checkout_url"> | null>;
+}): { url: string | null; source: CheckoutSource } {
+  const sku = input.variants.find((v) => v?.use_custom_checkout && isValidCheckoutUrl(v.checkout_url));
+  if (sku) return { url: sku.checkout_url!.trim(), source: "sku" };
+  if (input.offer && isValidCheckoutUrl(input.offer.checkout_url)) {
+    return { url: input.offer.checkout_url!.trim(), source: "offer" };
+  }
+  if (isValidCheckoutUrl(input.defaultUrl)) return { url: input.defaultUrl!.trim(), source: "default" };
+  return { url: null, source: "none" };
+}
+
 /** Contexto preparado para checkout/pedido (não é enviado à URL externa). */
 export type CheckoutContext = {
   product_id: string;
@@ -209,6 +245,15 @@ export type CheckoutContext = {
   total: number;
   currency: string;
   created_at: string;
+  selected_skus?: string[];
+  base_price?: number;
+  variation_adjustments?: number;
+  final_price?: number;
+  checkout_url_resolved?: string | null;
+  checkout_source?: CheckoutSource;
+  visitor_id?: string | null;
+  session_id?: string | null;
+  utms?: Record<string, string | null>;
 };
 
 export const CHECKOUT_CONTEXT_KEY = "vt_checkout_context";
