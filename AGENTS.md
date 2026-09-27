@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+- Kits/variações: tabelas product_quantity_offers, product_attributes, product_attribute_values, product_variants (option_values = {attribute_id: value_id}); liga/desliga em product_page_settings.variant_settings; lógica pura em src/lib/variants.ts — why: produtos antigos seguem intactos com tudo desligado por padrão.
+- Seleção de compra vira "checkout context" em sessionStorage (vt_checkout_context) e nos eventos internos; nada é anexado à URL do checkout externo — why: gateway ainda não confirmou suporte a esses parâmetros.

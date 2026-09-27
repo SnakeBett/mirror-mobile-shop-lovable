@@ -5,6 +5,7 @@ import { resolveImageUrls } from "./storage-images";
 import { resolvePageSettings } from "./page-settings";
 import type { ProductView, RecommendedProduct } from "./product-types";
 import type { PageSettings } from "./page-settings";
+import type { AttributeValue, ProductAttribute, ProductVariant, QuantityOffer } from "./variants";
 import { EMPTY_PUBLIC_TRACKING, normalizeAppSettings, resolveTrackingIds } from "./tracking";
 
 
@@ -129,6 +130,48 @@ async function loadRecommendations(
   }));
 }
 
+type Rows = Array<Record<string, unknown>> | null;
+
+/** Só entrega kits/variações quando ligados no produto; senão a página segue como hoje. */
+function buildVariantData(
+  page: PageSettings,
+  kits: Rows,
+  attrs: Rows,
+  values: Rows,
+  variants: Rows,
+  resolveImg: (path: string | null | undefined) => string | null,
+): Pick<ProductView, "quantity_offers" | "attributes" | "variants"> {
+  const cfg = page.variant_settings;
+  const quantity_offers = cfg.quantity_offers_enabled
+    ? ((kits ?? []) as unknown as QuantityOffer[]).map((kit) => ({
+        ...kit,
+        total_price: Number(kit.total_price),
+        old_price: kit.old_price == null ? null : Number(kit.old_price),
+        manual_discount: kit.manual_discount == null ? null : Number(kit.manual_discount),
+      }))
+    : [];
+  if (!cfg.variants_enabled) return { quantity_offers, attributes: [], variants: [] };
+  const valueRows = (values ?? []) as unknown as AttributeValue[];
+  const attributes = ((attrs ?? []) as unknown as ProductAttribute[])
+    .map((attr) => ({
+      ...attr,
+      values: valueRows
+        .filter((value) => value.attribute_id === attr.id)
+        .map((value) => ({ ...value, image_url: resolveImg(value.image_url) })),
+    }))
+    .filter((attr) => attr.values.length > 0);
+  return {
+    quantity_offers,
+    attributes,
+    variants: ((variants ?? []) as unknown as ProductVariant[]).map((variant) => ({
+      ...variant,
+      price: variant.price == null ? null : Number(variant.price),
+      old_price: variant.old_price == null ? null : Number(variant.old_price),
+      image_url: resolveImg(variant.image_url),
+    })),
+  };
+}
+
 export const getPublicProduct = createServerFn({ method: "GET" })
   .inputValidator((data: { slug: string }) => ({ slug: String(data.slug) }))
   .handler(async ({ data }): Promise<ProductView | null> => {
@@ -143,7 +186,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     if (error) throw new Error("Não foi possível carregar o produto.");
     if (!product) return null;
 
-    const [images, promotions, details, highlights, reviews, settings, offers] = await Promise.all([
+    const [images, promotions, details, highlights, reviews, settings, offers, kitsRes, attrsRes, valuesRes, variantsRes] = await Promise.all([
       supabase.from("product_images").select("*").eq("product_id", product.id).order("sort_order"),
       supabase
         .from("promotions")
@@ -169,6 +212,10 @@ export const getPublicProduct = createServerFn({ method: "GET" })
         .or(`starts_at.is.null,starts_at.lte.${new Date().toISOString()}`)
         .or(`ends_at.is.null,ends_at.gte.${new Date().toISOString()}`)
         .order("sort_order"),
+      supabase.from("product_quantity_offers").select("*").eq("product_id", product.id).eq("is_active", true).order("sort_order"),
+      supabase.from("product_attributes").select("*").eq("product_id", product.id).order("sort_order"),
+      supabase.from("product_attribute_values").select("*").eq("product_id", product.id).order("sort_order"),
+      supabase.from("product_variants").select("*").eq("product_id", product.id).order("sort_order"),
     ]);
 
     const { data: settingsRow } = await supabase.from("app_settings").select("*").maybeSingle();
@@ -187,7 +234,10 @@ export const getPublicProduct = createServerFn({ method: "GET" })
     const urlMap = await resolveImageUrls(supabase, [
       ...imageRows.map((row) => row.image_url),
       ...reviewRows.map((row) => row.image_url),
+      ...(valuesRes.data ?? []).map((row) => row.image_url as string | null),
+      ...(variantsRes.data ?? []).map((row) => row.image_url as string | null),
     ]);
+    const resolveImg = (path: string | null | undefined) => (path ? (urlMap[path] ?? null) : null);
 
     // Quando "números personalizados" está desativado, as estatísticas exibidas
     // são calculadas a partir das avaliações ativas.
@@ -215,6 +265,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       page,
       recommendations,
       offers: (offers.data ?? []) as ProductView["offers"],
+      ...buildVariantData(page, kitsRes.data, attrsRes.data, valuesRes.data, variantsRes.data, resolveImg),
       tracking: {
         ...resolveTrackingIds(product as Record<string, never>, appSettings),
         // Pixel do Meta: override do produto > configuração Meta > pixel legado.

@@ -11,6 +11,7 @@ import type {
   ProductReview,
   ProductRow,
 } from "./product-types";
+import type { AttributeValue, ProductAttribute, ProductVariant, QuantityOffer } from "./variants";
 
 export type ChildTable =
   | "product_images"
@@ -18,7 +19,11 @@ export type ChildTable =
   | "product_highlights"
   | "promotions"
   | "reviews"
-  | "product_offers";
+  | "product_offers"
+  | "product_quantity_offers"
+  | "product_attributes"
+  | "product_attribute_values"
+  | "product_variants";
 
 export async function listProducts(search = "") {
   let query = supabase.from("products").select("*").order("created_at", { ascending: false });
@@ -29,7 +34,7 @@ export async function listProducts(search = "") {
 }
 
 export async function getProduct(id: string) {
-  const [product, images, details, highlights, promotions, reviews, settings, offers] = await Promise.all([
+  const [product, images, details, highlights, promotions, reviews, settings, offers, kits, attrs, values, variants] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("product_details").select("*").eq("product_id", id).order("sort_order"),
@@ -38,6 +43,10 @@ export async function getProduct(id: string) {
     supabase.from("reviews").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("product_page_settings").select("*").eq("product_id", id).maybeSingle(),
     supabase.from("product_offers").select("*").eq("product_id", id).order("sort_order"),
+    supabase.from("product_quantity_offers").select("*").eq("product_id", id).order("sort_order"),
+    supabase.from("product_attributes").select("*").eq("product_id", id).order("sort_order"),
+    supabase.from("product_attribute_values").select("*").eq("product_id", id).order("sort_order"),
+    supabase.from("product_variants").select("*").eq("product_id", id).order("sort_order"),
   ]);
 
   if (product.error) throw product.error;
@@ -58,6 +67,21 @@ export async function getProduct(id: string) {
     promotions: (promotions.data ?? []) as ProductPromotionRow[],
     reviews: reviewRows,
     offers: (offers.data ?? []) as ProductOffer[],
+    quantityOffers: ((kits.data ?? []) as unknown as QuantityOffer[]).map((kit) => ({
+      ...kit,
+      total_price: Number(kit.total_price),
+      old_price: kit.old_price == null ? null : Number(kit.old_price),
+      manual_discount: kit.manual_discount == null ? null : Number(kit.manual_discount),
+    })),
+    attributes: ((attrs.data ?? []) as unknown as ProductAttribute[]).map((attr) => ({
+      ...attr,
+      values: ((values.data ?? []) as unknown as AttributeValue[]).filter((value) => value.attribute_id === attr.id),
+    })),
+    variants: ((variants.data ?? []) as unknown as ProductVariant[]).map((variant) => ({
+      ...variant,
+      price: variant.price == null ? null : Number(variant.price),
+      old_price: variant.old_price == null ? null : Number(variant.old_price),
+    })),
     previews,
     page: resolvePageSettings(
       settings.error ? null : (settings.data as Record<string, unknown> | null),
@@ -224,11 +248,54 @@ export async function duplicateProduct(id: string): Promise<string> {
     ["promotions", clone(source.promotions)],
     ["reviews", clone(source.reviews)],
     ["product_offers", clone(source.offers)],
+    ["product_quantity_offers", clone(source.quantityOffers)],
   ];
 
   for (const [table, rows] of batches) {
     if (rows.length === 0) continue;
     const { error } = await supabase.from(table).insert(rows as never);
+    if (error) throw error;
+  }
+
+  // Atributos, valores e SKUs com novos IDs (referências remapeadas).
+  const valueMap = new Map<string, string>();
+  const attrMap = new Map<string, string>();
+  for (const attr of source.attributes) {
+    const { data: created, error } = await supabase
+      .from("product_attributes")
+      .insert({ product_id: newId, name: attr.name, display_type: attr.display_type, sort_order: attr.sort_order } as never)
+      .select("id")
+      .single();
+    if (error) throw error;
+    attrMap.set(attr.id, created.id as string);
+    for (const value of attr.values) {
+      const { data: v, error: valueError } = await supabase
+        .from("product_attribute_values")
+        .insert({
+          attribute_id: created.id,
+          product_id: newId,
+          name: value.name,
+          color_hex: value.color_hex,
+          image_url: value.image_url,
+          sort_order: value.sort_order,
+        } as never)
+        .select("id")
+        .single();
+      if (valueError) throw valueError;
+      valueMap.set(value.id, v.id as string);
+    }
+  }
+  if (source.variants.length > 0) {
+    const rows = source.variants.map(({ id: _vid, ...variant }) => ({
+      ...variant,
+      product_id: newId,
+      option_values: Object.fromEntries(
+        Object.entries(variant.option_values ?? {})
+          .map(([attrId, valueId]) => [attrMap.get(attrId), valueMap.get(valueId)])
+          .filter(([a, v]) => a && v),
+      ),
+    }));
+    const { error } = await supabase.from("product_variants").insert(rows as never);
     if (error) throw error;
   }
 

@@ -109,8 +109,15 @@ export function firePixelViewContent(product: PixelProduct, eventId?: string) {
   });
 }
 
-export function firePixelInitiateCheckout(product: PixelProduct, eventId?: string) {
+export function firePixelInitiateCheckout(
+  product: PixelProduct,
+  eventId?: string,
+  selection?: { quantity: number; value: number },
+) {
   const currency = product.currency ?? "BRL";
+  const quantity = selection?.quantity ?? 1;
+  const value = selection?.value ?? product.price;
+  const itemPrice = Math.round((value / quantity) * 100) / 100;
   window.fbq?.(
     "track",
     "InitiateCheckout",
@@ -118,9 +125,9 @@ export function firePixelInitiateCheckout(product: PixelProduct, eventId?: strin
       content_ids: [product.id],
       content_name: product.name,
       content_type: "product",
-      contents: [{ id: product.id, quantity: 1, item_price: product.price }],
-      num_items: 1,
-      value: product.price,
+      contents: [{ id: product.id, quantity, item_price: itemPrice }],
+      num_items: quantity,
+      value,
       currency,
     },
     eventId ? { eventID: eventId } : undefined,
@@ -128,13 +135,13 @@ export function firePixelInitiateCheckout(product: PixelProduct, eventId?: strin
   window.ttq?.track?.("InitiateCheckout", {
     content_id: product.id,
     content_name: product.name,
-    value: product.price,
+    value,
     currency,
   });
   window.gtag?.("event", "begin_checkout", {
     currency,
-    value: product.price,
-    items: [{ item_id: product.id, item_name: product.name, price: product.price }],
+    value,
+    items: [{ item_id: product.id, item_name: product.name, price: itemPrice, quantity }],
   });
 }
 

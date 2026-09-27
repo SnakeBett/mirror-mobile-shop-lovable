@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PageSettingsPanel } from "@/components/admin/page-settings-panel";
+import { QuantityOffersManager, VariantsManager } from "@/components/admin/variants-manager";
 import { DEFAULT_PAGE_SETTINGS, type PageSettings } from "@/lib/page-settings";
 import {
   createProduct,
@@ -83,6 +84,7 @@ const TABS: Array<[string, string]> = [
   ["geral", "Geral"],
   ["imagens", "Imagens"],
   ["oferta", "Oferta"],
+  ["variacoes", "Variações"],
   ["entrega", "Entrega"],
   ["detalhes", "Detalhes"],
   ["descricao", "Descrição"],
@@ -469,12 +471,48 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
           {data ? (
             <>
+              <QuantityOffersManager
+                productId={data.product.id}
+                basePrice={Number(draft.current_price ?? 0)}
+                rows={data.quantityOffers}
+                enabled={page.variant_settings.quantity_offers_enabled}
+                onToggle={(enabled) => setPage((current) => ({
+                  ...current,
+                  variant_settings: { ...current.variant_settings, quantity_offers_enabled: enabled },
+                }))}
+                onChange={invalidate}
+              />
               <OffersManager productId={data.product.id} rows={data.offers} onChange={invalidate} />
               <ChipsManager productId={data.product.id} rows={data.promotions} onChange={invalidate} />
             </>
           ) : (
             <Panel title="Ofertas e benefícios">
               <p className="text-sm text-muted-foreground">Salve o produto para adicionar ofertas.</p>
+            </Panel>
+          )}
+        </TabsContent>
+
+        {/* VARIAÇÕES */}
+        <TabsContent value="variacoes" className="mt-4">
+          {data ? (
+            <VariantsManager
+              productId={data.product.id}
+              basePrice={Number(draft.current_price ?? 0)}
+              attributes={data.attributes}
+              variants={data.variants}
+              images={data.images
+                .map((row) => ({ path: row.image_url, url: data.previews[row.image_url] ?? "" }))
+                .filter((row) => row.url)}
+              settings={page.variant_settings}
+              onSettings={(patch) => setPage((current) => ({
+                ...current,
+                variant_settings: { ...current.variant_settings, ...patch },
+              }))}
+              onChange={invalidate}
+            />
+          ) : (
+            <Panel title="Variações">
+              <p className="text-sm text-muted-foreground">Salve o produto para adicionar variações.</p>
             </Panel>
           )}
         </TabsContent>

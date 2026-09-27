@@ -90,6 +90,9 @@ export type ProductView = ProductRow & {
   page: import("./page-settings").PageSettings;
   recommendations: RecommendedProduct[];
   offers: ProductOffer[];
+  quantity_offers: import("./variants").QuantityOffer[];
+  attributes: import("./variants").ProductAttribute[];
+  variants: import("./variants").ProductVariant[];
   /** IDs de pixel já resolvidos (global ou específicos do produto). */
   tracking: import("./tracking").TrackingIds;
   /** Configuração pública de Meta/UTMify (nunca contém tokens). */
