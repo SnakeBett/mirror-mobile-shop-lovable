@@ -292,7 +292,7 @@ export function VariantsManager({
 
   async function addAttribute() {
     const name = newAttr.trim();
-    if (!name) return toast.error("Informe o nome do atributo (ex.: Cor).");
+    if (!name) { toast.error("Informe o nome do atributo (ex.: Cor)."); return; }
     await run(() =>
       insertChild("product_attributes", {
         product_id: productId,
@@ -315,7 +315,7 @@ export function VariantsManager({
         sort_order: attr.values.length + index,
       })) as never,
     );
-    if (error) return toast.error(errorText(error));
+    if (error) { toast.error(errorText(error)); return; }
     setNewValues((current) => ({ ...current, [attr.id]: "" }));
     onChange();
   }
@@ -323,7 +323,7 @@ export function VariantsManager({
   async function generate() {
     const combos = generateCombinations(attributes);
     const missing = combos.filter((combo) => !variants.some((variant) => sameCombination(variant.option_values, combo)));
-    if (missing.length === 0) return toast.info("Todas as combinações já existem.");
+    if (missing.length === 0) { toast.info("Todas as combinações já existem."); return; }
     const { error } = await supabase.from("product_variants").insert(
       missing.map((combo, index) => ({
         product_id: productId,
@@ -332,7 +332,7 @@ export function VariantsManager({
         sort_order: variants.length + index,
       })) as never,
     );
-    if (error) return toast.error(errorText(error));
+    if (error) { toast.error(errorText(error)); return; }
     toast.success(`${missing.length} combinação(ões) criada(s).`);
     onChange();
   }
