@@ -187,7 +187,7 @@ export function missingSelection(
     const suffix = count > 1 ? ` da unidade ${index + 1}` : "";
     for (const attr of attributes) {
       if (attr.values.length === 0) continue;
-      if (!unit[attr.id]) return `Escolha ${attr.name.trim().toLowerCase() || "a opção"}${suffix}.`;
+      if (!unit[attr.id]) return `Escolha a opção de ${attr.name.trim().toLowerCase() || "variação"}${suffix}.`;
     }
     const variant = findVariant(variants, attributes, unit);
     if (!isVariantAvailable(variant, settings, variants.length > 0)) {
