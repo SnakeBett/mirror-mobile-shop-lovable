@@ -114,9 +114,11 @@ export function QuantityOffersManager({
   enabled,
   onToggle,
   onChange,
+  defaultCheckoutUrl = null,
 }: {
   productId: string;
   basePrice: number;
+  defaultCheckoutUrl?: string | null;
   rows: QuantityOffer[];
   enabled: boolean;
   onToggle: (enabled: boolean) => void;
