@@ -671,7 +671,10 @@ type BuyContext = {
 function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }) {
   const bar = data.page.bottom_bar_settings;
   const checkoutUrl = buy.checkoutUrl;
-  const buyUrl = bar.use_main_checkout ? checkoutUrl : (bar.buy_url ?? "").trim() || checkoutUrl;
+  // Checkout de oferta/SKU sempre vence; o link alternativo da barra só substitui o padrão.
+  const specific = buy.context.checkout_source === "sku" || buy.context.checkout_source === "offer";
+  const buyUrl =
+    bar.use_main_checkout || specific ? checkoutUrl : (bar.buy_url ?? "").trim() || checkoutUrl;
   const chatUrl = resolveChatUrl(bar, data.name);
 
   const tracks = [
