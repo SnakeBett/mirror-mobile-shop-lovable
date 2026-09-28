@@ -74,7 +74,7 @@ function SegButton({
 }: {
   active: boolean;
   count: number;
-  children: React.ReactNode;
+  children: ReactNode;
   onClick: () => void;
 }) {
   return (
