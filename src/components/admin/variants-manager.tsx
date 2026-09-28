@@ -410,9 +410,15 @@ function VariantCheckoutsPanel({
     }
   };
 
-  const bulk = async (patch: Record<string, unknown>, label: string) => {
+  const bulk = async (
+    patch: { is_active?: boolean; stock?: number; use_custom_checkout?: boolean; checkout_url?: string | null },
+    label: string,
+  ) => {
     const ids = [...selected];
-    if (ids.length === 0) return toast.error("Selecione ao menos uma combinação.");
+    if (ids.length === 0) {
+      toast.error("Selecione ao menos uma combinação.");
+      return;
+    }
     setBusy(true);
     try {
       const { error } = await supabase.from("product_variants").update(patch).in("id", ids);
