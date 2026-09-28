@@ -711,6 +711,7 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
           {data && (
             <CheckoutLinksManager
+              productId={data.product.id}
               offers={data.quantityOffers}
               offersEnabled={page.variant_settings.quantity_offers_enabled}
               attributes={data.attributes}
