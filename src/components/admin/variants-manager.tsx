@@ -279,8 +279,10 @@ export function CheckoutLinksManager({
   attributes,
   variants,
   defaultCheckoutUrl,
+  productId,
   onChange,
 }: {
+  productId: string;
   offers: QuantityOffer[];
   offersEnabled: boolean;
   attributes: ProductAttribute[];
@@ -298,6 +300,24 @@ export function CheckoutLinksManager({
     }
   };
   const fallback = isValidCheckoutUrl(defaultCheckoutUrl);
+  // Combinações ainda não gravadas aparecem como linhas virtuais; o link cria o registro ao salvar.
+  const virtual = generateCombinations(attributes)
+    .filter((combo) => !variants.some((v) => sameCombination(v.option_values ?? {}, combo)))
+    .map((combo, index) => ({
+      id: `new:${index}`,
+      product_id: productId,
+      option_values: combo,
+      sku: null,
+      price: null,
+      old_price: null,
+      stock: 999,
+      image_url: null,
+      is_active: true,
+      sort_order: variants.length + index,
+      use_custom_checkout: false,
+      checkout_url: null,
+    }) as unknown as ProductVariant);
+  const allVariants = [...variants, ...virtual];
   const custom = variants.filter((v) => v.use_custom_checkout);
   const variantName = (v: ProductVariant) =>
     attributes
@@ -324,10 +344,11 @@ export function CheckoutLinksManager({
           ))}
         </Panel>
       )}
-      {variants.length > 0 && (
+      {allVariants.length > 0 && (
         <VariantCheckoutsPanel
+          productId={productId}
           attributes={attributes}
-          variants={variants}
+          variants={allVariants}
           fallback={fallback}
           variantName={variantName}
           onChange={onChange}
@@ -343,12 +364,14 @@ function hasOwnCheckout(v: ProductVariant) {
 }
 
 function VariantCheckoutsPanel({
+  productId,
   attributes,
   variants,
   fallback,
   variantName,
   onChange,
 }: {
+  productId: string;
   attributes: ProductAttribute[];
   variants: ProductVariant[];
   fallback: boolean;
@@ -402,7 +425,21 @@ function VariantCheckoutsPanel({
 
   const saveUrl = async (v: ProductVariant, url: string | null) => {
     try {
-      await updateChild("product_variants", v.id, { checkout_url: url, use_custom_checkout: Boolean(url) });
+      if (v.id.startsWith("new:")) {
+        if (!url) return;
+        const { error } = await supabase.from("product_variants").insert({
+          product_id: productId,
+          option_values: v.option_values,
+          stock: v.stock,
+          sort_order: v.sort_order,
+          is_active: true,
+          checkout_url: url,
+          use_custom_checkout: true,
+        } as never);
+        if (error) throw error;
+      } else {
+        await updateChild("product_variants", v.id, { checkout_url: url, use_custom_checkout: Boolean(url) });
+      }
       toast.success("Checkout salvo");
       onChange();
     } catch (error) {
@@ -414,7 +451,7 @@ function VariantCheckoutsPanel({
     patch: { is_active?: boolean; stock?: number; use_custom_checkout?: boolean; checkout_url?: string | null },
     label: string,
   ) => {
-    const ids = [...selected];
+    const ids = [...selected].filter((id) => !id.startsWith("new:"));
     if (ids.length === 0) {
       toast.error("Selecione ao menos uma combinação.");
       return;
