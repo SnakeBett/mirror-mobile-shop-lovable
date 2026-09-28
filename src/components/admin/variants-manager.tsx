@@ -516,18 +516,40 @@ function VariantCheckoutsPanel({
         Todas as combinações geradas na aba Variações aparecem aqui. Vale para compra de 1 unidade; kits com mais de uma
         unidade usam sempre o checkout do kit. Sem link próprio, usa o checkout da oferta de 1 unidade ou o padrão.
       </p>
-      <div className="flex flex-wrap gap-3 text-xs">
-        <span className="rounded bg-muted px-2 py-1"><b>{variants.length}</b> combinações</span>
-        <span className="rounded bg-muted px-2 py-1"><b>{withCount}</b> com checkout</span>
-        <span className="rounded bg-muted px-2 py-1"><b>{variants.length - withCount}</b> sem checkout</span>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><b className="text-foreground">{variants.length}</b> combinações</span>
+        <span className="rounded-full bg-success/10 px-2.5 py-1 text-success"><b>{withCount}</b> com checkout</span>
+        <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-destructive"><b>{variants.length - withCount}</b> sem checkout</span>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input className="h-9 max-w-xs" placeholder="Buscar combinação" value={query} onChange={(e) => setQuery(e.target.value)} />
-        {(["all", "with", "without"] as const).map((f) => (
-          <Button key={f} type="button" size="sm" variant={filter === f ? "default" : "outline"} onClick={() => setFilter(f)}>
-            {f === "all" ? "Todas" : f === "with" ? "Com checkout" : "Sem checkout"}
-          </Button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-56 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            aria-label="Buscar combinação"
+            placeholder="Buscar combinação..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="h-9 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+          />
+        </div>
+        <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
+          {(["all", "with", "without"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              className={
+                filter === f
+                  ? "rounded-lg bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm"
+                  : "rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              }
+            >
+              {f === "all" ? "Todas" : f === "with" ? "Com checkout" : "Sem checkout"}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="space-y-2 rounded-md border border-dashed border-border p-3">
