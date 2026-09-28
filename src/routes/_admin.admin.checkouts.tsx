@@ -115,6 +115,7 @@ function ProductVariantCheckouts({ id }: { id: string }) {
         productId={id}
         offers={[]}
         offersEnabled={false}
+        flat
         attributes={data.attributes}
         variants={data.variants}
         defaultCheckoutUrl={data.product.checkout_url ?? null}
