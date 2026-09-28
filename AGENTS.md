@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 - Kits/variações: tabelas product_quantity_offers, product_attributes, product_attribute_values, product_variants (option_values = {attribute_id: value_id}); liga/desliga em product_page_settings.variant_settings; lógica pura em src/lib/variants.ts — why: produtos antigos seguem intactos com tudo desligado por padrão.
 - Seleção de compra vira "checkout context" em sessionStorage (vt_checkout_context) e nos eventos internos; nada é anexado à URL do checkout externo — why: gateway ainda não confirmou suporte a esses parâmetros.
+- A lista administrativa de checkouts por produto é compartilhada entre a aba Checkout e /admin/checkouts — why: ambos devem agrupar os mesmos links por nome do produto sem duplicar registros.
