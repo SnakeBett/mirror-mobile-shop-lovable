@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { ChevronDown, ImageIcon, Search } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
