@@ -552,23 +552,23 @@ function VariantCheckoutsPanel({
         </div>
       </div>
 
-      <div className="space-y-2 rounded-md border border-dashed border-border p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-xs font-medium">
-            <input
-              type="checkbox"
-              checked={allVisibleSelected}
-              onChange={(e) =>
-                setSelected((prev) => {
-                  const next = new Set(prev);
-                  visible.forEach((v) => (e.target.checked ? next.add(v.id) : next.delete(v.id)));
-                  return next;
-                })
-              }
-            />
-            Ações em massa ({selected.size} selecionada{selected.size === 1 ? "" : "s"})
-          </label>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-card p-3">
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <input
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={allVisibleSelected}
+            onChange={(e) =>
+              setSelected((prev) => {
+                const next = new Set(prev);
+                visible.forEach((v) => (e.target.checked ? next.add(v.id) : next.delete(v.id)));
+                return next;
+              })
+            }
+          />
+          Ações em massa ({selected.size} selecionada{selected.size === 1 ? "" : "s"})
+        </label>
+        <div className="mx-1 hidden h-5 w-px bg-border sm:block" />
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => bulk({ is_active: true }, "Ativadas")}>Ativar</Button>
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => bulk({ is_active: false }, "Desativadas")}>Desativar</Button>
