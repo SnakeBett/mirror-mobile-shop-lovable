@@ -246,9 +246,6 @@ export function QuantityOffersManager({
                   <BlurInput value={row.helper_text ?? ""} placeholder="Frete grátis no kit"
                     onCommit={(v) => patch(row.id, { helper_text: v.trim() || null })} />
                 </div>
-                <div className="sm:col-span-3">
-                  <CheckoutUrlField value={row.checkout_url} onCommit={(v) => patch(row.id, { checkout_url: v })} />
-                </div>
                 <div className="flex items-end gap-2 pb-2">
                   <Switch id={`pop-${row.id}`} checked={row.is_popular}
                     onCheckedChange={(value) => patch(row.id, { is_popular: value })} />
@@ -268,9 +265,77 @@ export function QuantityOffersManager({
 }
 
 function CheckoutStatus({ own, fallback }: { own: boolean; fallback: boolean }) {
-  if (own) return <p className="flex items-center gap-1 text-xs font-medium text-success"><CheckCircle2 className="size-3.5" /> Checkout ✓</p>;
+  if (own) return <p className="flex items-center gap-1 text-xs font-medium text-success"><CheckCircle2 className="size-3.5" /> Checkout próprio ✓</p>;
   if (fallback) return <p className="text-xs text-muted-foreground">Usando checkout padrão</p>;
-  return <p className="flex items-center gap-1 text-xs font-medium text-destructive"><AlertTriangle className="size-3.5" /> Checkout ausente ⚠ — configure aqui ou na aba Checkout.</p>;
+  return <p className="flex items-center gap-1 text-xs font-medium text-destructive"><AlertTriangle className="size-3.5" /> Checkout ausente ⚠ — configure o link na aba Checkout.</p>;
+}
+
+// ================= LINKS DE CHECKOUT (aba Checkout) =================
+
+/** Lista os links de checkout das ofertas e das combinações com checkout próprio. Edita os mesmos registros. */
+export function CheckoutLinksManager({
+  offers,
+  offersEnabled,
+  attributes,
+  variants,
+  defaultCheckoutUrl,
+  onChange,
+}: {
+  offers: QuantityOffer[];
+  offersEnabled: boolean;
+  attributes: ProductAttribute[];
+  variants: ProductVariant[];
+  defaultCheckoutUrl: string | null;
+  onChange: () => void;
+}) {
+  const save = async (table: "product_quantity_offers" | "product_variants", id: string, url: string | null) => {
+    try {
+      await updateChild(table, id, { checkout_url: url });
+      toast.success("Checkout salvo");
+      onChange();
+    } catch (error) {
+      toast.error(errorText(error));
+    }
+  };
+  const fallback = isValidCheckoutUrl(defaultCheckoutUrl);
+  const custom = variants.filter((v) => v.use_custom_checkout);
+  const variantName = (v: ProductVariant) =>
+    attributes
+      .map((a) => a.values.find((val) => val.id === v.option_values?.[a.id])?.name)
+      .filter(Boolean)
+      .join(" / ") || v.sku || "Combinação";
+
+  return (
+    <>
+      {offersEnabled && offers.length > 0 && (
+        <Panel title="Checkouts das ofertas">
+          <p className="text-xs text-muted-foreground">
+            As ofertas vêm da aba Oferta. O link é salvo ao sair do campo.
+          </p>
+          {offers.map((row) => (
+            <div key={row.id} className="space-y-2 rounded-md border border-border p-3" data-testid="offer-checkout">
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-sm font-semibold uppercase">{row.name || `${row.quantity} un.`}</span>
+                <span className="text-sm text-muted-foreground">{brl.format(row.total_price)}</span>
+              </div>
+              <CheckoutUrlField value={row.checkout_url} onCommit={(v) => save("product_quantity_offers", row.id, v)} />
+              <CheckoutStatus own={isValidCheckoutUrl(row.checkout_url)} fallback={fallback} />
+            </div>
+          ))}
+        </Panel>
+      )}
+      {custom.length > 0 && (
+        <Panel title="Checkouts específicos de variações">
+          {custom.map((v) => (
+            <div key={v.id} className="space-y-2 rounded-md border border-border p-3">
+              <span className="text-sm font-semibold">{variantName(v)}</span>
+              <CheckoutUrlField value={v.checkout_url} onCommit={(url) => save("product_variants", v.id, url)} />
+            </div>
+          ))}
+        </Panel>
+      )}
+    </>
+  );
 }
 
 // ================= VARIAÇÕES =================
