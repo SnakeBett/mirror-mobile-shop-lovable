@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, ExternalLink, GripVertical, Plus, Trash2, Wand2 } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronRight, ExternalLink, GripVertical, Plus, Search, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -265,9 +265,23 @@ export function QuantityOffersManager({
 }
 
 function CheckoutStatus({ own, fallback }: { own: boolean; fallback: boolean }) {
-  if (own) return <p className="flex items-center gap-1 text-xs font-medium text-success"><CheckCircle2 className="size-3.5" /> Checkout próprio ✓</p>;
-  if (fallback) return <p className="text-xs text-muted-foreground">Usando checkout padrão</p>;
-  return <p className="flex items-center gap-1 text-xs font-medium text-destructive"><AlertTriangle className="size-3.5" /> Checkout ausente ⚠ — configure o link na aba Checkout.</p>;
+  if (own)
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+        <span className="size-1.5 rounded-full bg-success" /> Configurado
+      </span>
+    );
+  if (fallback)
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="size-1.5 rounded-full bg-muted-foreground/40" /> Usa checkout padrão
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
+      <span className="size-1.5 rounded-full bg-destructive" /> Sem checkout
+    </span>
+  );
 }
 
 // ================= LINKS DE CHECKOUT (aba Checkout) =================
@@ -334,16 +348,35 @@ export function CheckoutLinksManager({
           <p className="text-xs text-muted-foreground">
             As ofertas vêm da aba Oferta. O link é salvo ao sair do campo.
           </p>
-          {offers.map((row) => (
-            <div key={row.id} className="space-y-2 rounded-md border border-border p-3" data-testid="offer-checkout">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-semibold uppercase">{row.name || `${row.quantity} un.`}</span>
-                <span className="text-sm text-muted-foreground">{brl.format(row.total_price)}</span>
+          <div className="space-y-2">
+            {offers.map((row) => (
+              <div
+                key={row.id}
+                className="grid items-center gap-2 rounded-xl border border-border bg-card p-3 md:grid-cols-[200px_1fr_auto]"
+                data-testid="offer-checkout"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="truncate text-xs font-bold uppercase tracking-wide">
+                      {row.name || `${row.quantity} un.`}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{brl.format(row.total_price)}</span>
+                  </div>
+                  <CheckoutStatus own={isValidCheckoutUrl(row.checkout_url)} fallback={fallback} />
+                </div>
+                <BlurInput
+                  type="url"
+                  aria-label="URL do checkout da oferta"
+                  placeholder="Cole o link de checkout (https://...)"
+                  value={row.checkout_url ?? ""}
+                  onCommit={(v) => save("product_quantity_offers", row.id, v.trim() || null)}
+                />
+                <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => testCheckout(row.checkout_url)}>
+                  <ExternalLink /> Testar
+                </Button>
               </div>
-              <CheckoutUrlField value={row.checkout_url} onCommit={(v) => save("product_quantity_offers", row.id, v)} />
-              <CheckoutStatus own={isValidCheckoutUrl(row.checkout_url)} fallback={fallback} />
-            </div>
-          ))}
+            ))}
+          </div>
         </Panel>
       )}
       {allVariants.length > 0 && (
@@ -483,37 +516,59 @@ function VariantCheckoutsPanel({
         Todas as combinações geradas na aba Variações aparecem aqui. Vale para compra de 1 unidade; kits com mais de uma
         unidade usam sempre o checkout do kit. Sem link próprio, usa o checkout da oferta de 1 unidade ou o padrão.
       </p>
-      <div className="flex flex-wrap gap-3 text-xs">
-        <span className="rounded bg-muted px-2 py-1"><b>{variants.length}</b> combinações</span>
-        <span className="rounded bg-muted px-2 py-1"><b>{withCount}</b> com checkout</span>
-        <span className="rounded bg-muted px-2 py-1"><b>{variants.length - withCount}</b> sem checkout</span>
+      <div className="flex flex-wrap gap-2 text-xs">
+        <span className="rounded-full bg-muted px-2.5 py-1 text-muted-foreground"><b className="text-foreground">{variants.length}</b> combinações</span>
+        <span className="rounded-full bg-success/10 px-2.5 py-1 text-success"><b>{withCount}</b> com checkout</span>
+        <span className="rounded-full bg-destructive/10 px-2.5 py-1 text-destructive"><b>{variants.length - withCount}</b> sem checkout</span>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input className="h-9 max-w-xs" placeholder="Buscar combinação" value={query} onChange={(e) => setQuery(e.target.value)} />
-        {(["all", "with", "without"] as const).map((f) => (
-          <Button key={f} type="button" size="sm" variant={filter === f ? "default" : "outline"} onClick={() => setFilter(f)}>
-            {f === "all" ? "Todas" : f === "with" ? "Com checkout" : "Sem checkout"}
-          </Button>
-        ))}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-56 flex-1 sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="text"
+            aria-label="Buscar combinação"
+            placeholder="Buscar combinação..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="h-9 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50 focus:ring-2 focus:ring-primary/10"
+          />
+        </div>
+        <div className="flex items-center gap-1 rounded-xl bg-muted p-1">
+          {(["all", "with", "without"] as const).map((f) => (
+            <button
+              key={f}
+              type="button"
+              aria-pressed={filter === f}
+              onClick={() => setFilter(f)}
+              className={
+                filter === f
+                  ? "rounded-lg bg-background px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm"
+                  : "rounded-lg px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+              }
+            >
+              {f === "all" ? "Todas" : f === "with" ? "Com checkout" : "Sem checkout"}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="space-y-2 rounded-md border border-dashed border-border p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <label className="flex items-center gap-2 text-xs font-medium">
-            <input
-              type="checkbox"
-              checked={allVisibleSelected}
-              onChange={(e) =>
-                setSelected((prev) => {
-                  const next = new Set(prev);
-                  visible.forEach((v) => (e.target.checked ? next.add(v.id) : next.delete(v.id)));
-                  return next;
-                })
-              }
-            />
-            Ações em massa ({selected.size} selecionada{selected.size === 1 ? "" : "s"})
-          </label>
-        </div>
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-border bg-card p-3">
+        <label className="flex items-center gap-2 text-xs font-semibold">
+          <input
+            type="checkbox"
+            className="size-4 accent-primary"
+            checked={allVisibleSelected}
+            onChange={(e) =>
+              setSelected((prev) => {
+                const next = new Set(prev);
+                visible.forEach((v) => (e.target.checked ? next.add(v.id) : next.delete(v.id)));
+                return next;
+              })
+            }
+          />
+          Ações em massa ({selected.size} selecionada{selected.size === 1 ? "" : "s"})
+        </label>
+        <div className="mx-1 hidden h-5 w-px bg-border sm:block" />
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => bulk({ is_active: true }, "Ativadas")}>Ativar</Button>
           <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => bulk({ is_active: false }, "Desativadas")}>Desativar</Button>
@@ -538,33 +593,74 @@ function VariantCheckoutsPanel({
 
       {visible.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma combinação encontrada.</p>}
       {groups.map((group) => {
-        const rows = group.rows.map((v) => (
-          <div key={v.id} className="space-y-2 rounded-md border border-border p-3" data-testid="variant-checkout">
-            <div className="flex items-center justify-between gap-2">
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input type="checkbox" checked={selected.has(v.id)} onChange={(e) => toggle(v.id, e.target.checked)} />
-                {restName(v)}
-                {!v.is_active && <span className="text-xs font-normal text-muted-foreground">(inativa)</span>}
-              </label>
-              {v.sku && <span className="text-xs text-muted-foreground">{v.sku}</span>}
+        const rows = group.rows.map((v) => {
+          const own = hasOwnCheckout(v);
+          const savedOff = Boolean(v.checkout_url) && !v.use_custom_checkout;
+          return (
+            <div
+              key={v.id}
+              data-testid="variant-checkout"
+              className={
+                !own && !fallback
+                  ? "grid items-center gap-3 rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-3 md:grid-cols-[auto_170px_1fr_auto]"
+                  : "grid items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-foreground/25 md:grid-cols-[auto_170px_1fr_auto]"
+              }
+            >
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                aria-label={`Selecionar ${restName(v)}`}
+                checked={selected.has(v.id)}
+                onChange={(e) => toggle(v.id, e.target.checked)}
+              />
+              <div className="min-w-0 space-y-1">
+                <span className="block truncate text-xs font-bold uppercase tracking-wide text-foreground">
+                  {restName(v)}
+                  {!v.is_active && <span className="ml-1 font-normal normal-case text-muted-foreground">(inativa)</span>}
+                </span>
+                {v.sku && <span className="block text-[10px] text-muted-foreground">{v.sku}</span>}
+                {savedOff ? (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="size-1.5 rounded-full bg-muted-foreground/40" /> Desligado
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-[10px]"
+                      onClick={() => saveUrl(v, v.checkout_url)}
+                    >
+                      Ligar
+                    </Button>
+                  </span>
+                ) : (
+                  <CheckoutStatus own={own} fallback={fallback} />
+                )}
+              </div>
+              <BlurInput
+                type="url"
+                aria-label="URL do checkout da combinação"
+                placeholder="Cole o link de checkout (https://...)"
+                value={v.checkout_url ?? ""}
+                onCommit={(url) => saveUrl(v, url.trim() || null)}
+              />
+              <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => testCheckout(v.checkout_url)}>
+                <ExternalLink /> Testar
+              </Button>
             </div>
-            <CheckoutUrlField value={v.checkout_url} onCommit={(url) => saveUrl(v, url)} />
-            {v.checkout_url && !v.use_custom_checkout ? (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">Link guardado, mas desligado — usando checkout da oferta/padrão.
-                <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => saveUrl(v, v.checkout_url)}>Ligar</Button></p>
-            ) : (
-              <CheckoutStatus own={hasOwnCheckout(v)} fallback={fallback} />
-            )}
-          </div>
-        ));
+          );
+        });
         if (!group.title) return <div key={group.key} className="space-y-2">{rows}</div>;
         const groupWith = group.rows.filter(hasOwnCheckout).length;
         return (
-          <details key={group.key} open={Boolean(q) || groups.length <= 4} className="rounded-md border border-border">
-            <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold uppercase">
-              {group.title} <span className="font-normal normal-case text-muted-foreground">· {group.rows.length} combinações · {groupWith} com checkout</span>
+          <details key={group.key} open={Boolean(q) || groups.length <= 4} className="group rounded-xl border border-border bg-muted/20">
+            <summary className="flex cursor-pointer select-none items-center gap-2 px-3 py-2.5 text-xs font-bold uppercase tracking-wide [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
+              {group.title}
+              <span className="font-medium normal-case text-muted-foreground">
+                · {group.rows.length} combinações · {groupWith} com checkout
+              </span>
             </summary>
-            <div className="space-y-2 p-3 pt-0">{rows}</div>
+            <div className="space-y-2 border-t border-border p-3">{rows}</div>
           </details>
         );
       })}

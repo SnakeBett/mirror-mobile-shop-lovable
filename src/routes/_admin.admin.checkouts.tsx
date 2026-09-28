@@ -18,9 +18,12 @@ export const Route = createFileRoute("/_admin/admin/checkouts")({
 
 function CheckoutsPage() {
   return (
-    <div className="mx-auto max-w-4xl space-y-4 p-6">
-      <div>
-        <h1 className="text-xl font-semibold">Checkouts por produto</h1>
+    <div className="mx-auto max-w-4xl space-y-6 p-6">
+      <div className="space-y-1">
+        <h1 className="text-2xl font-bold">Checkouts por produto</h1>
+        <p className="text-sm text-muted-foreground">
+          Clique em um produto para configurar os links de checkout das ofertas e combinações.
+        </p>
       </div>
       <ProductCheckoutsList />
     </div>
