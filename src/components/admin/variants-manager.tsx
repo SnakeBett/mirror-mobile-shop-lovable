@@ -324,17 +324,202 @@ export function CheckoutLinksManager({
           ))}
         </Panel>
       )}
-      {custom.length > 0 && (
-        <Panel title="Checkouts específicos de variações">
-          {custom.map((v) => (
-            <div key={v.id} className="space-y-2 rounded-md border border-border p-3">
-              <span className="text-sm font-semibold">{variantName(v)}</span>
-              <CheckoutUrlField value={v.checkout_url} onCommit={(url) => save("product_variants", v.id, url)} />
-            </div>
-          ))}
-        </Panel>
+      {variants.length > 0 && (
+        <VariantCheckoutsPanel
+          attributes={attributes}
+          variants={variants}
+          fallback={fallback}
+          variantName={variantName}
+          onChange={onChange}
+        />
       )}
+      {void custom}
     </>
+  );
+}
+
+function hasOwnCheckout(v: ProductVariant) {
+  return v.use_custom_checkout && isValidCheckoutUrl(v.checkout_url);
+}
+
+function VariantCheckoutsPanel({
+  attributes,
+  variants,
+  fallback,
+  variantName,
+  onChange,
+}: {
+  attributes: ProductAttribute[];
+  variants: ProductVariant[];
+  fallback: boolean;
+  variantName: (v: ProductVariant) => string;
+  onChange: () => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | "with" | "without">("all");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [stockInput, setStockInput] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const withCount = variants.filter(hasOwnCheckout).length;
+  const q = query.trim().toLowerCase();
+  const visible = variants.filter((v) => {
+    if (filter === "with" && !hasOwnCheckout(v)) return false;
+    if (filter === "without" && hasOwnCheckout(v)) return false;
+    if (!q) return true;
+    return `${variantName(v)} ${v.sku ?? ""}`.toLowerCase().includes(q);
+  });
+
+  // Agrupa pelo primeiro atributo (ex.: Cor), mantendo a ordem dos valores.
+  const groupAttr = attributes.length > 1 ? attributes[0] : null;
+  const groups: Array<{ key: string; title: string; rows: ProductVariant[] }> = [];
+  if (groupAttr) {
+    for (const value of groupAttr.values) {
+      const rows = visible.filter((v) => v.option_values?.[groupAttr.id] === value.id);
+      if (rows.length) groups.push({ key: value.id, title: value.name, rows });
+    }
+    const rest = visible.filter((v) => !groupAttr.values.some((val) => val.id === v.option_values?.[groupAttr.id]));
+    if (rest.length) groups.push({ key: "rest", title: "Outras", rows: rest });
+  } else {
+    groups.push({ key: "all", title: "", rows: visible });
+  }
+  const restName = (v: ProductVariant) =>
+    groupAttr
+      ? attributes
+          .slice(1)
+          .map((a) => a.values.find((val) => val.id === v.option_values?.[a.id])?.name)
+          .filter(Boolean)
+          .join(" / ") || variantName(v)
+      : variantName(v);
+
+  const toggle = (id: string, on: boolean) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
+  const saveUrl = async (v: ProductVariant, url: string | null) => {
+    try {
+      await updateChild("product_variants", v.id, { checkout_url: url, use_custom_checkout: Boolean(url) });
+      toast.success("Checkout salvo");
+      onChange();
+    } catch (error) {
+      toast.error(errorText(error));
+    }
+  };
+
+  const bulk = async (patch: Record<string, unknown>, label: string) => {
+    const ids = [...selected];
+    if (ids.length === 0) return toast.error("Selecione ao menos uma combinação.");
+    setBusy(true);
+    try {
+      const { error } = await supabase.from("product_variants").update(patch).in("id", ids);
+      if (error) throw error;
+      toast.success(`${label}: ${ids.length} combinação(ões)`);
+      setSelected(new Set());
+      onChange();
+    } catch (error) {
+      toast.error(errorText(error));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const allVisibleSelected = visible.length > 0 && visible.every((v) => selected.has(v.id));
+
+  return (
+    <Panel title="Checkouts das variações">
+      <p className="text-xs text-muted-foreground">
+        Todas as combinações geradas na aba Variações aparecem aqui. Vale para compra de 1 unidade; kits com mais de uma
+        unidade usam sempre o checkout do kit. Sem link próprio, usa o checkout da oferta de 1 unidade ou o padrão.
+      </p>
+      <div className="flex flex-wrap gap-3 text-xs">
+        <span className="rounded bg-muted px-2 py-1"><b>{variants.length}</b> combinações</span>
+        <span className="rounded bg-muted px-2 py-1"><b>{withCount}</b> com checkout</span>
+        <span className="rounded bg-muted px-2 py-1"><b>{variants.length - withCount}</b> sem checkout</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Input className="h-9 max-w-xs" placeholder="Buscar combinação" value={query} onChange={(e) => setQuery(e.target.value)} />
+        {(["all", "with", "without"] as const).map((f) => (
+          <Button key={f} type="button" size="sm" variant={filter === f ? "default" : "outline"} onClick={() => setFilter(f)}>
+            {f === "all" ? "Todas" : f === "with" ? "Com checkout" : "Sem checkout"}
+          </Button>
+        ))}
+      </div>
+
+      <div className="space-y-2 rounded-md border border-dashed border-border p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex items-center gap-2 text-xs font-medium">
+            <input
+              type="checkbox"
+              checked={allVisibleSelected}
+              onChange={(e) =>
+                setSelected((prev) => {
+                  const next = new Set(prev);
+                  visible.forEach((v) => (e.target.checked ? next.add(v.id) : next.delete(v.id)));
+                  return next;
+                })
+              }
+            />
+            Ações em massa ({selected.size} selecionada{selected.size === 1 ? "" : "s"})
+          </label>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => bulk({ is_active: true }, "Ativadas")}>Ativar</Button>
+          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => bulk({ is_active: false }, "Desativadas")}>Desativar</Button>
+          <Input className="h-8 w-20" inputMode="numeric" placeholder="Estoque" value={stockInput} onChange={(e) => setStockInput(e.target.value.replace(/\D/g, ""))} />
+          <Button type="button" size="sm" variant="outline" disabled={busy || stockInput === ""} onClick={() => bulk({ stock: Number(stockInput) }, "Estoque definido")}>Definir estoque</Button>
+          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => bulk({ use_custom_checkout: false }, "Usando checkout padrão")}>Usar checkout padrão</Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              if (selected.size && window.confirm(`Remover o link de checkout de ${selected.size} combinação(ões)?`)) {
+                void bulk({ use_custom_checkout: false, checkout_url: null }, "Checkout removido");
+              }
+            }}
+          >
+            Remover checkout
+          </Button>
+        </div>
+      </div>
+
+      {visible.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma combinação encontrada.</p>}
+      {groups.map((group) => {
+        const rows = group.rows.map((v) => (
+          <div key={v.id} className="space-y-2 rounded-md border border-border p-3" data-testid="variant-checkout">
+            <div className="flex items-center justify-between gap-2">
+              <label className="flex items-center gap-2 text-sm font-semibold">
+                <input type="checkbox" checked={selected.has(v.id)} onChange={(e) => toggle(v.id, e.target.checked)} />
+                {restName(v)}
+                {!v.is_active && <span className="text-xs font-normal text-muted-foreground">(inativa)</span>}
+              </label>
+              {v.sku && <span className="text-xs text-muted-foreground">{v.sku}</span>}
+            </div>
+            <CheckoutUrlField value={v.use_custom_checkout ? v.checkout_url : v.checkout_url} onCommit={(url) => saveUrl(v, url)} />
+            {v.checkout_url && !v.use_custom_checkout ? (
+              <p className="text-xs text-muted-foreground">Link guardado, mas desligado — usando checkout da oferta/padrão. Salve o link de novo para ligar.</p>
+            ) : (
+              <CheckoutStatus own={hasOwnCheckout(v)} fallback={fallback} />
+            )}
+          </div>
+        ));
+        if (!group.title) return <div key={group.key} className="space-y-2">{rows}</div>;
+        const groupWith = group.rows.filter(hasOwnCheckout).length;
+        return (
+          <details key={group.key} open={Boolean(q) || groups.length <= 4} className="rounded-md border border-border">
+            <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold uppercase">
+              {group.title} <span className="font-normal normal-case text-muted-foreground">· {group.rows.length} combinações · {groupWith} com checkout</span>
+            </summary>
+            <div className="space-y-2 p-3 pt-0">{rows}</div>
+          </details>
+        );
+      })}
+    </Panel>
   );
 }
 
