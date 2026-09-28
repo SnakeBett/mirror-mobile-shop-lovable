@@ -500,9 +500,10 @@ function VariantCheckoutsPanel({
               </label>
               {v.sku && <span className="text-xs text-muted-foreground">{v.sku}</span>}
             </div>
-            <CheckoutUrlField value={v.use_custom_checkout ? v.checkout_url : v.checkout_url} onCommit={(url) => saveUrl(v, url)} />
+            <CheckoutUrlField value={v.checkout_url} onCommit={(url) => saveUrl(v, url)} />
             {v.checkout_url && !v.use_custom_checkout ? (
-              <p className="text-xs text-muted-foreground">Link guardado, mas desligado — usando checkout da oferta/padrão. Salve o link de novo para ligar.</p>
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">Link guardado, mas desligado — usando checkout da oferta/padrão.
+                <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => saveUrl(v, v.checkout_url)}>Ligar</Button></p>
             ) : (
               <CheckoutStatus own={hasOwnCheckout(v)} fallback={fallback} />
             )}
