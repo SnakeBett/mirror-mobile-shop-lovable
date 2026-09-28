@@ -10,8 +10,15 @@ import { EMPTY_PUBLIC_TRACKING, normalizeAppSettings, resolveTrackingIds } from 
 
 
 function createPublicClient() {
-  const url = process.env["SUPABASE_URL"]!;
-  const key = process.env["SUPABASE_PUBLISHABLE_KEY"]!;
+  // Hosts like Vercel may only define the VITE_* names; accept either.
+  const url = process.env["SUPABASE_URL"] || process.env["VITE_SUPABASE_URL"] || import.meta.env["VITE_SUPABASE_URL"];
+  const key =
+    process.env["SUPABASE_PUBLISHABLE_KEY"] ||
+    process.env["VITE_SUPABASE_PUBLISHABLE_KEY"] ||
+    import.meta.env["VITE_SUPABASE_PUBLISHABLE_KEY"];
+  if (!url || !key) {
+    throw new Error("Missing SUPABASE_URL / SUPABASE_PUBLISHABLE_KEY environment variables.");
+  }
   return createClient(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: {
