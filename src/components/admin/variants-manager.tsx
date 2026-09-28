@@ -593,33 +593,74 @@ function VariantCheckoutsPanel({
 
       {visible.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma combinação encontrada.</p>}
       {groups.map((group) => {
-        const rows = group.rows.map((v) => (
-          <div key={v.id} className="space-y-2 rounded-md border border-border p-3" data-testid="variant-checkout">
-            <div className="flex items-center justify-between gap-2">
-              <label className="flex items-center gap-2 text-sm font-semibold">
-                <input type="checkbox" checked={selected.has(v.id)} onChange={(e) => toggle(v.id, e.target.checked)} />
-                {restName(v)}
-                {!v.is_active && <span className="text-xs font-normal text-muted-foreground">(inativa)</span>}
-              </label>
-              {v.sku && <span className="text-xs text-muted-foreground">{v.sku}</span>}
+        const rows = group.rows.map((v) => {
+          const own = hasOwnCheckout(v);
+          const savedOff = Boolean(v.checkout_url) && !v.use_custom_checkout;
+          return (
+            <div
+              key={v.id}
+              data-testid="variant-checkout"
+              className={
+                !own && !fallback
+                  ? "grid items-center gap-3 rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-3 md:grid-cols-[auto_170px_1fr_auto]"
+                  : "grid items-center gap-3 rounded-xl border border-border bg-card p-3 transition-colors hover:border-foreground/25 md:grid-cols-[auto_170px_1fr_auto]"
+              }
+            >
+              <input
+                type="checkbox"
+                className="size-4 accent-primary"
+                aria-label={`Selecionar ${restName(v)}`}
+                checked={selected.has(v.id)}
+                onChange={(e) => toggle(v.id, e.target.checked)}
+              />
+              <div className="min-w-0 space-y-1">
+                <span className="block truncate text-xs font-bold uppercase tracking-wide text-foreground">
+                  {restName(v)}
+                  {!v.is_active && <span className="ml-1 font-normal normal-case text-muted-foreground">(inativa)</span>}
+                </span>
+                {v.sku && <span className="block text-[10px] text-muted-foreground">{v.sku}</span>}
+                {savedOff ? (
+                  <span className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                    <span className="size-1.5 rounded-full bg-muted-foreground/40" /> Desligado
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-6 px-2 text-[10px]"
+                      onClick={() => saveUrl(v, v.checkout_url)}
+                    >
+                      Ligar
+                    </Button>
+                  </span>
+                ) : (
+                  <CheckoutStatus own={own} fallback={fallback} />
+                )}
+              </div>
+              <BlurInput
+                type="url"
+                aria-label="URL do checkout da combinação"
+                placeholder="Cole o link de checkout (https://...)"
+                value={v.checkout_url ?? ""}
+                onCommit={(url) => saveUrl(v, url.trim() || null)}
+              />
+              <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => testCheckout(v.checkout_url)}>
+                <ExternalLink /> Testar
+              </Button>
             </div>
-            <CheckoutUrlField value={v.checkout_url} onCommit={(url) => saveUrl(v, url)} />
-            {v.checkout_url && !v.use_custom_checkout ? (
-              <p className="flex items-center gap-2 text-xs text-muted-foreground">Link guardado, mas desligado — usando checkout da oferta/padrão.
-                <Button type="button" size="sm" variant="outline" className="h-7" onClick={() => saveUrl(v, v.checkout_url)}>Ligar</Button></p>
-            ) : (
-              <CheckoutStatus own={hasOwnCheckout(v)} fallback={fallback} />
-            )}
-          </div>
-        ));
+          );
+        });
         if (!group.title) return <div key={group.key} className="space-y-2">{rows}</div>;
         const groupWith = group.rows.filter(hasOwnCheckout).length;
         return (
-          <details key={group.key} open={Boolean(q) || groups.length <= 4} className="rounded-md border border-border">
-            <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold uppercase">
-              {group.title} <span className="font-normal normal-case text-muted-foreground">· {group.rows.length} combinações · {groupWith} com checkout</span>
+          <details key={group.key} open={Boolean(q) || groups.length <= 4} className="group rounded-xl border border-border bg-muted/20">
+            <summary className="flex cursor-pointer select-none items-center gap-2 px-3 py-2.5 text-xs font-bold uppercase tracking-wide [&::-webkit-details-marker]:hidden">
+              <ChevronRight className="size-4 text-muted-foreground transition-transform group-open:rotate-90" />
+              {group.title}
+              <span className="font-medium normal-case text-muted-foreground">
+                · {group.rows.length} combinações · {groupWith} com checkout
+              </span>
             </summary>
-            <div className="space-y-2 p-3 pt-0">{rows}</div>
+            <div className="space-y-2 border-t border-border p-3">{rows}</div>
           </details>
         );
       })}
