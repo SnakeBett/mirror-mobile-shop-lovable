@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { PageSettingsPanel } from "@/components/admin/page-settings-panel";
 import { CheckoutLinksManager, QuantityOffersManager, VariantsManager } from "@/components/admin/variants-manager";
+import { ProductCheckoutsList } from "@/components/admin/product-checkouts-list";
 import { DEFAULT_PAGE_SETTINGS, type PageSettings } from "@/lib/page-settings";
 import {
   createProduct,
@@ -710,15 +711,10 @@ export function ProductEditor({ productId }: { productId?: string }) {
           </Panel>
 
           {data && (
-            <CheckoutLinksManager
-              productId={data.product.id}
-              offers={data.quantityOffers}
-              offersEnabled={page.variant_settings.quantity_offers_enabled}
-              attributes={data.attributes}
-              variants={data.variants}
-              defaultCheckoutUrl={draft.checkout_url ?? null}
-              onChange={invalidate}
-            />
+            <div className="space-y-3">
+              <h2 className="text-sm font-semibold">Checkouts por produto</h2>
+              <ProductCheckoutsList currentProductId={data.product.id} />
+            </div>
           )}
 
           <Panel title="Rastreamento">
