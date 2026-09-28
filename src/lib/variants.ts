@@ -217,14 +217,16 @@ export type CheckoutSource = "sku" | "offer" | "default" | "none";
 /**
  * Regra ÚNICA de checkout:
  * 1. checkout do SKU (se ativado e válido) → 2. checkout da oferta → 3. checkout padrão.
- * Com várias unidades, usa o primeiro SKU com checkout próprio.
+ * Kits com mais de 1 unidade ignoram o checkout do SKU.
  */
 export function resolveCheckoutUrl(input: {
   defaultUrl: string | null | undefined;
-  offer: Pick<QuantityOffer, "checkout_url"> | null;
+  offer: (Pick<QuantityOffer, "checkout_url"> & { quantity?: number }) | null;
   variants: Array<Pick<ProductVariant, "use_custom_checkout" | "checkout_url"> | null>;
 }): { url: string | null; source: CheckoutSource } {
-  const sku = input.variants.find((v) => v?.use_custom_checkout && isValidCheckoutUrl(v.checkout_url));
+  // Kit com mais de uma unidade: sempre o checkout do kit (nunca o de um SKU unitário).
+  const isMultiKit = (input.offer?.quantity ?? 1) > 1;
+  const sku = isMultiKit ? undefined : input.variants.find((v) => v?.use_custom_checkout && isValidCheckoutUrl(v.checkout_url));
   if (sku) return { url: sku.checkout_url!.trim(), source: "sku" };
   if (input.offer && isValidCheckoutUrl(input.offer.checkout_url)) {
     return { url: input.offer.checkout_url!.trim(), source: "offer" };
