@@ -281,7 +281,9 @@ export function CheckoutLinksManager({
   defaultCheckoutUrl,
   productId,
   onChange,
+  flat = false,
 }: {
+  flat?: boolean;
   productId: string;
   offers: QuantityOffer[];
   offersEnabled: boolean;
@@ -352,6 +354,7 @@ export function CheckoutLinksManager({
           fallback={fallback}
           variantName={variantName}
           onChange={onChange}
+          flat={flat}
         />
       )}
       {void custom}
@@ -370,7 +373,9 @@ function VariantCheckoutsPanel({
   fallback,
   variantName,
   onChange,
+  flat = false,
 }: {
+  flat?: boolean;
   productId: string;
   attributes: ProductAttribute[];
   variants: ProductVariant[];
@@ -394,7 +399,7 @@ function VariantCheckoutsPanel({
   });
 
   // Agrupa pelo primeiro atributo (ex.: Cor), mantendo a ordem dos valores.
-  const groupAttr = attributes.length > 1 ? attributes[0] : null;
+  const groupAttr = !flat && attributes.length > 1 ? attributes[0] : null;
   const groups: Array<{ key: string; title: string; rows: ProductVariant[] }> = [];
   if (groupAttr) {
     for (const value of groupAttr.values) {
