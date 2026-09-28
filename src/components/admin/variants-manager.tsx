@@ -265,9 +265,23 @@ export function QuantityOffersManager({
 }
 
 function CheckoutStatus({ own, fallback }: { own: boolean; fallback: boolean }) {
-  if (own) return <p className="flex items-center gap-1 text-xs font-medium text-success"><CheckCircle2 className="size-3.5" /> Checkout próprio ✓</p>;
-  if (fallback) return <p className="text-xs text-muted-foreground">Usando checkout padrão</p>;
-  return <p className="flex items-center gap-1 text-xs font-medium text-destructive"><AlertTriangle className="size-3.5" /> Checkout ausente ⚠ — configure o link na aba Checkout.</p>;
+  if (own)
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-success">
+        <span className="size-1.5 rounded-full bg-success" /> Configurado
+      </span>
+    );
+  if (fallback)
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+        <span className="size-1.5 rounded-full bg-muted-foreground/40" /> Usa checkout padrão
+      </span>
+    );
+  return (
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium text-destructive">
+      <span className="size-1.5 rounded-full bg-destructive" /> Sem checkout
+    </span>
+  );
 }
 
 // ================= LINKS DE CHECKOUT (aba Checkout) =================
