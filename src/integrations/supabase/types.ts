@@ -1338,6 +1338,8 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_active_product: { Args: { _product_id: string }; Returns: boolean }
+      is_public_product_file: { Args: { _name: string }; Returns: boolean }
       public_best_sellers: {
         Args: { _limit?: number }
         Returns: {
