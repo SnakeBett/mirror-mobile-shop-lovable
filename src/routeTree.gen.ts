@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
+import { Route as AdminAdminCheckoutsRouteImport } from './routes/_admin.admin.checkouts'
 import { Route as AdminAdminFunilRouteImport } from './routes/_admin.admin.funil'
 import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.importar'
 import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
@@ -54,6 +55,11 @@ const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
 const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminCheckoutsRoute = AdminAdminCheckoutsRouteImport.update({
+  id: '/admin/checkouts',
+  path: '/admin/checkouts',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdminFunilRoute = AdminAdminFunilRouteImport.update({
@@ -154,6 +160,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
@@ -177,6 +184,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/admin/pedidos': typeof AdminAdminPedidosRoute
@@ -202,6 +210,7 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/_admin/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/_admin/admin/funil': typeof AdminAdminFunilRoute
   '/_admin/admin/importar': typeof AdminAdminImportarRouteWithChildren
   '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
@@ -227,6 +236,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
     | '/admin/pedidos'
@@ -250,6 +260,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
     | '/admin/pedidos'
@@ -274,6 +285,7 @@ export interface FileRouteTypes {
     | '/_admin'
     | '/admin/login'
     | '/produto/$slug'
+    | '/_admin/admin/checkouts'
     | '/_admin/admin/funil'
     | '/_admin/admin/importar'
     | '/_admin/admin/pedidos'
@@ -340,6 +352,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/checkouts': {
+      id: '/_admin/admin/checkouts'
+      path: '/admin/checkouts'
+      fullPath: '/admin/checkouts'
+      preLoaderRoute: typeof AdminAdminCheckoutsRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/admin/funil': {
@@ -476,6 +495,7 @@ const AdminAdminImportarRouteWithChildren =
   AdminAdminImportarRoute._addFileChildren(AdminAdminImportarRouteChildren)
 
 interface AdminRouteChildren {
+  AdminAdminCheckoutsRoute: typeof AdminAdminCheckoutsRoute
   AdminAdminFunilRoute: typeof AdminAdminFunilRoute
   AdminAdminImportarRoute: typeof AdminAdminImportarRouteWithChildren
   AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
@@ -492,6 +512,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminCheckoutsRoute: AdminAdminCheckoutsRoute,
   AdminAdminFunilRoute: AdminAdminFunilRoute,
   AdminAdminImportarRoute: AdminAdminImportarRouteWithChildren,
   AdminAdminPedidosRoute: AdminAdminPedidosRoute,

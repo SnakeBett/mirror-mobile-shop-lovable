@@ -125,6 +125,13 @@ function AdminLayout() {
             <CreditCard className="size-4" /> Pagamentos
           </Link>
           <Link
+            to="/admin/checkouts"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <CreditCard className="size-4" /> Checkouts
+          </Link>
+          <Link
             to="/admin/pagamentos/webhooks"
             activeProps={{ className: "bg-accent text-accent-foreground" }}
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
