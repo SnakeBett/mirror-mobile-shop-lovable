@@ -4,7 +4,12 @@ import { getFirstActiveSlug } from "@/lib/public-product.functions";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
-    const slug = await getFirstActiveSlug();
+    let slug: string | null = null;
+    try {
+      slug = await getFirstActiveSlug();
+    } catch (error) {
+      console.error(error);
+    }
     if (slug) {
       throw redirect({ to: "/produto/$slug", params: { slug } });
     }
