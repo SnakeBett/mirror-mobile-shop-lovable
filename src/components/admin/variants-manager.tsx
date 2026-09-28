@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ArrowDown, ArrowUp, CheckCircle2, ExternalLink, GripVertical, Plus, Trash2, Wand2 } from "lucide-react";
+import { AlertTriangle, ArrowDown, ArrowUp, ChevronRight, ExternalLink, GripVertical, Plus, Search, Trash2, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -348,16 +348,35 @@ export function CheckoutLinksManager({
           <p className="text-xs text-muted-foreground">
             As ofertas vêm da aba Oferta. O link é salvo ao sair do campo.
           </p>
-          {offers.map((row) => (
-            <div key={row.id} className="space-y-2 rounded-md border border-border p-3" data-testid="offer-checkout">
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="text-sm font-semibold uppercase">{row.name || `${row.quantity} un.`}</span>
-                <span className="text-sm text-muted-foreground">{brl.format(row.total_price)}</span>
+          <div className="space-y-2">
+            {offers.map((row) => (
+              <div
+                key={row.id}
+                className="grid items-center gap-2 rounded-xl border border-border bg-card p-3 md:grid-cols-[200px_1fr_auto]"
+                data-testid="offer-checkout"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-baseline gap-2">
+                    <span className="truncate text-xs font-bold uppercase tracking-wide">
+                      {row.name || `${row.quantity} un.`}
+                    </span>
+                    <span className="text-xs text-muted-foreground">{brl.format(row.total_price)}</span>
+                  </div>
+                  <CheckoutStatus own={isValidCheckoutUrl(row.checkout_url)} fallback={fallback} />
+                </div>
+                <BlurInput
+                  type="url"
+                  aria-label="URL do checkout da oferta"
+                  placeholder="Cole o link de checkout (https://...)"
+                  value={row.checkout_url ?? ""}
+                  onCommit={(v) => save("product_quantity_offers", row.id, v.trim() || null)}
+                />
+                <Button type="button" variant="outline" size="sm" className="h-9" onClick={() => testCheckout(row.checkout_url)}>
+                  <ExternalLink /> Testar
+                </Button>
               </div>
-              <CheckoutUrlField value={row.checkout_url} onCommit={(v) => save("product_quantity_offers", row.id, v)} />
-              <CheckoutStatus own={isValidCheckoutUrl(row.checkout_url)} fallback={fallback} />
-            </div>
-          ))}
+            ))}
+          </div>
         </Panel>
       )}
       {allVariants.length > 0 && (
