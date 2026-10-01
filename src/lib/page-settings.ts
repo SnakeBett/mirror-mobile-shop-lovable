@@ -338,7 +338,7 @@ export const DEFAULT_PAGE_SETTINGS: PageSettings = {
     whatsapp_message: "Olá, gostaria de saber mais sobre {product.name}",
   },
   review_settings: { initial_count: 0, show_see_more: true },
-  recommendation_settings: { title: "", mode: "manual_auto", auto_criteria: "best_sellers", limit: 4 },
+  recommendation_settings: { title: "", mode: "auto", auto_criteria: "best_sellers", limit: 6 },
 
   gallery_settings: { indicator: "counter", show_thumbnails: true, allow_swipe: true, allow_zoom: false },
   promotion_settings: { layout: "scroll" },
@@ -423,7 +423,7 @@ export function resolvePageSettings(row: Raw): PageSettings {
         ["best_sellers", "recent", "random"] as const,
         "best_sellers",
       ),
-      limit: Math.min(6, Math.max(2, Math.round(Number(recommendation.limit)) || 4)),
+      limit: Math.min(12, Math.max(1, Math.round(Number(recommendation.limit)) || 6)),
     },
 
     section_visibility: mergeGroup(DEFAULT_PAGE_SETTINGS.section_visibility, source["section_visibility"]),

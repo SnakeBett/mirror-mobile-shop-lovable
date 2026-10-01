@@ -460,6 +460,38 @@ export type Database = {
           },
         ]
       }
+      product_categories: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_details: {
         Row: {
           created_at: string
@@ -925,6 +957,7 @@ export type Database = {
       }
       products: {
         Row: {
+          category_id: string | null
           checkout_button_subtext: string | null
           checkout_button_text: string
           checkout_url: string | null
@@ -960,11 +993,13 @@ export type Database = {
           slug: string
           source_platform: string | null
           source_url: string | null
+          subcategory_id: string | null
           tiktok_pixel_id: string | null
           tracking_use_global: boolean
           updated_at: string
         }
         Insert: {
+          category_id?: string | null
           checkout_button_subtext?: string | null
           checkout_button_text?: string
           checkout_url?: string | null
@@ -1000,11 +1035,13 @@ export type Database = {
           slug: string
           source_platform?: string | null
           source_url?: string | null
+          subcategory_id?: string | null
           tiktok_pixel_id?: string | null
           tracking_use_global?: boolean
           updated_at?: string
         }
         Update: {
+          category_id?: string | null
           checkout_button_subtext?: string | null
           checkout_button_text?: string
           checkout_url?: string | null
@@ -1040,11 +1077,27 @@ export type Database = {
           slug?: string
           source_platform?: string | null
           source_url?: string | null
+          subcategory_id?: string | null
           tiktok_pixel_id?: string | null
           tracking_use_global?: boolean
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       promotions: {
         Row: {
@@ -1267,6 +1320,20 @@ export type Database = {
           revenue_30d: number
           revenue_7d: number
           revenue_total: number
+        }[]
+      }
+      admin_product_sales_by_category: {
+        Args: { _from: string; _to: string }
+        Returns: {
+          category_id: string
+          orders_total: number
+          product_id: string
+          product_name: string
+          refunded: number
+          revenue: number
+          sales: number
+          slug: string
+          subcategory_id: string
         }[]
       }
       admin_revenue_breakdown: {

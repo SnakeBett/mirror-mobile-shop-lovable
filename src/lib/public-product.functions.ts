@@ -51,7 +51,7 @@ async function loadRecommendations(
   const config = page.recommendation_settings;
   if (!page.section_visibility.recommendations) return [];
 
-  const limit = Math.min(6, Math.max(2, config.limit || 4));
+  const limit = Math.min(12, Math.max(1, config.limit || 6));
   const picked: Array<Record<string, unknown>> = [];
   const seen = new Set<string>([productId]);
 
@@ -80,32 +80,47 @@ async function loadRecommendations(
   }
 
   if (config.mode !== "manual" && picked.length < limit) {
-    const criteria = config.auto_criteria;
+    // Automático: somente produtos relacionados (mesma subcategoria, depois mesma categoria).
+    // Nunca completa com produtos de categorias diferentes ou sem categoria.
+    const { data: self } = await supabase
+      .from("products")
+      .select("category_id, subcategory_id")
+      .eq("id", productId)
+      .maybeSingle();
+    const categoryId = (self as { category_id?: string | null } | null)?.category_id ?? null;
+    const subcategoryId = (self as { subcategory_id?: string | null } | null)?.subcategory_id ?? null;
 
-    if (criteria === "best_sellers") {
-      const { data: ranking } = await supabase.rpc("public_best_sellers", { _limit: limit * 3 });
-      const ids: string[] = ((ranking ?? []) as Array<{ product_id: string | null }>)
-        .map((row) => row.product_id)
-        .filter((id): id is string => Boolean(id) && !seen.has(id as string));
-      if (ids.length > 0) {
-        const { data } = await supabase.from("products").select(RECOMMENDATION_COLUMNS).in("id", ids);
-        const byId = new Map((data ?? []).map((row) => [String(row.id), row as Record<string, unknown>]));
-        push(ids.map((id: string) => byId.get(id)).filter(Boolean) as Array<Record<string, unknown>>);
-      }
-
-    }
-
-    if (picked.length < limit) {
-      // Fallback (e critérios "recentes"/"aleatórios"): produtos ativos mais recentes.
+    if (categoryId) {
       const { data } = await supabase
         .from("products")
-        .select(RECOMMENDATION_COLUMNS)
+        .select(`${RECOMMENDATION_COLUMNS}, subcategory_id, created_at`)
         .eq("is_active", true)
+        .eq("category_id", categoryId)
+        .neq("id", productId)
         .order("created_at", { ascending: false })
-        .limit(limit * 4);
-      let rows = (data ?? []) as Array<Record<string, unknown>>;
-      if (criteria === "random") rows = [...rows].sort(() => Math.random() - 0.5);
-      push(rows);
+        .limit(60);
+      const rows = (data ?? []) as Array<Record<string, unknown>>;
+
+      const rank = new Map<string, number>();
+      if (config.auto_criteria !== "recent") {
+        const { data: ranking } = await supabase.rpc("public_best_sellers", { _limit: 200 });
+        ((ranking ?? []) as Array<{ product_id: string | null; orders_count: number }>).forEach((row) => {
+          if (row.product_id) rank.set(row.product_id, Number(row.orders_count));
+        });
+      }
+      const sorted = rows
+        .map((row, index) => ({ row, index }))
+        .sort((a, b) => {
+          const sa = subcategoryId && a.row["subcategory_id"] === subcategoryId ? 0 : 1;
+          const sb = subcategoryId && b.row["subcategory_id"] === subcategoryId ? 0 : 1;
+          if (sa !== sb) return sa - sb;
+          const ra = rank.get(String(a.row["id"])) ?? 0;
+          const rb = rank.get(String(b.row["id"])) ?? 0;
+          if (ra !== rb) return rb - ra;
+          return a.index - b.index;
+        })
+        .map((item) => item.row);
+      push(sorted);
     }
   }
 
