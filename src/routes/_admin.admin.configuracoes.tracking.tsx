@@ -81,7 +81,7 @@ function TrackingPage() {
   const logsFn = useServerFn(listMetaEventLogs);
   const retryFn = useServerFn(retryPendingPurchases);
 
-  const config = useQuery({ queryKey: ["admin", "tracking"], queryFn: () => fetchConfig() });
+  const config = useQuery({ queryKey: ["admin", "tracking"], queryFn: () => fetchConfig(), retry: 1 });
   const logs = useQuery({ queryKey: ["admin", "meta-logs"], queryFn: () => logsFn({ data: { limit: 50 } }) });
   const products = useQuery({
     queryKey: ["admin", "tracking", "products"],
@@ -203,7 +203,26 @@ function TrackingPage() {
     });
   }, []);
 
-  if (!form) return <p className="text-sm text-muted-foreground">Carregando configurações...</p>;
+  if (!form) {
+    if (config.isError) {
+      const message = config.error instanceof Error ? config.error.message : String(config.error ?? "");
+      return (
+        <div className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm">
+          <p className="font-medium text-foreground">Não foi possível carregar as configurações de tracking.</p>
+          {message && <p className="text-xs text-muted-foreground">Detalhe: {message}</p>}
+          <p className="text-xs text-muted-foreground">Se o erro persistir, saia e entre de novo no painel.</p>
+          <button
+            type="button"
+            className="rounded-md border border-border bg-background px-3 py-1.5 text-sm hover:bg-accent"
+            onClick={() => void config.refetch()}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      );
+    }
+    return <p className="text-sm text-muted-foreground">Carregando configurações...</p>;
+  }
 
   const set = <K extends keyof FormState>(key: K, value: FormState[K]) =>
     setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
