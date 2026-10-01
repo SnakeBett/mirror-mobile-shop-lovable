@@ -81,7 +81,7 @@ function TrackingPage() {
   const logsFn = useServerFn(listMetaEventLogs);
   const retryFn = useServerFn(retryPendingPurchases);
 
-  const config = useQuery({ queryKey: ["admin", "tracking"], queryFn: () => fetchConfig() });
+  const config = useQuery({ queryKey: ["admin", "tracking"], queryFn: () => fetchConfig(), retry: 1 });
   const logs = useQuery({ queryKey: ["admin", "meta-logs"], queryFn: () => logsFn({ data: { limit: 50 } }) });
   const products = useQuery({
     queryKey: ["admin", "tracking", "products"],
