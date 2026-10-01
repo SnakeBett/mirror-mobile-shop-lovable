@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/_admin'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
+import { Route as AdminAdminCategoriasRouteImport } from './routes/_admin.admin.categorias'
 import { Route as AdminAdminCheckoutsRouteImport } from './routes/_admin.admin.checkouts'
 import { Route as AdminAdminFunilRouteImport } from './routes/_admin.admin.funil'
 import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.importar'
@@ -55,6 +56,11 @@ const ProdutoSlugRoute = ProdutoSlugRouteImport.update({
 const AdminAdminIndexRoute = AdminAdminIndexRouteImport.update({
   id: '/admin/',
   path: '/admin/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminCategoriasRoute = AdminAdminCategoriasRouteImport.update({
+  id: '/admin/categorias',
+  path: '/admin/categorias',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdminCheckoutsRoute = AdminAdminCheckoutsRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/categorias': typeof AdminAdminCategoriasRoute
   '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/admin/categorias': typeof AdminAdminCategoriasRoute
   '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/_admin': typeof AdminRouteWithChildren
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
+  '/_admin/admin/categorias': typeof AdminAdminCategoriasRoute
   '/_admin/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/_admin/admin/funil': typeof AdminAdminFunilRoute
   '/_admin/admin/importar': typeof AdminAdminImportarRouteWithChildren
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/categorias'
     | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/login'
     | '/produto/$slug'
+    | '/admin/categorias'
     | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/_admin'
     | '/admin/login'
     | '/produto/$slug'
+    | '/_admin/admin/categorias'
     | '/_admin/admin/checkouts'
     | '/_admin/admin/funil'
     | '/_admin/admin/importar'
@@ -352,6 +364,13 @@ declare module '@tanstack/react-router' {
       path: '/admin'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminAdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/categorias': {
+      id: '/_admin/admin/categorias'
+      path: '/admin/categorias'
+      fullPath: '/admin/categorias'
+      preLoaderRoute: typeof AdminAdminCategoriasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/admin/checkouts': {
@@ -495,6 +514,7 @@ const AdminAdminImportarRouteWithChildren =
   AdminAdminImportarRoute._addFileChildren(AdminAdminImportarRouteChildren)
 
 interface AdminRouteChildren {
+  AdminAdminCategoriasRoute: typeof AdminAdminCategoriasRoute
   AdminAdminCheckoutsRoute: typeof AdminAdminCheckoutsRoute
   AdminAdminFunilRoute: typeof AdminAdminFunilRoute
   AdminAdminImportarRoute: typeof AdminAdminImportarRouteWithChildren
@@ -512,6 +532,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminCategoriasRoute: AdminAdminCategoriasRoute,
   AdminAdminCheckoutsRoute: AdminAdminCheckoutsRoute,
   AdminAdminFunilRoute: AdminAdminFunilRoute,
   AdminAdminImportarRoute: AdminAdminImportarRouteWithChildren,

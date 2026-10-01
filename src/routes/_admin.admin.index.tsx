@@ -20,6 +20,7 @@ import {
 } from "@/lib/analytics-queries";
 import { PeriodPicker, type PeriodState } from "@/components/admin/period-picker";
 import { Button } from "@/components/ui/button";
+import { CategoryPerformance } from "@/components/admin/category-performance";
 
 type Metric = "revenue" | "orders_count" | "visitors" | "product_views";
 
@@ -207,6 +208,8 @@ function AdminDashboard() {
           </div>
         )}
       </div>
+
+      <CategoryPerformance range={range} prev={prev} />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <section className="rounded-lg border border-border bg-background p-4">

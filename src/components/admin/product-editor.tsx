@@ -22,6 +22,7 @@ import { PageSettingsPanel } from "@/components/admin/page-settings-panel";
 import { CheckoutLinksManager, QuantityOffersManager, VariantsManager } from "@/components/admin/variants-manager";
 import { ProductCheckoutsList } from "@/components/admin/product-checkouts-list";
 import { DEFAULT_PAGE_SETTINGS, type PageSettings } from "@/lib/page-settings";
+import { buildTree, listCategories } from "@/lib/categories";
 import {
   createProduct,
   savePageSettings,
@@ -332,6 +333,15 @@ export function ProductEditor({ productId }: { productId?: string }) {
               <Label htmlFor="is_active">{draft.is_active ? "Ativo" : "Inativo"}</Label>
             </div>
           </Panel>
+
+          <CategoryFields
+            categoryId={draft.category_id ?? null}
+            subcategoryId={draft.subcategory_id ?? null}
+            onChange={(categoryId, subcategoryId) =>
+              setDraft((prev) => ({ ...prev, category_id: categoryId, subcategory_id: subcategoryId }))
+            }
+          />
+
 
           <Panel title="Números exibidos">
             <div className="flex items-center gap-3">
@@ -1706,29 +1716,31 @@ function RecommendationsPanel({
               value={settings.mode}
               onChange={(e) => onSettingsChange({ mode: e.target.value as typeof settings.mode })}
             >
-              <option value="manual">Manual</option>
               <option value="auto">Automático</option>
-              <option value="manual_auto">Manual + Automático</option>
+              <option value="manual">Manual</option>
+              <option value="manual_auto">Automático + Manual</option>
             </select>
+            <p className="text-xs text-muted-foreground">
+              Automático mostra só produtos da mesma subcategoria e depois da mesma categoria. Nunca de outras categorias.
+            </p>
           </Field>
-          <Field label="Critério automático" id="rec-criteria">
+          <Field label="Ordem dos automáticos" id="rec-criteria">
             <select
               id="rec-criteria"
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-              value={settings.auto_criteria}
+              value={settings.auto_criteria === "recent" ? "recent" : "best_sellers"}
               onChange={(e) => onSettingsChange({ auto_criteria: e.target.value as typeof settings.auto_criteria })}
             >
-              <option value="best_sellers">Mais vendidos</option>
+              <option value="best_sellers">Mais vendidos primeiro (depois mais recentes)</option>
               <option value="recent">Mais recentes</option>
-              <option value="random">Aleatórios</option>
             </select>
           </Field>
-          <Field label="Quantidade exibida" id="rec-limit">
+          <Field label="Máximo de recomendações" id="rec-limit">
             <Input
               id="rec-limit"
               type="number"
-              min="2"
-              max="6"
+              min="1"
+              max="12"
               value={settings.limit}
               onChange={(e) => onSettingsChange({ limit: Number(e.target.value) })}
             />
@@ -1763,24 +1775,110 @@ function RecommendationsPanel({
           ))}
         </ul>
 
-        <div className="flex gap-2">
-          <select
-            className="h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm"
-            value=""
-            disabled={busy || available.length === 0}
-            onChange={(e) => {
-              if (e.target.value) void persist([...ids, e.target.value]);
-            }}
-          >
-            <option value="">
-              {available.length === 0 ? "Nenhum produto disponível" : "Adicionar produto..."}
-            </option>
-            {available.map((option) => (
-              <option key={option.id} value={option.id}>{option.name}</option>
-            ))}
-          </select>
-        </div>
+        <ManualSearch
+          options={available}
+          disabled={busy}
+          onAdd={(id) => void persist([...ids, id])}
+        />
       </Panel>
     </div>
+  );
+}
+
+function ManualSearch({
+  options,
+  disabled,
+  onAdd,
+}: {
+  options: Array<{ id: string; name: string; is_active: boolean }>;
+  disabled: boolean;
+  onAdd: (id: string) => void;
+}) {
+  const [term, setTerm] = useState("");
+  const q = term.trim().toLowerCase();
+  const matches = q ? options.filter((option) => option.name.toLowerCase().includes(q)).slice(0, 8) : [];
+  return (
+    <div className="space-y-2">
+      <Input
+        placeholder="Buscar produto pelo nome..."
+        value={term}
+        disabled={disabled}
+        onChange={(e) => setTerm(e.target.value)}
+      />
+      {q && matches.length === 0 && <p className="text-xs text-muted-foreground">Nenhum produto encontrado.</p>}
+      {matches.length > 0 && (
+        <ul className="divide-y divide-border rounded-md border border-border">
+          {matches.map((option) => (
+            <li key={option.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+              <span className="flex-1 truncate">{option.name}</span>
+              {!option.is_active && <span className="text-xs text-muted-foreground">Inativo</span>}
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={disabled}
+                onClick={() => {
+                  onAdd(option.id);
+                  setTerm("");
+                }}
+              >
+                Adicionar
+              </Button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CategoryFields({
+  categoryId,
+  subcategoryId,
+  onChange,
+}: {
+  categoryId: string | null;
+  subcategoryId: string | null;
+  onChange: (categoryId: string | null, subcategoryId: string | null) => void;
+}) {
+  const categories = useQuery({ queryKey: ["admin", "categories"], queryFn: listCategories });
+  const tree = buildTree(categories.data ?? []);
+  const subs = tree.find((root) => root.id === categoryId)?.children ?? [];
+  const selectClass = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
+  return (
+    <Panel title="Categoria">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Field label="Categoria" id="category">
+          <select
+            id="category"
+            className={selectClass}
+            value={categoryId ?? ""}
+            onChange={(e) => onChange(e.target.value || null, null)}
+          >
+            <option value="">Sem categoria</option>
+            {tree.map((root) => (
+              <option key={root.id} value={root.id}>{root.name}</option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Subcategoria" id="subcategory">
+          <select
+            id="subcategory"
+            className={selectClass}
+            value={subcategoryId ?? ""}
+            disabled={!categoryId || subs.length === 0}
+            onChange={(e) => onChange(categoryId, e.target.value || null)}
+          >
+            <option value="">{!categoryId ? "Escolha a categoria primeiro" : "Sem subcategoria"}</option>
+            {subs.map((sub) => (
+              <option key={sub.id} value={sub.id}>{sub.name}</option>
+            ))}
+          </select>
+        </Field>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Usada nas recomendações automáticas e no dashboard. Gerencie em{" "}
+        <a href="/admin/categorias" className="underline">Categorias</a>.
+      </p>
+    </Panel>
   );
 }

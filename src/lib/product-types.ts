@@ -31,6 +31,8 @@ export type ProductRow = {
   meta_pixel_id: string | null;
   tiktok_pixel_id: string | null;
   ga_measurement_id: string | null;
+  category_id: string | null;
+  subcategory_id: string | null;
   created_at: string;
   updated_at: string;
 };
