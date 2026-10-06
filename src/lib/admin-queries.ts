@@ -34,7 +34,7 @@ export async function listProducts(search = "") {
 }
 
 export async function getProduct(id: string) {
-  const [product, images, details, highlights, promotions, reviews, settings, offers, kits, attrs, values, variants] = await Promise.all([
+  const [product, images, details, highlights, promotions, reviews, settings, offers, kits, attrs, values, variants, reviewImgs] = await Promise.all([
     supabase.from("products").select("*").eq("id", id).maybeSingle(),
     supabase.from("product_images").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("product_details").select("*").eq("product_id", id).order("sort_order"),
@@ -47,16 +47,31 @@ export async function getProduct(id: string) {
     supabase.from("product_attributes").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("product_attribute_values").select("*").eq("product_id", id).order("sort_order"),
     supabase.from("product_variants").select("*").eq("product_id", id).order("sort_order"),
+    supabase
+      .from("review_images" as never)
+      .select("id, review_id, image_url, sort_order, reviews!inner(product_id)")
+      .eq("reviews.product_id", id)
+      .order("sort_order"),
   ]);
 
   if (product.error) throw product.error;
   if (!product.data) return null;
 
   const imageRows = (images.data ?? []) as ProductImageRow[];
-  const reviewRows = (reviews.data ?? []) as ProductReview[];
+  const imgRows = ((reviewImgs.data ?? []) as unknown as ReviewImage[]).map(({ id: imgId, review_id, image_url, sort_order }) => ({
+    id: imgId,
+    review_id,
+    image_url,
+    sort_order,
+  }));
+  const reviewRows = ((reviews.data ?? []) as ProductReview[]).map((row) => ({
+    ...row,
+    images: imgRows.filter((img) => img.review_id === row.id).sort((a, b) => a.sort_order - b.sort_order),
+  }));
   const previews = await resolveImageUrls(supabase, [
     ...imageRows.map((row) => row.image_url),
     ...reviewRows.map((row) => row.image_url),
+    ...imgRows.map((row) => row.image_url),
   ]);
 
   return {
@@ -246,7 +261,6 @@ export async function duplicateProduct(id: string): Promise<string> {
     ["product_details", clone(source.details)],
     ["product_highlights", clone(source.highlights)],
     ["promotions", clone(source.promotions)],
-    ["reviews", clone(source.reviews)],
     ["product_offers", clone(source.offers)],
     ["product_quantity_offers", clone(source.quantityOffers)],
   ];
@@ -255,6 +269,22 @@ export async function duplicateProduct(id: string): Promise<string> {
     if (rows.length === 0) continue;
     const { error } = await supabase.from(table).insert(rows as never);
     if (error) throw error;
+  }
+
+  // Avaliações uma a uma, para copiar também todas as fotos de cada uma.
+  for (const { id: _rid, images: reviewImages, ...review } of source.reviews) {
+    const { data: created, error } = await supabase
+      .from("reviews")
+      .insert({ ...review, product_id: newId } as never)
+      .select("id")
+      .single();
+    if (error) throw error;
+    if (reviewImages.length > 0) {
+      const { error: imgError } = await supabase.from("review_images" as never).insert(
+        reviewImages.map((img) => ({ review_id: created.id, image_url: img.image_url, sort_order: img.sort_order })) as never,
+      );
+      if (imgError) throw imgError;
+    }
   }
 
   // Atributos, valores e SKUs com novos IDs (referências remapeadas).
@@ -355,4 +385,22 @@ export async function saveRecommendations(productId: string, ids: string[]) {
     })) as never,
   );
   if (error) throw error;
+}
+
+// ================= FOTOS DAS AVALIAÇÕES =================
+
+export type ReviewImage = { id: string; review_id: string; image_url: string; sort_order: number };
+export const REVIEW_PHOTO_LIMIT = 6;
+
+/** Regrava a lista de fotos da avaliação na ordem dada (mantém a foto principal antiga em sincronia). */
+export async function saveReviewImages(reviewId: string, paths: string[]) {
+  const { error: delError } = await supabase.from("review_images" as never).delete().eq("review_id", reviewId);
+  if (delError) throw delError;
+  if (paths.length > 0) {
+    const { error } = await supabase
+      .from("review_images" as never)
+      .insert(paths.map((image_url, sort_order) => ({ review_id: reviewId, image_url, sort_order })) as never);
+    if (error) throw error;
+  }
+  await updateChild("reviews", reviewId, { image_url: paths[0] ?? null });
 }
