@@ -88,7 +88,7 @@ export type ProductView = ProductRow & {
   promotions: string[];
   details: Array<[string, string]>;
   highlights: string[];
-  reviews: Array<Omit<ProductReview, "image_url"> & { image_url: string | null }>;
+  reviews: Array<Omit<ProductReview, "image_url"> & { image_url: string | null; images: string[] }>;
   page: import("./page-settings").PageSettings;
   recommendations: RecommendedProduct[];
   offers: ProductOffer[];

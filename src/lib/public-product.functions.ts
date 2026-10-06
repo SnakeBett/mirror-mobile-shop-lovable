@@ -253,7 +253,17 @@ export const getPublicProduct = createServerFn({ method: "GET" })
 
     const imageRows = images.data ?? [];
     const reviewRows = reviews.data ?? [];
+    const reviewIds = reviewRows.map((row) => row.id as string);
+    const { data: reviewImageData } = reviewIds.length
+      ? await supabase
+          .from("review_images" as never)
+          .select("review_id, image_url, sort_order")
+          .in("review_id", reviewIds)
+          .order("sort_order")
+      : { data: [] };
+    const reviewImageRows = (reviewImageData ?? []) as unknown as Array<{ review_id: string; image_url: string }>;
     const urlMap = await resolveImageUrls(supabase, [
+      ...reviewImageRows.map((row) => row.image_url),
       ...imageRows.map((row) => row.image_url),
       ...reviewRows.map((row) => row.image_url),
       ...(valuesRes.data ?? []).map((row) => row.image_url as string | null),
@@ -312,6 +322,10 @@ export const getPublicProduct = createServerFn({ method: "GET" })
         sort_order: row.sort_order,
         is_active: row.is_active,
         image_url: row.image_url ? (urlMap[row.image_url] ?? null) : null,
+        images: reviewImageRows
+          .filter((img) => img.review_id === row.id)
+          .map((img) => urlMap[img.image_url])
+          .filter(Boolean) as string[],
       })),
     };
   });

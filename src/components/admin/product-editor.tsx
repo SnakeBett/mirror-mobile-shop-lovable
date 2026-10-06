@@ -38,6 +38,9 @@ import {
   updateChild,
   updateProduct,
   uploadProductImage,
+  createReview,
+  saveReviewImages,
+  REVIEW_PHOTO_LIMIT,
 } from "@/lib/admin-queries";
 import { calcDiscount, slugify, type ProductOffer, type ProductRow } from "@/lib/product-types";
 import { currencyBRL, getProductPerformance } from "@/lib/sales-queries";
@@ -1352,6 +1355,7 @@ type ReviewRow = {
   image_url: string | null;
   sort_order: number;
   is_active: boolean;
+  images: Array<{ id: string; image_url: string; sort_order: number }>;
 };
 
 function ReviewsManager({
@@ -1380,12 +1384,19 @@ function ReviewsManager({
       <div className="divide-y divide-border rounded-md border border-border">
         {rows.map((row, index) => (
           <div key={row.id} className="flex flex-wrap items-center gap-3 p-3">
-            {row.image_url && (
-              <img
-                src={previews[row.image_url] ?? row.image_url}
-                alt=""
-                className="size-12 rounded-md border border-border object-cover"
-              />
+            {(row.images[0]?.image_url ?? row.image_url) && (
+              <div className="relative">
+                <img
+                  src={previews[row.images[0]?.image_url ?? row.image_url!] ?? row.images[0]?.image_url ?? row.image_url!}
+                  alt=""
+                  className="size-12 rounded-md border border-border object-cover"
+                />
+                {row.images.length > 1 && (
+                  <span className="absolute -right-1 -top-1 rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground">
+                    {row.images.length}
+                  </span>
+                )}
+              </div>
             )}
             <div className="min-w-40 flex-1">
               <p className="text-sm text-amber-500">{"★".repeat(row.rating)}<span className="text-muted-foreground">{"★".repeat(5 - row.rating)}</span></p>
@@ -1406,8 +1417,9 @@ function ReviewsManager({
               variant="ghost"
               size="sm"
               onClick={async () => {
-                const { id: _id, ...copy } = row;
-                await insertChild("reviews", { ...copy, product_id: productId, sort_order: rows.length });
+                const { id: _id, images: copyImages, ...copy } = row;
+                const newId = await createReview({ ...copy, product_id: productId, sort_order: rows.length });
+                if (copyImages.length > 0) await saveReviewImages(newId, copyImages.map((img) => img.image_url));
                 onChange();
               }}
             >
@@ -1430,7 +1442,8 @@ function ReviewsManager({
               className="text-destructive"
               onClick={async () => {
                 await deleteChild("reviews", row.id);
-                if (row.image_url) await removeStorageObject(row.image_url);
+                const paths = new Set([row.image_url, ...row.images.map((img) => img.image_url)].filter(Boolean) as string[]);
+                for (const path of paths) await removeStorageObject(path);
                 onChange();
               }}
             >
@@ -1448,6 +1461,7 @@ function ReviewsManager({
         productId={productId}
         review={editing}
         nextOrder={rows.length}
+        previews={previews}
         onSaved={onChange}
       />
     </Panel>
@@ -1460,6 +1474,7 @@ function ReviewDialog({
   productId,
   review,
   nextOrder,
+  previews,
   onSaved,
 }: {
   open: boolean;
@@ -1467,14 +1482,45 @@ function ReviewDialog({
   productId: string;
   review: ReviewRow | null;
   nextOrder: number;
+  previews: Record<string, string>;
   onSaved: () => void;
 }) {
   const [name, setName] = useState(review?.customer_name ?? "");
   const [rating, setRating] = useState(String(review?.rating ?? 5));
   const [comment, setComment] = useState(review?.comment ?? "");
   const [active, setActive] = useState(review?.is_active ?? true);
-  const [file, setFile] = useState<File | null>(null);
+  type Photo = { key: string; path?: string; file?: File; url: string };
+  const initialPhotos: Photo[] = (review?.images.length
+    ? review.images.map((img) => img.image_url)
+    : review?.image_url
+      ? [review.image_url]
+      : []
+  ).map((path) => ({ key: path, path, url: previews[path] ?? path }));
+  const [photos, setPhotos] = useState<Photo[]>(initialPhotos);
   const [saving, setSaving] = useState(false);
+
+  function addFiles(list: FileList | null) {
+    if (!list) return;
+    const room = REVIEW_PHOTO_LIMIT - photos.length;
+    const files = Array.from(list).filter((f) => f.type.startsWith("image/"));
+    if (files.length > room) toast.error(`Limite de ${REVIEW_PHOTO_LIMIT} fotos por avaliação.`);
+    const added = files.slice(0, Math.max(0, room)).map((file) => ({
+      key: crypto.randomUUID(),
+      file,
+      url: URL.createObjectURL(file),
+    }));
+    setPhotos((prev) => [...prev, ...added]);
+  }
+
+  function movePhoto(index: number, delta: number) {
+    setPhotos((prev) => {
+      const next = [...prev];
+      const target = index + delta;
+      if (target < 0 || target >= next.length) return prev;
+      [next[index], next[target]] = [next[target]!, next[index]!];
+      return next;
+    });
+  }
 
   async function submit() {
     if (!name.trim()) {
@@ -1483,27 +1529,25 @@ function ReviewDialog({
     }
     setSaving(true);
     try {
-      const path = file ? await uploadProductImage(file, productId) : null;
+      const paths: string[] = [];
+      for (const photo of photos) {
+        paths.push(photo.path ?? (await uploadProductImage(photo.file!, productId)));
+      }
       const values = {
         customer_name: name.trim(),
         avatar_initial: name.trim().charAt(0).toUpperCase(),
         rating: Number(rating),
         comment: comment.trim() || null,
         is_active: active,
-        ...(path ? { image_url: path } : {}),
       };
-      if (review) {
-        await updateChild("reviews", review.id, values);
-        toast.success("Avaliação atualizada.");
+      let reviewId = review?.id;
+      if (reviewId) {
+        await updateChild("reviews", reviewId, values);
       } else {
-        await insertChild("reviews", {
-          ...values,
-          image_url: path,
-          product_id: productId,
-          sort_order: nextOrder,
-        });
-        toast.success("Avaliação criada.");
+        reviewId = await createReview({ ...values, product_id: productId, sort_order: nextOrder });
       }
+      await saveReviewImages(reviewId, paths);
+      toast.success(review ? "Avaliação atualizada." : "Avaliação criada.");
       onSaved();
       onOpenChange(false);
     } catch (error) {
@@ -1536,8 +1580,47 @@ function ReviewDialog({
           <Field label="Comentário" id="rv-comment">
             <Textarea id="rv-comment" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} maxLength={500} />
           </Field>
-          <Field label="Foto (opcional)" id="rv-photo">
-            <Input id="rv-photo" type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <Field label="Fotos da avaliação (opcional)" id="rv-photo">
+            <div className="flex items-center justify-between gap-2">
+              <label
+                htmlFor="rv-photo"
+                className={`inline-flex cursor-pointer items-center gap-2 rounded-md border border-input px-3 py-1.5 text-sm hover:bg-accent ${photos.length >= REVIEW_PHOTO_LIMIT ? "pointer-events-none opacity-50" : ""}`}
+              >
+                <Upload className="size-4" /> Selecionar fotos
+              </label>
+              <span className="text-xs text-muted-foreground">{photos.length}/{REVIEW_PHOTO_LIMIT} fotos</span>
+            </div>
+            <input
+              id="rv-photo"
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              onChange={(e) => {
+                addFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+            {photos.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {photos.map((photo, index) => (
+                  <div key={photo.key} className="space-y-1 rounded-md border border-border p-1">
+                    <img src={photo.url} alt={`Foto ${index + 1}`} className="aspect-square w-full rounded object-cover" />
+                    <div className="flex items-center justify-between">
+                      <Button type="button" size="icon" variant="ghost" className="size-7" aria-label="Mover para trás" disabled={index === 0} onClick={() => movePhoto(index, -1)}>
+                        <ArrowUp className="size-3 -rotate-90" />
+                      </Button>
+                      <Button type="button" size="icon" variant="ghost" className="size-7 text-destructive" aria-label="Remover foto" onClick={() => setPhotos((prev) => prev.filter((p) => p.key !== photo.key))}>
+                        <Trash2 className="size-3" />
+                      </Button>
+                      <Button type="button" size="icon" variant="ghost" className="size-7" aria-label="Mover para frente" disabled={index === photos.length - 1} onClick={() => movePhoto(index, 1)}>
+                        <ArrowDown className="size-3 -rotate-90" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </Field>
           <div className="flex items-center gap-3">
             <Switch id="rv-active" checked={active} onCheckedChange={setActive} />

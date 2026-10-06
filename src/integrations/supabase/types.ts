@@ -1134,6 +1134,38 @@ export type Database = {
           },
         ]
       }
+      review_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          review_id: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          review_id: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          review_id?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_images_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           avatar_initial: string | null
@@ -1407,6 +1439,7 @@ export type Database = {
       }
       is_active_product: { Args: { _product_id: string }; Returns: boolean }
       is_public_product_file: { Args: { _name: string }; Returns: boolean }
+      is_public_review: { Args: { _review_id: string }; Returns: boolean }
       public_best_sellers: {
         Args: { _limit?: number }
         Returns: {
