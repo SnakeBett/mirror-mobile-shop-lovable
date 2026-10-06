@@ -404,3 +404,9 @@ export async function saveReviewImages(reviewId: string, paths: string[]) {
   }
   await updateChild("reviews", reviewId, { image_url: paths[0] ?? null });
 }
+
+export async function createReview(values: Record<string, unknown>): Promise<string> {
+  const { data, error } = await supabase.from("reviews").insert(values as never).select("id").single();
+  if (error) throw error;
+  return data.id as string;
+}
