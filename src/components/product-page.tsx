@@ -503,14 +503,31 @@ function CustomerProtection({ data }: { data: ProductView }) {
   return <div className="protection-row product-padding">{row}</div>;
 }
 
+const REVIEWS_PER_PAGE = 6;
+
 function ReviewsSection({ data }: { data: ProductView }) {
-  const settings = data.page.review_settings;
   const fields = data.page.field_visibility;
   const labels = data.page.text_settings;
-  const initial = settings.initial_count > 0 ? settings.initial_count : data.reviews.length;
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? data.reviews : data.reviews.slice(0, initial);
-  const hasMore = data.reviews.length > visible.length;
+  const pages = Math.max(1, Math.ceil(data.reviews.length / REVIEWS_PER_PAGE));
+  const [page, setPage] = useState(0);
+  const [viewer, setViewer] = useState<{ images: string[]; index: number; name: string } | null>(null);
+  const touchX = useRef<number | null>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const visible = data.reviews.slice(page * REVIEWS_PER_PAGE, page * REVIEWS_PER_PAGE + REVIEWS_PER_PAGE);
+
+  function go(next: number) {
+    const target = Math.min(pages - 1, Math.max(0, next));
+    if (target === page) return;
+    setPage(target);
+    listRef.current?.scrollIntoView({ block: "nearest" });
+  }
+
+  function step(delta: number) {
+    setViewer((current) =>
+      current ? { ...current, index: (current.index + delta + current.images.length) % current.images.length } : current,
+    );
+  }
 
   return (
     <section id="reviews" className="section product-padding scroll-target">
@@ -520,37 +537,90 @@ function ReviewsSection({ data }: { data: ProductView }) {
           {text(labels.reviews_title, TEXT_DEFAULTS.reviews_title)}
           {fields.review_count && ` (${data.review_count ?? 0})`}
         </h2>
-        {settings.show_see_more && hasMore && (
-          <Button variant="link" onClick={() => setExpanded(true)}>
-            {text(labels.see_more, TEXT_DEFAULTS.see_more)} <ChevronRight />
-          </Button>
-        )}
       </div>
       {fields.five_star_count && (
         <p className="section-subtitle">
           {data.five_star_count ?? 0} avaliações de 5 estrelas nos últimos 30 dias
         </p>
       )}
-      <div className="reviews-list">
-        {visible.map((review) => (
-          <article className="review" key={review.id}>
-            <div className="review-avatar">{review.avatar_initial || review.customer_name.charAt(0)}</div>
-            <div className="review-body">
-              <div><Stars rating={review.rating} /><span>{review.customer_name}</span></div>
-              {fields.review_images && review.image_url && (
-                <img
-                  src={review.image_url}
-                  alt={`Foto da avaliação de ${review.customer_name}`}
-                  width={94}
-                  height={94}
-                  loading="lazy"
-                />
-              )}
-              <p>{review.comment}</p>
-            </div>
-          </article>
-        ))}
+      <div
+        className="reviews-list"
+        ref={listRef}
+        onTouchStart={(e) => {
+          touchX.current = e.touches[0]?.clientX ?? null;
+        }}
+        onTouchEnd={(e) => {
+          const start = touchX.current;
+          touchX.current = null;
+          const end = e.changedTouches[0]?.clientX;
+          if (start == null || end == null || Math.abs(end - start) < 50) return;
+          go(end < start ? page + 1 : page - 1);
+        }}
+      >
+        {visible.map((review) => {
+          const images = review.images.length > 0 ? review.images : review.image_url ? [review.image_url] : [];
+          return (
+            <article className="review" key={review.id}>
+              <div className="review-avatar">{review.avatar_initial || review.customer_name.charAt(0)}</div>
+              <div className="review-body">
+                <div><Stars rating={review.rating} /><span>{review.customer_name}</span></div>
+                <p>{review.comment}</p>
+                {fields.review_images && images.length > 0 && (
+                  <div className="review-photos">
+                    {images.map((src, index) => (
+                      <button
+                        type="button"
+                        key={`${src}-${index}`}
+                        aria-label={`Abrir foto ${index + 1} da avaliação de ${review.customer_name}`}
+                        onClick={() => setViewer({ images, index, name: review.customer_name })}
+                      >
+                        <img src={src} alt={`Foto ${index + 1} da avaliação de ${review.customer_name}`} width={76} height={76} loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </article>
+          );
+        })}
       </div>
+
+      {pages > 1 && (
+        <nav className="reviews-pager" aria-label="Páginas de avaliações">
+          <button type="button" aria-label="Avaliações anteriores" disabled={page === 0} onClick={() => go(page - 1)}>‹</button>
+          <span>{page + 1} / {pages}</span>
+          <button type="button" aria-label="Próximas avaliações" disabled={page === pages - 1} onClick={() => go(page + 1)}>›</button>
+        </nav>
+      )}
+
+      {viewer && (
+        <div
+          className="lightbox"
+          role="dialog"
+          aria-label={`Fotos da avaliação de ${viewer.name}`}
+          onClick={() => setViewer(null)}
+          onTouchStart={(e) => {
+            touchX.current = e.touches[0]?.clientX ?? null;
+          }}
+          onTouchEnd={(e) => {
+            const start = touchX.current;
+            touchX.current = null;
+            const end = e.changedTouches[0]?.clientX;
+            if (start == null || end == null || Math.abs(end - start) < 50) return;
+            e.stopPropagation();
+            step(end < start ? 1 : -1);
+          }}
+        >
+          <img src={viewer.images[viewer.index]} alt={`Foto ${viewer.index + 1} da avaliação de ${viewer.name}`} />
+          {viewer.images.length > 1 && (
+            <>
+              <button type="button" className="lightbox-nav lightbox-prev" aria-label="Foto anterior" onClick={(e) => { e.stopPropagation(); step(-1); }}>‹</button>
+              <button type="button" className="lightbox-nav lightbox-next" aria-label="Próxima foto" onClick={(e) => { e.stopPropagation(); step(1); }}>›</button>
+              <span className="lightbox-count">{viewer.index + 1} / {viewer.images.length}</span>
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }
