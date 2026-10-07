@@ -1174,10 +1174,14 @@ export type Database = {
           customer_name: string
           id: string
           image_url: string | null
+          import_hash: string | null
+          import_source: string | null
           is_active: boolean
           product_id: string
           rating: number
+          reviewed_at: string | null
           sort_order: number
+          variation: string | null
         }
         Insert: {
           avatar_initial?: string | null
@@ -1186,10 +1190,14 @@ export type Database = {
           customer_name: string
           id?: string
           image_url?: string | null
+          import_hash?: string | null
+          import_source?: string | null
           is_active?: boolean
           product_id: string
           rating?: number
+          reviewed_at?: string | null
           sort_order?: number
+          variation?: string | null
         }
         Update: {
           avatar_initial?: string | null
@@ -1198,10 +1206,14 @@ export type Database = {
           customer_name?: string
           id?: string
           image_url?: string | null
+          import_hash?: string | null
+          import_source?: string | null
           is_active?: boolean
           product_id?: string
           rating?: number
+          reviewed_at?: string | null
           sort_order?: number
+          variation?: string | null
         }
         Relationships: [
           {
