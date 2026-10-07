@@ -21,6 +21,7 @@ import {
 import { PageSettingsPanel } from "@/components/admin/page-settings-panel";
 import { CheckoutLinksManager, QuantityOffersManager, VariantsManager } from "@/components/admin/variants-manager";
 import { ProductCheckoutsList } from "@/components/admin/product-checkouts-list";
+import { ReviewImportDialog } from "@/components/admin/review-import-dialog";
 import { DEFAULT_PAGE_SETTINGS, type PageSettings } from "@/lib/page-settings";
 import { buildTree, listCategories } from "@/lib/categories";
 import {
@@ -1371,6 +1372,7 @@ function ReviewsManager({
 }) {
   const [editing, setEditing] = useState<ReviewRow | null>(null);
   const [open, setOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   function openNew() {
     setEditing(null);
@@ -1379,7 +1381,17 @@ function ReviewsManager({
 
   return (
     <Panel title="Avaliações">
-      <Button size="sm" onClick={openNew}>+ Adicionar avaliação</Button>
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" onClick={openNew}>+ Adicionar avaliação</Button>
+        <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>✨ Importar avaliações</Button>
+      </div>
+      <ReviewImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        productId={productId}
+        nextOrder={rows.length}
+        onImported={onChange}
+      />
 
       <div className="divide-y divide-border rounded-md border border-border">
         {rows.map((row, index) => (
