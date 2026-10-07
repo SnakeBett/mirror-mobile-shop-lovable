@@ -82,6 +82,7 @@ function toIso(raw: RegExpMatchArray) {
 
 export function parseReviews(input: string): ParsedReview[] {
   const lines = input.replace(/\r\n?/g, "\n").split("\n");
+  const L = (i: number) => lines[i] ?? "";
   const dateIdx: number[] = [];
   lines.forEach((line, i) => {
     if (DATE_RE.test(line)) dateIdx.push(i);
@@ -89,11 +90,11 @@ export function parseReviews(input: string): ParsedReview[] {
 
   // Início de cada bloco = linha do username (antes da data), quando existir.
   const starts = dateIdx.map((di, k) => {
-    const floor = k > 0 ? dateIdx[k - 1] + 1 : 0;
+    const floor = k > 0 ? dateIdx[k - 1]! + 1 : 0;
     let userLine = -1;
     let svgCount: number | null = null;
     for (let i = di - 1; i >= floor && i >= di - 6; i -= 1) {
-      const t = lines[i].trim();
+      const t = L(i).trim();
       const svg = t.match(/^(svg)+$/i);
       if (svg && svgCount === null) svgCount = t.length / 3;
       if (isJunk(t)) continue;
@@ -105,11 +106,11 @@ export function parseReviews(input: string): ParsedReview[] {
 
   return starts.map(({ di, userLine, svgCount }, k) => {
     const end = k + 1 < starts.length
-      ? (starts[k + 1].userLine >= 0 ? starts[k + 1].userLine : starts[k + 1].di)
+      ? (starts[k + 1]!.userLine >= 0 ? starts[k + 1]!.userLine : starts[k + 1]!.di)
       : lines.length;
     const headStart = userLine >= 0 ? userLine : di;
     const block = lines.slice(headStart, end);
-    const dateLine = lines[di];
+    const dateLine = L(di);
     const dm = dateLine.match(DATE_RE)!;
 
     let variation: string | null = null;
@@ -132,7 +133,7 @@ export function parseReviews(input: string): ParsedReview[] {
 
     const commentLines: string[] = [];
     for (let i = di + 1; i < end; i += 1) {
-      const raw = lines[i];
+      const raw = L(i);
       if (isJunk(raw)) continue;
       if (!variation) {
         const v = variationIn(raw.trim());
@@ -144,7 +145,7 @@ export function parseReviews(input: string): ParsedReview[] {
       commentLines.push(stripInlineJunk(raw));
     }
     const comment = commentLines.join("\n").trim();
-    const username = userLine >= 0 ? stripInlineJunk(lines[userLine]) : "";
+    const username = userLine >= 0 ? stripInlineJunk(L(userLine)) : "";
     const rating = explicitRating(block.join("\n"));
 
     return {
