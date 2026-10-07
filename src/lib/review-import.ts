@@ -116,7 +116,7 @@ export function parseReviews(input: string): ParsedReview[] {
     let variation: string | null = null;
     const variationIn = (s: string) => s.match(/varia(?:ç|c)(?:ão|ao)\s*:\s*(.+)$/i);
     const vm = variationIn(dateLine);
-    if (vm) variation = cleanVariation(vm[1]);
+    if (vm) variation = cleanVariation(vm[1] ?? "");
 
     const images: string[] = [];
     const videos: string[] = [];
@@ -138,7 +138,7 @@ export function parseReviews(input: string): ParsedReview[] {
       if (!variation) {
         const v = variationIn(raw.trim());
         if (v) {
-          variation = cleanVariation(v[1]);
+          variation = cleanVariation(v[1] ?? "");
           continue;
         }
       }
