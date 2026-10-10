@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
+import { OfferCountdown } from "@/components/offer-countdown";
 import { appendCheckoutTracking, getCheckoutTrackingContext, track } from "@/lib/analytics";
 import { newEventId, sendMetaServerEvent } from "@/lib/meta-client";
 import {
@@ -274,14 +275,20 @@ function OfferBanner({ data, override = false }: { data: ProductView; override?:
     <section className="offer-banner" style={style} aria-label={label}>
       <div className="offer-banner-pricing">
         <div className="offer-banner-current">
-          {discount != null && discount > 0 && <span className="offer-banner-badge">-{discount}%</span>}
           <strong><small>{settings.show_from ? "A partir de " : ""}</small>{currency.format(current)}</strong>
+          <Ticket aria-hidden="true" className="offer-banner-ticket" />
         </div>
-        {old > current && <del>{currency.format(old)}</del>}
+        <div className="offer-banner-savings">
+          {old > current && <del>{currency.format(old)}</del>}
+          {discount != null && discount > 0 && <span className="offer-banner-badge">Economize {discount}%</span>}
+        </div>
       </div>
-      <div className="offer-banner-label">
-        {settings.icon.trim() && <span aria-hidden="true">{settings.icon.trim()}</span>}
-        <b>{label}</b>
+      <div className="offer-banner-ending">
+        <div className="offer-banner-label">
+          {settings.icon.trim() && (settings.icon.trim() === "⚡" ? <Zap aria-hidden="true" /> : <span aria-hidden="true">{settings.icon.trim()}</span>)}
+          <b>{label}</b>
+        </div>
+        {settings.offer_type === "flash" && <OfferCountdown productId={data.id} />}
       </div>
     </section>
   );
