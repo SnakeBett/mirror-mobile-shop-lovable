@@ -12,3 +12,4 @@
 - Seleção de compra vira "checkout context" em sessionStorage (vt_checkout_context) e nos eventos internos; nada é anexado à URL do checkout externo — why: gateway ainda não confirmou suporte a esses parâmetros.
 - A lista administrativa de checkouts por produto é compartilhada entre a aba Checkout e /admin/checkouts — why: ambos devem agrupar os mesmos links por nome do produto sem duplicar registros.
 - Offer countdowns persist a per-product deadline in browser storage and stop at zero without automatic renewal — why: refreshing must not reset the displayed deadline.
+- Store info card data lives in `stores` (one row per store, display fields in `info` jsonb) linked via `products.store_id`; `app_settings.store_info` is deprecated — why: each product can show a different store and editing a store updates all its products.
