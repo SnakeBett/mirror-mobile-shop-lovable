@@ -131,6 +131,7 @@ export type Database = {
           id: string
           meta_pixel_id: string | null
           singleton: boolean
+          store_info: Json
           tiktok_pixel_id: string | null
           timezone: string
           updated_at: string
@@ -142,6 +143,7 @@ export type Database = {
           id?: string
           meta_pixel_id?: string | null
           singleton?: boolean
+          store_info?: Json
           tiktok_pixel_id?: string | null
           timezone?: string
           updated_at?: string
@@ -153,6 +155,7 @@ export type Database = {
           id?: string
           meta_pixel_id?: string | null
           singleton?: boolean
+          store_info?: Json
           tiktok_pixel_id?: string | null
           timezone?: string
           updated_at?: string
