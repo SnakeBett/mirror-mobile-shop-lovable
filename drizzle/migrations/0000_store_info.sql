@@ -1,0 +1,2 @@
+ALTER TABLE public.app_settings ADD COLUMN IF NOT EXISTS store_info jsonb NOT NULL DEFAULT '{}'::jsonb;
+CREATE POLICY "public reads store logo" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'product-images' AND name LIKE 'store/%');
