@@ -996,6 +996,7 @@ export type Database = {
           slug: string
           source_platform: string | null
           source_url: string | null
+          store_id: string | null
           subcategory_id: string | null
           tiktok_pixel_id: string | null
           tracking_use_global: boolean
@@ -1038,6 +1039,7 @@ export type Database = {
           slug: string
           source_platform?: string | null
           source_url?: string | null
+          store_id?: string | null
           subcategory_id?: string | null
           tiktok_pixel_id?: string | null
           tracking_use_global?: boolean
@@ -1080,6 +1082,7 @@ export type Database = {
           slug?: string
           source_platform?: string | null
           source_url?: string | null
+          store_id?: string | null
           subcategory_id?: string | null
           tiktok_pixel_id?: string | null
           tracking_use_global?: boolean
@@ -1091,6 +1094,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
@@ -1227,6 +1237,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stores: {
+        Row: {
+          created_at: string
+          id: string
+          info: Json
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          info?: Json
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          info?: Json
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       tracking_settings: {
         Row: {

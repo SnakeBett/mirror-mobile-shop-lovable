@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ProductStorePanel } from "@/components/admin/product-store-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -93,6 +94,7 @@ const TABS: Array<[string, string]> = [
   ["variacoes", "Variações"],
   ["entrega", "Entrega"],
   ["detalhes", "Detalhes"],
+  ["loja", "Loja"],
   ["descricao", "Descrição"],
   ["avaliacoes", "Avaliações"],
   ["pagina", "Página"],
@@ -605,6 +607,10 @@ export function ProductEditor({ productId }: { productId?: string }) {
         </TabsContent>
 
         {/* DESCRIÇÃO */}
+        <TabsContent value="loja" className="mt-4">
+          <ProductStorePanel storeId={draft.store_id ?? null} onChange={(id) => set("store_id", id)} />
+        </TabsContent>
+
         <TabsContent value="descricao" className="mt-4 space-y-4">
           <Panel title="Descrição">
             <Textarea

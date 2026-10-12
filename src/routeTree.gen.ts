@@ -18,13 +18,13 @@ import { Route as AdminAdminCategoriasRouteImport } from './routes/_admin.admin.
 import { Route as AdminAdminCheckoutsRouteImport } from './routes/_admin.admin.checkouts'
 import { Route as AdminAdminFunilRouteImport } from './routes/_admin.admin.funil'
 import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.importar'
+import { Route as AdminAdminLojasRouteImport } from './routes/_admin.admin.lojas'
 import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
 import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
 import { Route as ApiPublicMetaEventRouteImport } from './routes/api/public/meta-event'
 import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
 import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admin.admin.configuracoes.geral'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
-import { Route as AdminAdminConfiguracoesLojaRouteImport } from './routes/_admin.admin.configuracoes.loja'
 import { Route as AdminAdminConfiguracoesPagamentosRouteImport } from './routes/_admin.admin.configuracoes.pagamentos'
 import { Route as AdminAdminConfiguracoesTrackingRouteImport } from './routes/_admin.admin.configuracoes.tracking'
 import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
@@ -79,6 +79,11 @@ const AdminAdminImportarRoute = AdminAdminImportarRouteImport.update({
   path: '/admin/importar',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminAdminLojasRoute = AdminAdminLojasRouteImport.update({
+  id: '/admin/lojas',
+  path: '/admin/lojas',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAdminPedidosRoute = AdminAdminPedidosRouteImport.update({
   id: '/admin/pedidos',
   path: '/admin/pedidos',
@@ -109,12 +114,6 @@ const AdminAdminConfiguracoesIntegracoesRoute =
   AdminAdminConfiguracoesIntegracoesRouteImport.update({
     id: '/admin/configuracoes/integracoes',
     path: '/admin/configuracoes/integracoes',
-    getParentRoute: () => AdminRoute,
-  } as any)
-const AdminAdminConfiguracoesLojaRoute =
-  AdminAdminConfiguracoesLojaRouteImport.update({
-    id: '/admin/configuracoes/loja',
-    path: '/admin/configuracoes/loja',
     getParentRoute: () => AdminRoute,
   } as any)
 const AdminAdminConfiguracoesPagamentosRoute =
@@ -177,6 +176,7 @@ export interface FileRoutesByFullPath {
   '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
+  '/admin/lojas': typeof AdminAdminLojasRoute
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
@@ -184,7 +184,6 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
-  '/admin/configuracoes/loja': typeof AdminAdminConfiguracoesLojaRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
@@ -203,6 +202,7 @@ export interface FileRoutesByTo {
   '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
+  '/admin/lojas': typeof AdminAdminLojasRoute
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
@@ -210,7 +210,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
-  '/admin/configuracoes/loja': typeof AdminAdminConfiguracoesLojaRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
@@ -231,6 +230,7 @@ export interface FileRoutesById {
   '/_admin/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/_admin/admin/funil': typeof AdminAdminFunilRoute
   '/_admin/admin/importar': typeof AdminAdminImportarRouteWithChildren
+  '/_admin/admin/lojas': typeof AdminAdminLojasRoute
   '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
   '/_admin/admin/vendas': typeof AdminAdminVendasRoute
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
@@ -238,7 +238,6 @@ export interface FileRoutesById {
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
-  '/_admin/admin/configuracoes/loja': typeof AdminAdminConfiguracoesLojaRoute
   '/_admin/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/_admin/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
@@ -259,6 +258,7 @@ export interface FileRouteTypes {
     | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
+    | '/admin/lojas'
     | '/admin/pedidos'
     | '/admin/vendas'
     | '/api/public/meta-event'
@@ -266,7 +266,6 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
-    | '/admin/configuracoes/loja'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
@@ -285,6 +284,7 @@ export interface FileRouteTypes {
     | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
+    | '/admin/lojas'
     | '/admin/pedidos'
     | '/admin/vendas'
     | '/api/public/meta-event'
@@ -292,7 +292,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
-    | '/admin/configuracoes/loja'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
@@ -312,6 +311,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/checkouts'
     | '/_admin/admin/funil'
     | '/_admin/admin/importar'
+    | '/_admin/admin/lojas'
     | '/_admin/admin/pedidos'
     | '/_admin/admin/vendas'
     | '/api/public/meta-event'
@@ -319,7 +319,6 @@ export interface FileRouteTypes {
     | '/_admin/admin/'
     | '/_admin/admin/configuracoes/geral'
     | '/_admin/admin/configuracoes/integracoes'
-    | '/_admin/admin/configuracoes/loja'
     | '/_admin/admin/configuracoes/pagamentos'
     | '/_admin/admin/configuracoes/tracking'
     | '/_admin/admin/importar/navegador'
@@ -407,6 +406,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminImportarRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/lojas': {
+      id: '/_admin/admin/lojas'
+      path: '/admin/lojas'
+      fullPath: '/admin/lojas'
+      preLoaderRoute: typeof AdminAdminLojasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/pedidos': {
       id: '/_admin/admin/pedidos'
       path: '/admin/pedidos'
@@ -447,13 +453,6 @@ declare module '@tanstack/react-router' {
       path: '/admin/configuracoes/integracoes'
       fullPath: '/admin/configuracoes/integracoes'
       preLoaderRoute: typeof AdminAdminConfiguracoesIntegracoesRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/_admin/admin/configuracoes/loja': {
-      id: '/_admin/admin/configuracoes/loja'
-      path: '/admin/configuracoes/loja'
-      fullPath: '/admin/configuracoes/loja'
-      preLoaderRoute: typeof AdminAdminConfiguracoesLojaRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/admin/configuracoes/pagamentos': {
@@ -538,12 +537,12 @@ interface AdminRouteChildren {
   AdminAdminCheckoutsRoute: typeof AdminAdminCheckoutsRoute
   AdminAdminFunilRoute: typeof AdminAdminFunilRoute
   AdminAdminImportarRoute: typeof AdminAdminImportarRouteWithChildren
+  AdminAdminLojasRoute: typeof AdminAdminLojasRoute
   AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
   AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminConfiguracoesGeralRoute: typeof AdminAdminConfiguracoesGeralRoute
   AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
-  AdminAdminConfiguracoesLojaRoute: typeof AdminAdminConfiguracoesLojaRoute
   AdminAdminConfiguracoesPagamentosRoute: typeof AdminAdminConfiguracoesPagamentosRoute
   AdminAdminConfiguracoesTrackingRoute: typeof AdminAdminConfiguracoesTrackingRoute
   AdminAdminPagamentosWebhooksRoute: typeof AdminAdminPagamentosWebhooksRoute
@@ -557,13 +556,13 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminCheckoutsRoute: AdminAdminCheckoutsRoute,
   AdminAdminFunilRoute: AdminAdminFunilRoute,
   AdminAdminImportarRoute: AdminAdminImportarRouteWithChildren,
+  AdminAdminLojasRoute: AdminAdminLojasRoute,
   AdminAdminPedidosRoute: AdminAdminPedidosRoute,
   AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
   AdminAdminConfiguracoesGeralRoute: AdminAdminConfiguracoesGeralRoute,
   AdminAdminConfiguracoesIntegracoesRoute:
     AdminAdminConfiguracoesIntegracoesRoute,
-  AdminAdminConfiguracoesLojaRoute: AdminAdminConfiguracoesLojaRoute,
   AdminAdminConfiguracoesPagamentosRoute:
     AdminAdminConfiguracoesPagamentosRoute,
   AdminAdminConfiguracoesTrackingRoute: AdminAdminConfiguracoesTrackingRoute,

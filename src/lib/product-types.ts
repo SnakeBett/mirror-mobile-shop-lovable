@@ -33,6 +33,7 @@ export type ProductRow = {
   ga_measurement_id: string | null;
   category_id: string | null;
   subcategory_id: string | null;
+  store_id: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -100,7 +101,7 @@ export type ProductView = ProductRow & {
   /** Configuração pública de Meta/UTMify (nunca contém tokens). */
   tracking_config: import("./tracking").PublicTrackingConfig;
   currency: string;
-  store: import("./store-info").PublicStoreInfo;
+  store: import("./store-info").PublicStoreInfo | null;
 };
 
 

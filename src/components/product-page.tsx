@@ -1103,7 +1103,7 @@ export function ProductPage({ product }: { product: ProductView }) {
     details: sections.details ? <ProductDetails key="details" data={product} /> : null,
     description: sections.description ? (
       <div key="description">
-        {hasStoreCard(product.store) && <StoreInfoCard info={product.store} logoUrl={product.store.logo_url} />}
+        {product.store && hasStoreCard(product.store) && <StoreInfoCard info={product.store} logoUrl={product.store.logo_url} />}
         <ProductDescription data={product} />
       </div>
     ) : null,
