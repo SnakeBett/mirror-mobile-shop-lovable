@@ -25,7 +25,6 @@ import { Route as ApiPublicMetaEventRouteImport } from './routes/api/public/meta
 import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
 import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admin.admin.configuracoes.geral'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
-import { Route as AdminAdminConfiguracoesLojaRouteImport } from './routes/_admin.admin.configuracoes.loja'
 import { Route as AdminAdminConfiguracoesPagamentosRouteImport } from './routes/_admin.admin.configuracoes.pagamentos'
 import { Route as AdminAdminConfiguracoesTrackingRouteImport } from './routes/_admin.admin.configuracoes.tracking'
 import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
@@ -117,12 +116,6 @@ const AdminAdminConfiguracoesIntegracoesRoute =
     path: '/admin/configuracoes/integracoes',
     getParentRoute: () => AdminRoute,
   } as any)
-const AdminAdminConfiguracoesLojaRoute =
-  AdminAdminConfiguracoesLojaRouteImport.update({
-    id: '/admin/configuracoes/loja',
-    path: '/admin/configuracoes/loja',
-    getParentRoute: () => AdminRoute,
-  } as any)
 const AdminAdminConfiguracoesPagamentosRoute =
   AdminAdminConfiguracoesPagamentosRouteImport.update({
     id: '/admin/configuracoes/pagamentos',
@@ -191,7 +184,6 @@ export interface FileRoutesByFullPath {
   '/admin/': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
-  '/admin/configuracoes/loja': typeof AdminAdminConfiguracoesLojaRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
@@ -218,7 +210,6 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminAdminIndexRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
-  '/admin/configuracoes/loja': typeof AdminAdminConfiguracoesLojaRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
@@ -247,7 +238,6 @@ export interface FileRoutesById {
   '/_admin/admin/': typeof AdminAdminIndexRoute
   '/_admin/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
-  '/_admin/admin/configuracoes/loja': typeof AdminAdminConfiguracoesLojaRoute
   '/_admin/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/_admin/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
@@ -276,7 +266,6 @@ export interface FileRouteTypes {
     | '/admin/'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
-    | '/admin/configuracoes/loja'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
@@ -303,7 +292,6 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
-    | '/admin/configuracoes/loja'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
@@ -331,7 +319,6 @@ export interface FileRouteTypes {
     | '/_admin/admin/'
     | '/_admin/admin/configuracoes/geral'
     | '/_admin/admin/configuracoes/integracoes'
-    | '/_admin/admin/configuracoes/loja'
     | '/_admin/admin/configuracoes/pagamentos'
     | '/_admin/admin/configuracoes/tracking'
     | '/_admin/admin/importar/navegador'
@@ -468,13 +455,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminConfiguracoesIntegracoesRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/_admin/admin/configuracoes/loja': {
-      id: '/_admin/admin/configuracoes/loja'
-      path: '/admin/configuracoes/loja'
-      fullPath: '/admin/configuracoes/loja'
-      preLoaderRoute: typeof AdminAdminConfiguracoesLojaRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/_admin/admin/configuracoes/pagamentos': {
       id: '/_admin/admin/configuracoes/pagamentos'
       path: '/admin/configuracoes/pagamentos'
@@ -563,7 +543,6 @@ interface AdminRouteChildren {
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
   AdminAdminConfiguracoesGeralRoute: typeof AdminAdminConfiguracoesGeralRoute
   AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
-  AdminAdminConfiguracoesLojaRoute: typeof AdminAdminConfiguracoesLojaRoute
   AdminAdminConfiguracoesPagamentosRoute: typeof AdminAdminConfiguracoesPagamentosRoute
   AdminAdminConfiguracoesTrackingRoute: typeof AdminAdminConfiguracoesTrackingRoute
   AdminAdminPagamentosWebhooksRoute: typeof AdminAdminPagamentosWebhooksRoute
@@ -584,7 +563,6 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminConfiguracoesGeralRoute: AdminAdminConfiguracoesGeralRoute,
   AdminAdminConfiguracoesIntegracoesRoute:
     AdminAdminConfiguracoesIntegracoesRoute,
-  AdminAdminConfiguracoesLojaRoute: AdminAdminConfiguracoesLojaRoute,
   AdminAdminConfiguracoesPagamentosRoute:
     AdminAdminConfiguracoesPagamentosRoute,
   AdminAdminConfiguracoesTrackingRoute: AdminAdminConfiguracoesTrackingRoute,
