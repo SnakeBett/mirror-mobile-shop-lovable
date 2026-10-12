@@ -92,15 +92,15 @@ function StoreInfoPage() {
     );
   };
 
-  async function onLogo(file: File) {
-    if (!file.type.startsWith("image/")) return toast.error("Envie uma imagem.");
-    if (file.size > 5 * 1024 * 1024) return toast.error("A imagem deve ter até 5 MB.");
+  async function onLogo(file: File): Promise<void> {
+    if (!file.type.startsWith("image/")) { toast.error("Envie uma imagem."); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("A imagem deve ter até 5 MB."); return; }
     setUploading(true);
     const ext = file.name.split(".").pop()?.toLowerCase() || "png";
     const path = `store/logo-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from(PRODUCT_BUCKET).upload(path, file, { contentType: file.type });
     setUploading(false);
-    if (error) return toast.error("Não foi possível enviar a logo.");
+    if (error) { toast.error("Não foi possível enviar a logo."); return; }
     set("logo_path", path);
     setLogoUrl(URL.createObjectURL(file));
     toast.success("Logo carregada — clique em Salvar informações.");
