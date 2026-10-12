@@ -100,6 +100,7 @@ export type ProductView = ProductRow & {
   /** Configuração pública de Meta/UTMify (nunca contém tokens). */
   tracking_config: import("./tracking").PublicTrackingConfig;
   currency: string;
+  store: import("./store-info").PublicStoreInfo;
 };
 
 

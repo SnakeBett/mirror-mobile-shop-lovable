@@ -22,6 +22,8 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { OfferCountdown } from "@/components/offer-countdown";
+import { StoreInfoCard } from "@/components/store-info-card";
+import { hasStoreCard } from "@/lib/store-info";
 import { appendCheckoutTracking, getCheckoutTrackingContext, track } from "@/lib/analytics";
 import { newEventId, sendMetaServerEvent } from "@/lib/meta-client";
 import {
@@ -1099,7 +1101,12 @@ export function ProductPage({ product }: { product: ProductView }) {
     offers: sections.offers && product.offers.length > 0 ? <OffersSection key="offers" data={product} /> : null,
     reviews: sections.reviews ? <ReviewsSection key="reviews" data={product} /> : null,
     details: sections.details ? <ProductDetails key="details" data={product} /> : null,
-    description: sections.description ? <ProductDescription key="description" data={product} /> : null,
+    description: sections.description ? (
+      <div key="description">
+        {hasStoreCard(product.store) && <StoreInfoCard info={product.store} logoUrl={product.store.logo_url} />}
+        <ProductDescription data={product} />
+      </div>
+    ) : null,
     recommendations: sections.recommendations ? <Recommendations key="recommendations" data={product} /> : null,
   };
 
