@@ -111,11 +111,11 @@ function AdminLayout() {
             <Settings className="size-4" /> Configurações
           </Link>
           <Link
-            to="/admin/configuracoes/loja"
+            to="/admin/lojas"
             activeProps={{ className: "bg-accent text-accent-foreground" }}
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
-            <Store className="size-4" /> Informações da Loja
+            <Store className="size-4" /> Lojas
           </Link>
           <Link
             to="/admin/configuracoes/tracking"
@@ -175,7 +175,7 @@ function AdminLayout() {
             <Link to="/admin/funil" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Funil</Link>
             <Link to="/admin/pedidos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Pedidos</Link>
             <Link to="/admin/configuracoes/geral" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Config</Link>
-            <Link to="/admin/configuracoes/loja" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Loja</Link>
+            <Link to="/admin/lojas" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Loja</Link>
             <Link to="/admin/configuracoes/tracking" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Tracking</Link>
             <Link to="/admin/importar" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Importar</Link>
             <Button variant="ghost" size="sm" onClick={openStore}>Loja</Button>

@@ -18,6 +18,7 @@ import { Route as AdminAdminCategoriasRouteImport } from './routes/_admin.admin.
 import { Route as AdminAdminCheckoutsRouteImport } from './routes/_admin.admin.checkouts'
 import { Route as AdminAdminFunilRouteImport } from './routes/_admin.admin.funil'
 import { Route as AdminAdminImportarRouteImport } from './routes/_admin.admin.importar'
+import { Route as AdminAdminLojasRouteImport } from './routes/_admin.admin.lojas'
 import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.pedidos'
 import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
 import { Route as ApiPublicMetaEventRouteImport } from './routes/api/public/meta-event'
@@ -77,6 +78,11 @@ const AdminAdminFunilRoute = AdminAdminFunilRouteImport.update({
 const AdminAdminImportarRoute = AdminAdminImportarRouteImport.update({
   id: '/admin/importar',
   path: '/admin/importar',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminLojasRoute = AdminAdminLojasRouteImport.update({
+  id: '/admin/lojas',
+  path: '/admin/lojas',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminAdminPedidosRoute = AdminAdminPedidosRouteImport.update({
@@ -177,6 +183,7 @@ export interface FileRoutesByFullPath {
   '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
+  '/admin/lojas': typeof AdminAdminLojasRoute
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
@@ -203,6 +210,7 @@ export interface FileRoutesByTo {
   '/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/admin/funil': typeof AdminAdminFunilRoute
   '/admin/importar': typeof AdminAdminImportarRouteWithChildren
+  '/admin/lojas': typeof AdminAdminLojasRoute
   '/admin/pedidos': typeof AdminAdminPedidosRoute
   '/admin/vendas': typeof AdminAdminVendasRoute
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
@@ -231,6 +239,7 @@ export interface FileRoutesById {
   '/_admin/admin/checkouts': typeof AdminAdminCheckoutsRoute
   '/_admin/admin/funil': typeof AdminAdminFunilRoute
   '/_admin/admin/importar': typeof AdminAdminImportarRouteWithChildren
+  '/_admin/admin/lojas': typeof AdminAdminLojasRoute
   '/_admin/admin/pedidos': typeof AdminAdminPedidosRoute
   '/_admin/admin/vendas': typeof AdminAdminVendasRoute
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
+    | '/admin/lojas'
     | '/admin/pedidos'
     | '/admin/vendas'
     | '/api/public/meta-event'
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/admin/checkouts'
     | '/admin/funil'
     | '/admin/importar'
+    | '/admin/lojas'
     | '/admin/pedidos'
     | '/admin/vendas'
     | '/api/public/meta-event'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/checkouts'
     | '/_admin/admin/funil'
     | '/_admin/admin/importar'
+    | '/_admin/admin/lojas'
     | '/_admin/admin/pedidos'
     | '/_admin/admin/vendas'
     | '/api/public/meta-event'
@@ -405,6 +417,13 @@ declare module '@tanstack/react-router' {
       path: '/admin/importar'
       fullPath: '/admin/importar'
       preLoaderRoute: typeof AdminAdminImportarRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/lojas': {
+      id: '/_admin/admin/lojas'
+      path: '/admin/lojas'
+      fullPath: '/admin/lojas'
+      preLoaderRoute: typeof AdminAdminLojasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/admin/pedidos': {
@@ -538,6 +557,7 @@ interface AdminRouteChildren {
   AdminAdminCheckoutsRoute: typeof AdminAdminCheckoutsRoute
   AdminAdminFunilRoute: typeof AdminAdminFunilRoute
   AdminAdminImportarRoute: typeof AdminAdminImportarRouteWithChildren
+  AdminAdminLojasRoute: typeof AdminAdminLojasRoute
   AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
   AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
@@ -557,6 +577,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminCheckoutsRoute: AdminAdminCheckoutsRoute,
   AdminAdminFunilRoute: AdminAdminFunilRoute,
   AdminAdminImportarRoute: AdminAdminImportarRouteWithChildren,
+  AdminAdminLojasRoute: AdminAdminLojasRoute,
   AdminAdminPedidosRoute: AdminAdminPedidosRoute,
   AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,

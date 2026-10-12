@@ -243,7 +243,11 @@ export const getPublicProduct = createServerFn({ method: "GET" })
 
     const { data: settingsRow } = await supabase.from("app_settings").select("*").maybeSingle();
     const appSettings = normalizeAppSettings(settingsRow as Record<string, unknown> | null);
-    const storeInfo = normalizeStoreInfo((settingsRow as Record<string, unknown> | null)?.["store_info"]);
+    const storeId = (product as { store_id?: string | null }).store_id ?? null;
+    const { data: storeRow } = storeId
+      ? await supabase.from("stores").select("name, info").eq("id", storeId).maybeSingle()
+      : { data: null };
+    const storeInfo = storeRow ? normalizeStoreInfo({ ...(storeRow.info as object), name: storeRow.name }) : null;
 
     // Config de Meta/UTMify: lida só no servidor; devolvemos apenas a parte pública.
     const { loadTrackingSettings, toPublicTrackingConfig } = await import("./meta.server");
@@ -270,7 +274,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       ...reviewRows.map((row) => row.image_url),
       ...(valuesRes.data ?? []).map((row) => row.image_url as string | null),
       ...(variantsRes.data ?? []).map((row) => row.image_url as string | null),
-      storeInfo.logo_path,
+      storeInfo?.logo_path,
     ]);
     const resolveImg = (path: string | null | undefined) => (path ? (urlMap[path] ?? null) : null);
 
@@ -311,7 +315,7 @@ export const getPublicProduct = createServerFn({ method: "GET" })
       },
       tracking_config: trackingConfig,
       currency: appSettings.currency,
-      store: { ...storeInfo, logo_url: resolveImg(storeInfo.logo_path) },
+      store: storeInfo ? { ...storeInfo, logo_url: resolveImg(storeInfo.logo_path) } : null,
 
       images: imageRows.map((row) => urlMap[row.image_url]).filter(Boolean) as string[],
       promotions: (promotions.data ?? []).map((row) => row.text),
