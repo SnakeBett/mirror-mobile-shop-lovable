@@ -182,7 +182,7 @@ const orderSchema = quoteSchema.extend({
 
 export type CreateOrderResult =
   | { ok: true; order_id: string; order_number: string; total: number; attempt: PublicAttempt | null; payment_error: string | null }
-  | { ok: false; error: string };
+  | { ok: false; error: string; reset?: boolean };
 
 export const createPendingOrder = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => orderSchema.parse(data))

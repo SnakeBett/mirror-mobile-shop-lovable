@@ -326,7 +326,10 @@ function CheckoutPage() {
           },
         },
       });
-      if (!res.ok) setSubmitError(res.error);
+      if (!res.ok) {
+        if (res.reset) idemKey.current = "";
+        setSubmitError(res.error);
+      }
       else {
         setOrder(res);
         window.scrollTo({ top: 0 });
@@ -472,8 +475,9 @@ function CheckoutPage() {
             </Card>
             )}
 
-            {!quote?.digital && quote && quote.shipping_options.length > 0 && (
+            {!quote?.digital && quote && (
               <Card title="Escolha a entrega" icon={<Truck className="size-4" />}>
+                {quote.shipping_options.length > 0 ? (
                 <div className="space-y-2" role="radiogroup" aria-label="Escolha a entrega">
                   {quote.shipping_options.map((m) => {
                     const on = quote.shipping_method_id === m.id;
@@ -491,11 +495,19 @@ function CheckoutPage() {
                     );
                   })}
                 </div>
-                {quote.shipping_error && !quote.shipping_method_id && <p className="mt-2 text-xs text-destructive">{quote.shipping_error}</p>}
+                ) : quote.shipping_error ? (
+                  <p className="text-sm text-destructive">{quote.shipping_error}</p>
+                ) : (
+                  <div role="radiogroup" aria-label="Escolha a entrega">
+                    <div role="radio" aria-checked="true" className="flex w-full items-center gap-3 rounded-lg border-2 p-3" style={{ borderColor: s.button_color }}>
+                      <span className="flex size-5 shrink-0 items-center justify-center rounded-full border" style={{ background: s.button_color, borderColor: s.button_color }}><Check className="size-3 text-primary-foreground" /></span>
+                      <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">Entrega padrão</span>
+                      <span className="text-sm font-semibold text-foreground">{!quote.shipping ? "Grátis" : brl.format(quote.shipping)}</span>
+                    </div>
+                  </div>
+                )}
+                {quote.shipping_options.length > 0 && quote.shipping_error && !quote.shipping_method_id && <p className="mt-2 text-xs text-destructive">{quote.shipping_error}</p>}
               </Card>
-            )}
-            {!quote?.digital && quote && quote.shipping_options.length === 0 && quote.shipping_error && (
-              <p className="text-center text-xs text-destructive">{quote.shipping_error}</p>
             )}
 
             {summary}
