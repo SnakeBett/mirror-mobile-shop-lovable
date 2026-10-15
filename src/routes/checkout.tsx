@@ -502,7 +502,7 @@ function CheckoutPage() {
                     <div role="radio" aria-checked="true" className="flex w-full items-center gap-3 rounded-lg border-2 p-3" style={{ borderColor: s.button_color }}>
                       <span className="flex size-5 shrink-0 items-center justify-center rounded-full border" style={{ background: s.button_color, borderColor: s.button_color }}><Check className="size-3 text-primary-foreground" /></span>
                       <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">Entrega padrão</span>
-                      <span className="text-sm font-semibold text-foreground">{!quote.shipping ? "Grátis" : brl.format(quote.shipping)}</span>
+                      <span className="text-sm font-semibold text-foreground">{quote.shipping == null ? "A calcular" : quote.shipping_free || quote.shipping <= 0 ? "Grátis" : brl.format(quote.shipping)}</span>
                     </div>
                   </div>
                 )}
