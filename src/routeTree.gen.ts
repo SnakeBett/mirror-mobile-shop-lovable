@@ -30,6 +30,7 @@ import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admi
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
 import { Route as AdminAdminConfiguracoesPagamentosRouteImport } from './routes/_admin.admin.configuracoes.pagamentos'
 import { Route as AdminAdminConfiguracoesTrackingRouteImport } from './routes/_admin.admin.configuracoes.tracking'
+import { Route as AdminAdminEntregaFretesRouteImport } from './routes/_admin.admin.entrega.fretes'
 import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
 import { Route as AdminAdminPagamentosGatewaysRouteImport } from './routes/_admin.admin.pagamentos.gateways'
 import { Route as AdminAdminPagamentosWebhooksRouteImport } from './routes/_admin.admin.pagamentos.webhooks'
@@ -151,6 +152,11 @@ const AdminAdminConfiguracoesTrackingRoute =
     path: '/admin/configuracoes/tracking',
     getParentRoute: () => AdminRoute,
   } as any)
+const AdminAdminEntregaFretesRoute = AdminAdminEntregaFretesRouteImport.update({
+  id: '/admin/entrega/fretes',
+  path: '/admin/entrega/fretes',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminAdminImportarNavegadorRoute =
   AdminAdminImportarNavegadorRouteImport.update({
     id: '/navegador',
@@ -230,6 +236,7 @@ export interface FileRoutesByFullPath {
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
+  '/admin/entrega/fretes': typeof AdminAdminEntregaFretesRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/pagamentos/gateways': typeof AdminAdminPagamentosGatewaysRoute
   '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
@@ -262,6 +269,7 @@ export interface FileRoutesByTo {
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
+  '/admin/entrega/fretes': typeof AdminAdminEntregaFretesRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/admin/pagamentos/gateways': typeof AdminAdminPagamentosGatewaysRoute
   '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
@@ -296,6 +304,7 @@ export interface FileRoutesById {
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/_admin/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/_admin/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
+  '/_admin/admin/entrega/fretes': typeof AdminAdminEntregaFretesRoute
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
   '/_admin/admin/pagamentos/gateways': typeof AdminAdminPagamentosGatewaysRoute
   '/_admin/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
@@ -330,6 +339,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/integracoes'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
+    | '/admin/entrega/fretes'
     | '/admin/importar/navegador'
     | '/admin/pagamentos/gateways'
     | '/admin/pagamentos/webhooks'
@@ -362,6 +372,7 @@ export interface FileRouteTypes {
     | '/admin/configuracoes/integracoes'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
+    | '/admin/entrega/fretes'
     | '/admin/importar/navegador'
     | '/admin/pagamentos/gateways'
     | '/admin/pagamentos/webhooks'
@@ -395,6 +406,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/configuracoes/integracoes'
     | '/_admin/admin/configuracoes/pagamentos'
     | '/_admin/admin/configuracoes/tracking'
+    | '/_admin/admin/entrega/fretes'
     | '/_admin/admin/importar/navegador'
     | '/_admin/admin/pagamentos/gateways'
     | '/_admin/admin/pagamentos/webhooks'
@@ -570,6 +582,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminConfiguracoesTrackingRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/_admin/admin/entrega/fretes': {
+      id: '/_admin/admin/entrega/fretes'
+      path: '/admin/entrega/fretes'
+      fullPath: '/admin/entrega/fretes'
+      preLoaderRoute: typeof AdminAdminEntregaFretesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/importar/navegador': {
       id: '/_admin/admin/importar/navegador'
       path: '/navegador'
@@ -669,6 +688,7 @@ interface AdminRouteChildren {
   AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
   AdminAdminConfiguracoesPagamentosRoute: typeof AdminAdminConfiguracoesPagamentosRoute
   AdminAdminConfiguracoesTrackingRoute: typeof AdminAdminConfiguracoesTrackingRoute
+  AdminAdminEntregaFretesRoute: typeof AdminAdminEntregaFretesRoute
   AdminAdminPagamentosGatewaysRoute: typeof AdminAdminPagamentosGatewaysRoute
   AdminAdminPagamentosWebhooksRoute: typeof AdminAdminPagamentosWebhooksRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
@@ -693,6 +713,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminConfiguracoesPagamentosRoute:
     AdminAdminConfiguracoesPagamentosRoute,
   AdminAdminConfiguracoesTrackingRoute: AdminAdminConfiguracoesTrackingRoute,
+  AdminAdminEntregaFretesRoute: AdminAdminEntregaFretesRoute,
   AdminAdminPagamentosGatewaysRoute: AdminAdminPagamentosGatewaysRoute,
   AdminAdminPagamentosWebhooksRoute: AdminAdminPagamentosWebhooksRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
