@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Copy } from "lucide-react";
 import { toast } from "sonner";
+
+import { getGatewayConfigStatus, listPaymentAttempts, testGatewayConnection } from "@/lib/payments.functions";
 
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -21,7 +25,7 @@ export const Route = createFileRoute("/_admin/admin/pagamentos/gateways")({
   component: Page,
 });
 
-const STATUS: Record<string, string> = { pending_docs: "Pendente: documentação necessária", connected: "Conectado", error: "Erro" };
+const STATUS: Record<string, string> = { pending_docs: "Conexão ainda não testada", connected: "Conectado", error: "Erro" };
 
 function Page() {
   const qc = useQueryClient();
@@ -31,6 +35,19 @@ function Page() {
     if (error) toast.error("Não foi possível salvar.");
     qc.invalidateQueries({ queryKey: ["admin", "gateways"] });
   };
+  const cfgFn = useServerFn(getGatewayConfigStatus);
+  const testFn = useServerFn(testGatewayConnection);
+  const attemptsFn = useServerFn(listPaymentAttempts);
+  const cfg = useQuery({ queryKey: ["admin", "gateways", "cfg"], queryFn: () => cfgFn() });
+  const attempts = useQuery({ queryKey: ["admin", "gateways", "attempts"], queryFn: () => attemptsFn() });
+  const test = async (provider: string) => {
+    try {
+      const r = await testFn({ data: { provider } });
+      r.ok ? toast.success(r.message) : toast.error(r.message);
+    } catch { toast.error("Falha ao testar."); }
+    qc.invalidateQueries({ queryKey: ["admin", "gateways"] });
+  };
+  const copy = (v: string) => navigator.clipboard.writeText(v).then(() => toast.success("URL copiada."), () => toast.error("Copie manualmente."));
   const makeDefault = async (id: string) => {
     await supabase.from("payment_gateways").update({ is_default: false }).neq("id", id);
     await update(id, { is_default: true });
@@ -42,7 +59,7 @@ function Page() {
       <div className="space-y-1">
         <h1 className="text-2xl font-bold">Pagamentos · Gateways</h1>
         <p className="text-sm text-muted-foreground">
-          Os gateways serão conectados seguindo a documentação oficial de cada um. Enquanto estiverem pendentes, o checkout próprio registra o pedido sem gerar Pix.
+          As chaves ficam guardadas com segurança no servidor e nunca aparecem aqui. Só gateways ativos e com chaves completas geram Pix.
         </p>
       </div>
       {(q.data ?? []).map((g) => (
@@ -54,19 +71,41 @@ function Page() {
             </div>
             <label className="flex items-center gap-2 text-sm">Ativo <Switch checked={g.is_active} onCheckedChange={(v) => update(g.id, { is_active: v })} /></label>
           </div>
+          {(() => {
+            const c = cfg.data?.find((x) => x.provider === g.provider);
+            if (!c) return null;
+            return (
+              <div className="space-y-2 text-sm">
+                <p className={c.configured ? "text-xs font-medium text-foreground" : "text-xs font-medium text-destructive"}>
+                  Configuração {c.configured ? "completa" : "incompleta"}: {c.secrets.map((x) => `${x.name} ${x.set ? "✓" : "✗"}`).join(" · ")}
+                  {c.postback_signature != null && ` · IMPERIUMPAY_POSTBACK_SECRET ${c.postback_signature ? "✓" : "✗ (postback sem validação; confirmação só pela consulta)"}`}
+                </p>
+                <div className="flex gap-2">
+                  <input readOnly value={c.webhook_url} className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2 font-mono text-xs" />
+                  <Button size="sm" variant="outline" onClick={() => copy(c.webhook_url)} className="gap-1"><Copy className="size-3.5" /> Copiar</Button>
+                </div>
+              </div>
+            );
+          })()}
           <div className="flex flex-wrap items-center gap-3 text-sm">
-            <label className="flex items-center gap-2">Ambiente
-              <select className="h-8 rounded-md border border-input bg-background px-2" value={g.environment} onChange={(e) => update(g.id, { environment: e.target.value })}>
-                <option value="sandbox">Teste</option><option value="live">Produção</option>
-              </select>
-            </label>
+            <span className="text-xs text-muted-foreground">Ambiente: Produção (sem ambiente de testes documentado)</span>
             {!g.is_default && <Button size="sm" variant="outline" onClick={() => makeDefault(g.id)}>Definir como padrão</Button>}
-            <Button size="sm" variant="outline" disabled title="Disponível quando a integração for conectada">Testar conexão</Button>
+            <Button size="sm" variant="outline" onClick={() => test(g.provider)}>Testar conexão</Button>
             <Link to="/admin/pagamentos/webhooks" className="text-sm underline">Ver logs de webhook</Link>
           </div>
           {g.last_error && <p className="text-xs text-destructive">Último erro: {g.last_error}</p>}
         </section>
       ))}
+      <section className="space-y-2 rounded-lg border border-border p-4">
+        <h2 className="font-semibold">Últimas cobranças Pix</h2>
+        {(attempts.data ?? []).length === 0 && <p className="text-xs text-muted-foreground">Nenhuma cobrança gerada ainda.</p>}
+        {(attempts.data ?? []).map((a) => (
+          <div key={a.id} className="flex flex-wrap justify-between gap-2 border-t border-border pt-2 text-xs">
+            <span>{new Date(a.created_at).toLocaleString("pt-BR")} · {a.provider} · pedido {a.order_id.slice(0, 8).toUpperCase()}</span>
+            <span>{(a.amount_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} · <b>{a.status}</b>{a.error_message ? ` · ${a.error_message}` : ""}</span>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
