@@ -14,6 +14,7 @@ const quoteSchema = z.object({
   same_for_all: z.boolean(),
   coupon_code: z.string().trim().max(40).nullable(),
   buyer_cpf: z.string().max(20).nullable().optional(),
+  shipping_method_id: z.string().uuid().nullable().optional(),
 });
 
 export type CheckoutQuote = {
@@ -28,7 +29,12 @@ export type CheckoutQuote = {
   total: number;
   selection_error: string | null;
   digital: boolean;
+  shipping_options: ShippingOption[];
+  shipping_method_id: string | null;
+  shipping_error: string | null;
 };
+
+export type ShippingOption = { id: string; name: string; description: string | null; price: number; min_days: number | null; max_days: number | null };
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
@@ -37,7 +43,7 @@ type QuoteInput = z.infer<typeof quoteSchema>;
 async function computeQuote(input: QuoteInput) {
   const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
   const { data: product } = await db.from("products").select("*").eq("slug", input.slug).eq("is_active", true).maybeSingle();
-  if (!product) throw new Error("Produto indisponível.");
+  if (!product) throw new Error("Este produto não está mais disponível.");
   const [settingsRes, kitsRes, attrsRes, valuesRes, variantsRes] = await Promise.all([
     db.from("product_page_settings").select("variant_settings").eq("product_id", product.id).maybeSingle(),
     db.from("product_quantity_offers").select("*").eq("product_id", product.id).eq("is_active", true),
@@ -72,7 +78,25 @@ async function computeQuote(input: QuoteInput) {
   });
   const itemsTotal = round(pricing.total);
   const subtotal = round(pricing.old && pricing.old > itemsTotal ? pricing.old : itemsTotal);
-  const ship = parseShippingFee(product.shipping_fee);
+  const digital = product.product_type === "digital";
+  let ship: { amount: number; free: boolean } | null = null;
+  let shipping_options: ShippingOption[] = [];
+  let shippingMethod: ShippingOption | null = null;
+  let shipping_error: string | null = null;
+  const mode = product.shipping_mode ?? "legacy";
+  if (digital) ship = { amount: 0, free: true };
+  else if (mode === "free") ship = { amount: 0, free: true };
+  else if (mode === "global" || mode === "selected") {
+    let q = db.from("shipping_methods").select("id, name, description, price, min_days, max_days").eq("is_active", true).order("sort_order");
+    if (mode === "selected") q = q.in("id", product.shipping_method_ids.length ? product.shipping_method_ids : ["00000000-0000-0000-0000-000000000000"]);
+    const { data: ms, error: msErr } = await q;
+    if (msErr) throw new Error("Não foi possível carregar as opções de entrega.");
+    shipping_options = (ms ?? []).map((m) => ({ ...m, price: Number(m.price) }));
+    shippingMethod = shipping_options.length === 1 ? shipping_options[0]! : (shipping_options.find((m) => m.id === input.shipping_method_id) ?? null);
+    if (shipping_options.length === 0) shipping_error = "Nenhuma opção de entrega disponível para este produto.";
+    else if (!shippingMethod) shipping_error = "Escolha a forma de entrega.";
+    else ship = { amount: round(shippingMethod.price), free: shippingMethod.price <= 0 };
+  } else ship = parseShippingFee(product.shipping_fee);
 
   let coupon: CheckoutQuote["coupon"] = null;
   let coupon_error: string | null = null;
@@ -115,14 +139,26 @@ async function computeQuote(input: QuoteInput) {
     coupon_error,
     total,
     selection_error,
-    digital: product.product_type === "digital",
+    digital,
+    shipping_options,
+    shipping_method_id: shippingMethod?.id ?? null,
+    shipping_error,
   };
-  return { quote, product, coupon_id, kit, units, attributes };
+  return { quote, product, coupon_id, kit, units, attributes, shippingMethod };
 }
 
 export const getCheckoutQuote = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => quoteSchema.parse(data))
-  .handler(async ({ data }) => (await computeQuote(data)).quote);
+  .handler(async ({ data }): Promise<{ ok: true; quote: CheckoutQuote } | { ok: false; error: string }> => {
+    try {
+      return { ok: true, quote: (await computeQuote(data)).quote };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("checkout quote", data.slug, msg);
+      const known = /disponível|oferta escolhida|entrega/i.test(msg);
+      return { ok: false, error: known ? msg : "Não foi possível calcular o pedido agora. Tente novamente em instantes." };
+    }
+  });
 
 const orderSchema = quoteSchema.extend({
   idempotency_key: z.string().min(16).max(80),
@@ -151,8 +187,12 @@ export type CreateOrderResult =
 export const createPendingOrder = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => orderSchema.parse(data))
   .handler(async ({ data }): Promise<CreateOrderResult> => {
-    const { quote, product, coupon_id, kit, units, attributes } = await computeQuote({ ...data, buyer_cpf: data.buyer.cpf });
+    let computed: Awaited<ReturnType<typeof computeQuote>>;
+    try { computed = await computeQuote({ ...data, buyer_cpf: data.buyer.cpf }); }
+    catch (e) { return { ok: false, error: e instanceof Error ? e.message : "Não foi possível calcular o pedido." }; }
+    const { quote, product, coupon_id, kit, units, attributes, shippingMethod } = computed;
     if (quote.selection_error) return { ok: false, error: quote.selection_error };
+    if (!quote.digital && quote.shipping_error) return { ok: false, error: quote.shipping_error };
     if (data.coupon_code && quote.coupon_error) return { ok: false, error: quote.coupon_error };
     if (!quote.digital && !data.address) return { ok: false, error: "Informe o endereço de entrega." };
     const addr = quote.digital ? null : data.address;
@@ -208,6 +248,9 @@ export const createPendingOrder = createServerFn({ method: "POST" })
       if (msg.includes("coupon_")) return { ok: false, error: "Este cupom não está mais disponível." };
       console.error("checkout_create_order", msg);
       return { ok: false, error: "Não foi possível criar o pedido. Tente novamente." };
+    }
+    if (shippingMethod) {
+      await db.rpc("checkout_set_order_shipping", { _order_id: orderId as string, _method_id: shippingMethod.id, _method_name: shippingMethod.name });
     }
     const { createChargeForOrder } = await import("./payments.server");
     const totalCents = Math.round(quote.total * 100);
