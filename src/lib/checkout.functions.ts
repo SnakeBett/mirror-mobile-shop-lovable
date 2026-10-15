@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { parseShippingFee, isValidCpf, onlyDigits } from "./checkout-settings";
+import { isCompleteAddress } from "./checkout-address";
 import type { PublicAttempt } from "./payments.server";
 import { DEFAULT_VARIANT_SETTINGS, computePricing, missingSelection, type ProductAttribute, type ProductVariant, type QuantityOffer, type VariantSettings } from "./variants";
 
@@ -92,7 +93,7 @@ async function computeQuote(input: QuoteInput) {
     const { data: ms, error: msErr } = await q;
     if (msErr) throw new Error("Não foi possível carregar as opções de entrega.");
     shipping_options = (ms ?? []).map((m) => ({ ...m, price: Number(m.price) }));
-    shippingMethod = shipping_options.length === 1 ? shipping_options[0]! : (shipping_options.find((m) => m.id === input.shipping_method_id) ?? null);
+    shippingMethod = shipping_options.length === 1 ? shipping_options[0] ?? null : (shipping_options.find((m) => m.id === input.shipping_method_id) ?? null);
     if (shipping_options.length === 0) shipping_error = "Nenhuma opção de entrega disponível para este produto.";
     else if (!shippingMethod) shipping_error = "Escolha a forma de entrega.";
     else ship = { amount: round(shippingMethod.price), free: shippingMethod.price <= 0 };
@@ -204,6 +205,8 @@ export const createPendingOrder = createServerFn({ method: "POST" })
     if (!quote.digital && quote.shipping_error) return { ok: false, error: quote.shipping_error };
     if (data.coupon_code && quote.coupon_error) return { ok: false, error: quote.coupon_error };
     if (!quote.digital && !data.address) return { ok: false, error: "Informe o endereço de entrega." };
+    if (!quote.digital && data.address && !isCompleteAddress(data.address)) return { ok: false, error: "Complete um endereço de entrega válido." };
+    if (!quote.digital && quote.shipping == null) return { ok: false, error: "O valor da entrega ainda não foi confirmado." };
     const addr = quote.digital ? null : data.address;
     const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
 
