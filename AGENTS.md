@@ -13,3 +13,6 @@
 - A lista administrativa de checkouts por produto é compartilhada entre a aba Checkout e /admin/checkouts — why: ambos devem agrupar os mesmos links por nome do produto sem duplicar registros.
 - Offer countdowns persist a per-product deadline in browser storage and stop at zero without automatic renewal — why: refreshing must not reset the displayed deadline.
 - Store info card data lives in `stores` (one row per store, display fields in `info` jsonb) linked via `products.store_id`; `app_settings.store_info` is deprecated — why: each product can show a different store and editing a store updates all its products.
+- Own checkout (/checkout) recalculates price, kit, variant and coupon server-side in src/lib/checkout.functions.ts; orders + coupon usage are created atomically by the checkout_create_order DB function with an idempotency key — why: browser values are never trusted and double clicks must not duplicate orders/coupon uses.
+- Pix gateways live behind the adapter interface in src/lib/gateways/; providers without integrated official docs stay "pending" and never generate charges — why: no invented endpoints, checkout UI stays provider-agnostic.
+- products.checkout_mode defaults to 'external'; only 'own' sends "Comprar agora" to /checkout — why: existing external checkout links keep working in parallel.

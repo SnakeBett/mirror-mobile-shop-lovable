@@ -162,6 +162,123 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_settings: {
+        Row: {
+          id: string
+          settings: Json
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          settings?: Json
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          settings?: Json
+          singleton?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      coupon_redemptions: {
+        Row: {
+          buyer_cpf: string
+          coupon_id: string
+          created_at: string
+          discount_amount: number
+          id: string
+          order_id: string
+        }
+        Insert: {
+          buyer_cpf: string
+          coupon_id: string
+          created_at?: string
+          discount_amount: number
+          id?: string
+          order_id: string
+        }
+        Update: {
+          buyer_cpf?: string
+          coupon_id?: string
+          created_at?: string
+          discount_amount?: number
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupon_redemptions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      coupons: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          ends_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          max_uses_per_buyer: number | null
+          min_order_value: number | null
+          product_ids: string[]
+          starts_at: string | null
+          store_ids: string[]
+          updated_at: string
+          uses_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          max_uses_per_buyer?: number | null
+          min_order_value?: number | null
+          product_ids?: string[]
+          starts_at?: string | null
+          store_ids?: string[]
+          updated_at?: string
+          uses_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          ends_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          max_uses_per_buyer?: number | null
+          min_order_value?: number | null
+          product_ids?: string[]
+          starts_at?: string | null
+          store_ids?: string[]
+          updated_at?: string
+          uses_count?: number
+        }
+        Relationships: []
+      }
       meta_event_log: {
         Row: {
           attempts: number
@@ -229,15 +346,21 @@ export type Database = {
         Row: {
           amount: number
           client_user_agent: string | null
+          coupon_discount: number | null
+          coupon_id: string | null
           created_at: string
+          customer_cpf: string | null
           customer_email: string | null
           customer_name: string | null
+          customer_phone: string | null
           external_order_id: string
           fbc: string | null
           fbp: string | null
           first_utm_campaign: string | null
           first_utm_source: string | null
+          gateway_id: string | null
           id: string
+          idempotency_key: string | null
           is_test: boolean
           meta_purchase_event_id: string | null
           meta_purchase_sent_at: string | null
@@ -246,7 +369,11 @@ export type Database = {
           payment_method: string | null
           product_id: string | null
           session_id: string | null
+          shipping_address: Json | null
+          shipping_amount: number | null
+          source: string
           status: Database["public"]["Enums"]["order_status"]
+          subtotal: number | null
           updated_at: string
           utm_campaign: string | null
           utm_content: string | null
@@ -258,15 +385,21 @@ export type Database = {
         Insert: {
           amount?: number
           client_user_agent?: string | null
+          coupon_discount?: number | null
+          coupon_id?: string | null
           created_at?: string
+          customer_cpf?: string | null
           customer_email?: string | null
           customer_name?: string | null
+          customer_phone?: string | null
           external_order_id: string
           fbc?: string | null
           fbp?: string | null
           first_utm_campaign?: string | null
           first_utm_source?: string | null
+          gateway_id?: string | null
           id?: string
+          idempotency_key?: string | null
           is_test?: boolean
           meta_purchase_event_id?: string | null
           meta_purchase_sent_at?: string | null
@@ -275,7 +408,11 @@ export type Database = {
           payment_method?: string | null
           product_id?: string | null
           session_id?: string | null
+          shipping_address?: Json | null
+          shipping_amount?: number | null
+          source?: string
           status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number | null
           updated_at?: string
           utm_campaign?: string | null
           utm_content?: string | null
@@ -287,15 +424,21 @@ export type Database = {
         Update: {
           amount?: number
           client_user_agent?: string | null
+          coupon_discount?: number | null
+          coupon_id?: string | null
           created_at?: string
+          customer_cpf?: string | null
           customer_email?: string | null
           customer_name?: string | null
+          customer_phone?: string | null
           external_order_id?: string
           fbc?: string | null
           fbp?: string | null
           first_utm_campaign?: string | null
           first_utm_source?: string | null
+          gateway_id?: string | null
           id?: string
+          idempotency_key?: string | null
           is_test?: boolean
           meta_purchase_event_id?: string | null
           meta_purchase_sent_at?: string | null
@@ -304,7 +447,11 @@ export type Database = {
           payment_method?: string | null
           product_id?: string | null
           session_id?: string | null
+          shipping_address?: Json | null
+          shipping_amount?: number | null
+          source?: string
           status?: Database["public"]["Enums"]["order_status"]
+          subtotal?: number | null
           updated_at?: string
           utm_campaign?: string | null
           utm_content?: string | null
@@ -315,6 +462,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "orders_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "payment_gateways"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "orders_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -322,6 +483,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_gateways: {
+        Row: {
+          created_at: string
+          environment: string
+          id: string
+          integration_status: string
+          is_active: boolean
+          is_default: boolean
+          last_error: string | null
+          name: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          environment?: string
+          id?: string
+          integration_status?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_error?: string | null
+          name: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          environment?: string
+          id?: string
+          integration_status?: string
+          is_active?: boolean
+          is_default?: boolean
+          last_error?: string | null
+          name?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       payment_webhook_logs: {
         Row: {
@@ -963,6 +1163,7 @@ export type Database = {
           category_id: string | null
           checkout_button_subtext: string | null
           checkout_button_text: string
+          checkout_mode: string
           checkout_url: string | null
           closing_text: string | null
           created_at: string
@@ -974,6 +1175,7 @@ export type Database = {
           external_product_id: string | null
           five_star_count: number | null
           ga_measurement_id: string | null
+          gateway_id: string | null
           id: string
           import_method: string | null
           installment_note: string | null
@@ -1006,6 +1208,7 @@ export type Database = {
           category_id?: string | null
           checkout_button_subtext?: string | null
           checkout_button_text?: string
+          checkout_mode?: string
           checkout_url?: string | null
           closing_text?: string | null
           created_at?: string
@@ -1017,6 +1220,7 @@ export type Database = {
           external_product_id?: string | null
           five_star_count?: number | null
           ga_measurement_id?: string | null
+          gateway_id?: string | null
           id?: string
           import_method?: string | null
           installment_note?: string | null
@@ -1049,6 +1253,7 @@ export type Database = {
           category_id?: string | null
           checkout_button_subtext?: string | null
           checkout_button_text?: string
+          checkout_mode?: string
           checkout_url?: string | null
           closing_text?: string | null
           created_at?: string
@@ -1060,6 +1265,7 @@ export type Database = {
           external_product_id?: string | null
           five_star_count?: number | null
           ga_measurement_id?: string | null
+          gateway_id?: string | null
           id?: string
           import_method?: string | null
           installment_note?: string | null
@@ -1094,6 +1300,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "payment_gateways"
             referencedColumns: ["id"]
           },
           {
@@ -1479,6 +1692,15 @@ export type Database = {
           visitors: number
         }[]
       }
+      checkout_create_order: {
+        Args: {
+          _coupon_id: string
+          _cpf: string
+          _discount: number
+          _order: Json
+        }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1499,7 +1721,14 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "user"
-      order_status: "pending" | "paid" | "cancelled" | "refunded"
+      order_status:
+        | "pending"
+        | "paid"
+        | "cancelled"
+        | "refunded"
+        | "declined"
+        | "expired"
+        | "chargeback"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1628,7 +1857,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "user"],
-      order_status: ["pending", "paid", "cancelled", "refunded"],
+      order_status: [
+        "pending",
+        "paid",
+        "cancelled",
+        "refunded",
+        "declined",
+        "expired",
+        "chargeback",
+      ],
     },
   },
 } as const

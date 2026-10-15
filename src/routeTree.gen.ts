@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminRouteImport } from './routes/_admin'
+import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AdminLoginRouteImport } from './routes/admin.login'
 import { Route as ProdutoSlugRouteImport } from './routes/produto.$slug'
 import { Route as AdminAdminIndexRouteImport } from './routes/_admin.admin.index'
@@ -23,11 +24,14 @@ import { Route as AdminAdminPedidosRouteImport } from './routes/_admin.admin.ped
 import { Route as AdminAdminVendasRouteImport } from './routes/_admin.admin.vendas'
 import { Route as ApiPublicMetaEventRouteImport } from './routes/api/public/meta-event'
 import { Route as ApiPublicTrackRouteImport } from './routes/api/public/track'
+import { Route as AdminAdminCheckoutCuponsRouteImport } from './routes/_admin.admin.checkout.cupons'
+import { Route as AdminAdminCheckoutPersonalizacaoRouteImport } from './routes/_admin.admin.checkout.personalizacao'
 import { Route as AdminAdminConfiguracoesGeralRouteImport } from './routes/_admin.admin.configuracoes.geral'
 import { Route as AdminAdminConfiguracoesIntegracoesRouteImport } from './routes/_admin.admin.configuracoes.integracoes'
 import { Route as AdminAdminConfiguracoesPagamentosRouteImport } from './routes/_admin.admin.configuracoes.pagamentos'
 import { Route as AdminAdminConfiguracoesTrackingRouteImport } from './routes/_admin.admin.configuracoes.tracking'
 import { Route as AdminAdminImportarNavegadorRouteImport } from './routes/_admin.admin.importar.navegador'
+import { Route as AdminAdminPagamentosGatewaysRouteImport } from './routes/_admin.admin.pagamentos.gateways'
 import { Route as AdminAdminPagamentosWebhooksRouteImport } from './routes/_admin.admin.pagamentos.webhooks'
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
@@ -42,6 +46,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/_admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminLoginRoute = AdminLoginRouteImport.update({
@@ -104,6 +113,18 @@ const ApiPublicTrackRoute = ApiPublicTrackRouteImport.update({
   path: '/api/public/track',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminAdminCheckoutCuponsRoute =
+  AdminAdminCheckoutCuponsRouteImport.update({
+    id: '/admin/checkout/cupons',
+    path: '/admin/checkout/cupons',
+    getParentRoute: () => AdminRoute,
+  } as any)
+const AdminAdminCheckoutPersonalizacaoRoute =
+  AdminAdminCheckoutPersonalizacaoRouteImport.update({
+    id: '/admin/checkout/personalizacao',
+    path: '/admin/checkout/personalizacao',
+    getParentRoute: () => AdminRoute,
+  } as any)
 const AdminAdminConfiguracoesGeralRoute =
   AdminAdminConfiguracoesGeralRouteImport.update({
     id: '/admin/configuracoes/geral',
@@ -133,6 +154,12 @@ const AdminAdminImportarNavegadorRoute =
     id: '/navegador',
     path: '/navegador',
     getParentRoute: () => AdminAdminImportarRoute,
+  } as any)
+const AdminAdminPagamentosGatewaysRoute =
+  AdminAdminPagamentosGatewaysRouteImport.update({
+    id: '/admin/pagamentos/gateways',
+    path: '/admin/pagamentos/gateways',
+    getParentRoute: () => AdminRoute,
   } as any)
 const AdminAdminPagamentosWebhooksRoute =
   AdminAdminPagamentosWebhooksRouteImport.update({
@@ -170,6 +197,7 @@ const ApiPublicWebhooksPagamentoRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/checkout': typeof CheckoutRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/admin/categorias': typeof AdminAdminCategoriasRoute
@@ -182,11 +210,14 @@ export interface FileRoutesByFullPath {
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/admin/': typeof AdminAdminIndexRoute
+  '/admin/checkout/cupons': typeof AdminAdminCheckoutCuponsRoute
+  '/admin/checkout/personalizacao': typeof AdminAdminCheckoutPersonalizacaoRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
+  '/admin/pagamentos/gateways': typeof AdminAdminPagamentosGatewaysRoute
   '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -196,6 +227,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/checkout': typeof CheckoutRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/admin/categorias': typeof AdminAdminCategoriasRoute
@@ -208,11 +240,14 @@ export interface FileRoutesByTo {
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/admin': typeof AdminAdminIndexRoute
+  '/admin/checkout/cupons': typeof AdminAdminCheckoutCuponsRoute
+  '/admin/checkout/personalizacao': typeof AdminAdminCheckoutPersonalizacaoRoute
   '/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
+  '/admin/pagamentos/gateways': typeof AdminAdminPagamentosGatewaysRoute
   '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -224,6 +259,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_admin': typeof AdminRouteWithChildren
+  '/checkout': typeof CheckoutRoute
   '/admin/login': typeof AdminLoginRoute
   '/produto/$slug': typeof ProdutoSlugRoute
   '/_admin/admin/categorias': typeof AdminAdminCategoriasRoute
@@ -236,11 +272,14 @@ export interface FileRoutesById {
   '/api/public/meta-event': typeof ApiPublicMetaEventRoute
   '/api/public/track': typeof ApiPublicTrackRoute
   '/_admin/admin/': typeof AdminAdminIndexRoute
+  '/_admin/admin/checkout/cupons': typeof AdminAdminCheckoutCuponsRoute
+  '/_admin/admin/checkout/personalizacao': typeof AdminAdminCheckoutPersonalizacaoRoute
   '/_admin/admin/configuracoes/geral': typeof AdminAdminConfiguracoesGeralRoute
   '/_admin/admin/configuracoes/integracoes': typeof AdminAdminConfiguracoesIntegracoesRoute
   '/_admin/admin/configuracoes/pagamentos': typeof AdminAdminConfiguracoesPagamentosRoute
   '/_admin/admin/configuracoes/tracking': typeof AdminAdminConfiguracoesTrackingRoute
   '/_admin/admin/importar/navegador': typeof AdminAdminImportarNavegadorRoute
+  '/_admin/admin/pagamentos/gateways': typeof AdminAdminPagamentosGatewaysRoute
   '/_admin/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
@@ -252,6 +291,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/checkout'
     | '/admin/login'
     | '/produto/$slug'
     | '/admin/categorias'
@@ -264,11 +304,14 @@ export interface FileRouteTypes {
     | '/api/public/meta-event'
     | '/api/public/track'
     | '/admin/'
+    | '/admin/checkout/cupons'
+    | '/admin/checkout/personalizacao'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
+    | '/admin/pagamentos/gateways'
     | '/admin/pagamentos/webhooks'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
@@ -278,6 +321,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/checkout'
     | '/admin/login'
     | '/produto/$slug'
     | '/admin/categorias'
@@ -290,11 +334,14 @@ export interface FileRouteTypes {
     | '/api/public/meta-event'
     | '/api/public/track'
     | '/admin'
+    | '/admin/checkout/cupons'
+    | '/admin/checkout/personalizacao'
     | '/admin/configuracoes/geral'
     | '/admin/configuracoes/integracoes'
     | '/admin/configuracoes/pagamentos'
     | '/admin/configuracoes/tracking'
     | '/admin/importar/navegador'
+    | '/admin/pagamentos/gateways'
     | '/admin/pagamentos/webhooks'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
@@ -305,6 +352,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_admin'
+    | '/checkout'
     | '/admin/login'
     | '/produto/$slug'
     | '/_admin/admin/categorias'
@@ -317,11 +365,14 @@ export interface FileRouteTypes {
     | '/api/public/meta-event'
     | '/api/public/track'
     | '/_admin/admin/'
+    | '/_admin/admin/checkout/cupons'
+    | '/_admin/admin/checkout/personalizacao'
     | '/_admin/admin/configuracoes/geral'
     | '/_admin/admin/configuracoes/integracoes'
     | '/_admin/admin/configuracoes/pagamentos'
     | '/_admin/admin/configuracoes/tracking'
     | '/_admin/admin/importar/navegador'
+    | '/_admin/admin/pagamentos/gateways'
     | '/_admin/admin/pagamentos/webhooks'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
@@ -333,6 +384,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRouteWithChildren
+  CheckoutRoute: typeof CheckoutRoute
   AdminLoginRoute: typeof AdminLoginRoute
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiPublicMetaEventRoute: typeof ApiPublicMetaEventRoute
@@ -355,6 +407,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/login': {
@@ -441,6 +500,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTrackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_admin/admin/checkout/cupons': {
+      id: '/_admin/admin/checkout/cupons'
+      path: '/admin/checkout/cupons'
+      fullPath: '/admin/checkout/cupons'
+      preLoaderRoute: typeof AdminAdminCheckoutCuponsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/admin/checkout/personalizacao': {
+      id: '/_admin/admin/checkout/personalizacao'
+      path: '/admin/checkout/personalizacao'
+      fullPath: '/admin/checkout/personalizacao'
+      preLoaderRoute: typeof AdminAdminCheckoutPersonalizacaoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/_admin/admin/configuracoes/geral': {
       id: '/_admin/admin/configuracoes/geral'
       path: '/admin/configuracoes/geral'
@@ -475,6 +548,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/importar/navegador'
       preLoaderRoute: typeof AdminAdminImportarNavegadorRouteImport
       parentRoute: typeof AdminAdminImportarRoute
+    }
+    '/_admin/admin/pagamentos/gateways': {
+      id: '/_admin/admin/pagamentos/gateways'
+      path: '/admin/pagamentos/gateways'
+      fullPath: '/admin/pagamentos/gateways'
+      preLoaderRoute: typeof AdminAdminPagamentosGatewaysRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_admin/admin/pagamentos/webhooks': {
       id: '/_admin/admin/pagamentos/webhooks'
@@ -541,10 +621,13 @@ interface AdminRouteChildren {
   AdminAdminPedidosRoute: typeof AdminAdminPedidosRoute
   AdminAdminVendasRoute: typeof AdminAdminVendasRoute
   AdminAdminIndexRoute: typeof AdminAdminIndexRoute
+  AdminAdminCheckoutCuponsRoute: typeof AdminAdminCheckoutCuponsRoute
+  AdminAdminCheckoutPersonalizacaoRoute: typeof AdminAdminCheckoutPersonalizacaoRoute
   AdminAdminConfiguracoesGeralRoute: typeof AdminAdminConfiguracoesGeralRoute
   AdminAdminConfiguracoesIntegracoesRoute: typeof AdminAdminConfiguracoesIntegracoesRoute
   AdminAdminConfiguracoesPagamentosRoute: typeof AdminAdminConfiguracoesPagamentosRoute
   AdminAdminConfiguracoesTrackingRoute: typeof AdminAdminConfiguracoesTrackingRoute
+  AdminAdminPagamentosGatewaysRoute: typeof AdminAdminPagamentosGatewaysRoute
   AdminAdminPagamentosWebhooksRoute: typeof AdminAdminPagamentosWebhooksRoute
   AdminAdminProdutosIdRoute: typeof AdminAdminProdutosIdRoute
   AdminAdminProdutosNovoRoute: typeof AdminAdminProdutosNovoRoute
@@ -560,12 +643,15 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminAdminPedidosRoute: AdminAdminPedidosRoute,
   AdminAdminVendasRoute: AdminAdminVendasRoute,
   AdminAdminIndexRoute: AdminAdminIndexRoute,
+  AdminAdminCheckoutCuponsRoute: AdminAdminCheckoutCuponsRoute,
+  AdminAdminCheckoutPersonalizacaoRoute: AdminAdminCheckoutPersonalizacaoRoute,
   AdminAdminConfiguracoesGeralRoute: AdminAdminConfiguracoesGeralRoute,
   AdminAdminConfiguracoesIntegracoesRoute:
     AdminAdminConfiguracoesIntegracoesRoute,
   AdminAdminConfiguracoesPagamentosRoute:
     AdminAdminConfiguracoesPagamentosRoute,
   AdminAdminConfiguracoesTrackingRoute: AdminAdminConfiguracoesTrackingRoute,
+  AdminAdminPagamentosGatewaysRoute: AdminAdminPagamentosGatewaysRoute,
   AdminAdminPagamentosWebhooksRoute: AdminAdminPagamentosWebhooksRoute,
   AdminAdminProdutosIdRoute: AdminAdminProdutosIdRoute,
   AdminAdminProdutosNovoRoute: AdminAdminProdutosNovoRoute,
@@ -577,6 +663,7 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
+  CheckoutRoute: CheckoutRoute,
   AdminLoginRoute: AdminLoginRoute,
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiPublicMetaEventRoute: ApiPublicMetaEventRoute,

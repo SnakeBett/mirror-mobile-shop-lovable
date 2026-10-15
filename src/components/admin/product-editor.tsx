@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { ProductStorePanel } from "@/components/admin/product-store-panel";
+import { ProductCheckoutModePanel } from "@/components/admin/product-checkout-mode-panel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
@@ -680,6 +681,14 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
         {/* CHECKOUT */}
         <TabsContent value="checkout" className="mt-4">
+          <div className="mb-4">
+            <ProductCheckoutModePanel
+              mode={draft.checkout_mode ?? "external"}
+              gatewayId={draft.gateway_id ?? null}
+              onModeChange={(v) => set("checkout_mode", v)}
+              onGatewayChange={(v) => set("gateway_id", v)}
+            />
+          </div>
           <Panel title="Checkout padrão">
             <p className="text-xs text-muted-foreground">
               Usado como fallback quando a oferta ou variação não possui checkout próprio.

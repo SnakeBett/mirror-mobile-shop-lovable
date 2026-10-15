@@ -146,6 +146,27 @@ function AdminLayout() {
             <CreditCard className="size-4" /> Checkouts
           </Link>
           <Link
+            to="/admin/checkout/personalizacao"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Settings className="size-4" /> Checkout: Personalização
+          </Link>
+          <Link
+            to="/admin/checkout/cupons"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Tags className="size-4" /> Checkout: Cupons
+          </Link>
+          <Link
+            to="/admin/pagamentos/gateways"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <CreditCard className="size-4" /> Gateways
+          </Link>
+          <Link
             to="/admin/pagamentos/webhooks"
             activeProps={{ className: "bg-accent text-accent-foreground" }}
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"

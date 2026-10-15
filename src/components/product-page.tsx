@@ -797,7 +797,7 @@ function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }
       {bar.show_buy ? (
         <Button
           className="buy-button"
-          disabled={!buyUrl}
+          disabled={!buyUrl && data.checkout_mode !== "own"}
           onClick={() => {
             const pending = buy.validate();
             if (pending) return;
@@ -859,6 +859,11 @@ function StickyPurchaseBar({ data, buy }: { data: ProductView; buy: BuyContext }
               });
             }
 
+            // Checkout próprio: mesma seleção segue para /checkout (preço é recalculado no servidor).
+            if (data.checkout_mode === "own") {
+              window.location.assign(`/checkout?produto=${encodeURIComponent(data.slug)}`);
+              return;
+            }
             // 4-7. atribuição preservada e redirecionamento imediato.
             openLink(finalUrl, bar.buy_target);
           }}
@@ -1043,6 +1048,9 @@ export function ProductPage({ product }: { product: ProductView }) {
       final_price: pricing.total,
       checkout_url_resolved: resolvedCheckout.url,
       checkout_source: resolvedCheckout.source,
+      slug: product.slug,
+      units: variantsOn ? effectiveUnits : [],
+      same_for_all: selection.sameForAll || quantity === 1,
     },
   };
 

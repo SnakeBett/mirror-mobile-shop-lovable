@@ -15,6 +15,13 @@
       "when": 1791776781010,
       "tag": "0001_stores",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792026282455,
+      "tag": "0002_own_checkout_stage1",
+      "breakpoints": true
     }
   ]
 }
