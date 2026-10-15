@@ -1,3 +1,4 @@
+import { ProductShippingPanel } from "@/components/admin/product-shipping-panel";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -538,6 +539,13 @@ export function ProductEditor({ productId }: { productId?: string }) {
 
         {/* ENTREGA */}
         <TabsContent value="entrega" className="mt-4">
+          <ProductShippingPanel
+            digital={draft.product_type === "digital"}
+            mode={draft.shipping_mode ?? "legacy"}
+            ids={draft.shipping_method_ids ?? []}
+            onMode={(v) => set("shipping_mode", v)}
+            onIds={(v) => set("shipping_method_ids", v)}
+          />
           <Panel title="Prazo de entrega">
             <div className="grid gap-4 md:grid-cols-2">
               <Field label="Prazo mínimo (dias)" id="minday">
