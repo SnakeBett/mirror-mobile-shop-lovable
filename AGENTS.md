@@ -17,3 +17,5 @@
 - products.checkout_mode defaults to 'external'; only 'own' sends "Comprar agora" to /checkout — why: existing external checkout links keep working in parallel.
 
 - Pix gateways (ZuckPay, ImperiumPay) are adapters in src/lib/gateways/*.server.ts; payment_attempts holds one open attempt per order and orders become paid only via reconcileAttempt (authenticated gateway status query) — why: webhooks/browser are never trusted and double clicks must not create duplicate charges.
+- Physical address validity is shared by checkout UI and server in src/lib/checkout-address.ts — why: delivery visibility and payment eligibility must agree.
+- Payment diagnostics retain only allowlisted provider error codes and HTTP metadata, never raw response bodies; ambiguous creation responses preserve transaction IDs — why: sensitive data stays private and retries cannot duplicate uncertain charges.

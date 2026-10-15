@@ -1,4 +1,4 @@
-import { fetchWithTimeout, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, type GatewayAdapter, type InternalPaymentStatus } from "./index";
+import { fetchWithTimeout, gatewayErrorCode, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, type GatewayAdapter, type InternalPaymentStatus } from "./index";
 
 const BASE = "https://api.imperiumpay.com.br";
 
@@ -84,12 +84,13 @@ export const imperiumpay: GatewayAdapter = {
       throw new GatewayUnknownResultError("Sem resposta da ImperiumPay.");
     }
     const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-    if (res.status >= 500) throw new GatewayUnknownResultError(`ImperiumPay respondeu ${res.status}.`);
-    if (!res.ok || !json) throw new GatewayRequestError(`ImperiumPay recusou a venda (HTTP ${res.status}).`, res.status);
+    if (res.status >= 500) throw new GatewayUnknownResultError(`ImperiumPay respondeu ${res.status}.`, res.status, gatewayErrorCode(json, res.status));
+    if (!res.ok) throw new GatewayRequestError(`ImperiumPay recusou a venda (HTTP ${res.status}).`, res.status, gatewayErrorCode(json, res.status));
+    if (!json) throw new GatewayUnknownResultError("Resposta ImperiumPay inválida; resultado a confirmar.", res.status, "INVALID_RESPONSE");
     const sale = unwrap(json);
     const pix = ((sale["payment"] as Record<string, unknown> | undefined)?.["pix"] ?? {}) as Record<string, unknown>;
     const code = pix["key"] as string | undefined;
-    if (!sale["id"] || !code) throw new GatewayRequestError("Resposta da ImperiumPay sem id ou código Pix.");
+    if (!sale["id"] || !code) throw new GatewayUnknownResultError("Resposta da ImperiumPay sem id ou código Pix.", res.status, "INCOMPLETE_RESPONSE", sale["id"] ? String(sale["id"]) : null);
     const img = pix["qrCodeBase64"] as string | undefined;
     return {
       provider: "imperiumpay",
@@ -122,7 +123,7 @@ export const imperiumpay: GatewayAdapter = {
     try { candidates.push(JSON.stringify(JSON.parse(rawBody))); } catch { /* corpo inválido */ }
     for (const msg of candidates) {
       const [hex, b64] = await hmac(secret, msg);
-      if (safeEqual(sig.toLowerCase(), hex!) || safeEqual(sig, b64!)) return true;
+      if ((hex && safeEqual(sig.toLowerCase(), hex)) || (b64 && safeEqual(sig, b64))) return true;
     }
     return false;
   },
