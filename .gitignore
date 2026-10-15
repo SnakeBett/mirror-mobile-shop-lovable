@@ -20,6 +20,9 @@ dist-ssr
 .wrangler/
 .dev.vars
 
+# Pacote gerado pelo teste do botão de captura
+tests/captura/capture.js
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

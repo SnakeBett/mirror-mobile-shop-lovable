@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -17,7 +17,20 @@ import {
   type ImportAnalysis,
   type ImportedProduct,
 } from "@/lib/import-types";
-import { createProductFromImport, findExistingImport, logImport } from "@/lib/import-queries";
+import {
+  createProductFromImport,
+  findExistingImport,
+  logImport,
+  type ImportSelection,
+} from "@/lib/import-queries";
+import {
+  buildCaptureBookmarklet,
+  getCaptureToken,
+  listenForCapture,
+  readClipboardCapture,
+  type CapturePayload,
+} from "@/lib/browser-capture";
+import { formatDecimalInput, parseDecimalInput } from "@/lib/product-types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,10 +64,19 @@ const MAX_CONTENT_CHARS = 5 * 1024 * 1024;
 
 type EditableAttribute = { label: string; value: string };
 
-function toNumberInput(value: string): number | null {
-  const parsed = Number(value.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : null;
-}
+/** Tudo o que a criação precisa, venha da tela de revisão ou da captura em um clique. */
+type CreateValues = {
+  selection: ImportSelection;
+  name: string;
+  currentPrice: number;
+  oldPrice: number | null;
+  description: string;
+  attributes: EditableAttribute[];
+  /** Já na ordem final: a primeira vira a principal. */
+  images: string[];
+  variantNames: string[];
+  missingFields: string[];
+};
 
 /** Todo texto vindo da captura é exibido como texto puro (nunca como HTML). */
 function safeText(value: string | null | undefined, max = 400): string {
@@ -89,6 +111,11 @@ function BrowserImportPage() {
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
   const [selectedVariants, setSelectedVariants] = useState<string[]>([]);
 
+  // A aba foi aberta pelo botão de favoritos (…/navegador?captura=1)?
+  const captureMode = useMemo(() => new URLSearchParams(window.location.search).get("captura") === "1", []);
+  const [captureReceived, setCaptureReceived] = useState(false);
+  const bookmarkletRef = useRef<HTMLAnchorElement>(null);
+
   const platform = useMemo(() => detectPlatform(sourceUrl), [sourceUrl]);
   const product = analysis?.product ?? null;
   const tooLarge = content.length > MAX_CONTENT_CHARS;
@@ -104,9 +131,9 @@ function BrowserImportPage() {
 
   function resetPreview(found: ImportedProduct) {
     setName(safeText(found.title, 200));
-    setPrice(found.currentPrice != null ? String(found.currentPrice) : "");
-    setOldPrice(found.oldPrice != null ? String(found.oldPrice) : "");
-    setRating(found.rating != null ? String(found.rating) : "");
+    setPrice(formatDecimalInput(found.currentPrice, 2));
+    setOldPrice(formatDecimalInput(found.oldPrice, 2));
+    setRating(formatDecimalInput(found.rating));
     setReviewCount(found.reviewCount != null ? String(found.reviewCount) : "");
     setSoldCount(found.soldCount != null ? String(found.soldCount) : "");
     setDescription("");
@@ -118,33 +145,44 @@ function BrowserImportPage() {
     setSelectedVariants([]);
   }
 
-  async function handleAnalyze() {
-    if (!content.trim()) {
+  /**
+   * Analisa o conteúdo e preenche a prévia. Recebe os valores por parâmetro
+   * porque a captura em um clique chega antes de os campos da tela mudarem.
+   */
+  async function runAnalysis(
+    rawContent: string,
+    rawUrl: string,
+  ): Promise<{ result: ImportAnalysis; duplicated: boolean } | null> {
+    if (!rawContent.trim()) {
       toast.error("Cole os dados capturados da página.");
-      return;
+      return null;
     }
-    if (tooLarge) {
+    if (rawContent.length > MAX_CONTENT_CHARS) {
       toast.error("Conteúdo muito grande. Cole apenas o JSON estruturado.");
-      return;
+      return null;
     }
     setAnalyzing(true);
     setAnalysis(null);
     setDuplicate(null);
     setForceNew(false);
     try {
-      const result = await analyzeCaptured({ data: { content, sourceUrl: sourceUrl.trim() } });
+      const result = await analyzeCaptured({ data: { content: rawContent, sourceUrl: rawUrl.trim() } });
       setAnalysis(result);
+      let duplicated = false;
       if (result.product) {
         resetPreview(result.product);
         const existing = await findExistingImport(result.product.sourceUrl, result.product.externalId);
-        if (existing) setDuplicate({ id: existing.id, name: existing.name });
+        if (existing) {
+          setDuplicate({ id: existing.id, name: existing.name });
+          duplicated = true;
+        }
         toast.success(`${result.foundCount} dados encontrados.`);
       } else {
         toast.warning(result.message ?? "Nenhum dado encontrado.");
       }
       await logImport({
-        source_platform: platform,
-        source_url: result.product?.sourceUrl ?? sourceUrl.trim() ?? "captura-navegador",
+        source_platform: detectPlatform(rawUrl),
+        source_url: result.product?.sourceUrl ?? (rawUrl.trim() || "captura-navegador"),
         external_product_id: result.product?.externalId ?? null,
         status: result.status,
         title: result.product?.title ?? null,
@@ -153,11 +191,86 @@ function BrowserImportPage() {
         import_method: "browser_capture",
       }).catch(() => undefined);
       queryClient.invalidateQueries({ queryKey: ["admin", "imports"] });
+      return { result, duplicated };
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Não foi possível analisar os dados.");
+      return null;
     } finally {
       setAnalyzing(false);
     }
+  }
+
+  /** Captura vinda do botão de favoritos: analisa e, se vier limpa, já cria o rascunho completo. */
+  async function importCapture(capture: CapturePayload) {
+    setCaptureReceived(true);
+    setSourceUrl(capture.url);
+    setContent(capture.html);
+
+    const outcome = await runAnalysis(capture.html, capture.url);
+    const found = outcome?.result.product;
+    // Sem produto: o aviso com o motivo já aparece abaixo.
+    if (!outcome || !found) return;
+    if (outcome.duplicated) {
+      toast.info("Este produto já foi importado. Escolha abaixo abrir o existente ou importar como novo.");
+      return;
+    }
+    if (outcome.result.blockedReason) {
+      toast.warning("A captura veio de uma tela de verificação. Confira os dados abaixo antes de criar.");
+      return;
+    }
+    if (!found.title || found.currentPrice == null) {
+      toast.warning("A página não entregou nome e preço. Confira os dados abaixo antes de criar.");
+      return;
+    }
+    await createFromCapture(found, {
+      selection: {
+        name: true,
+        currentPrice: true,
+        oldPrice: found.oldPrice != null,
+        attributes: true,
+        rating: found.rating != null,
+        reviewCount: found.reviewCount != null,
+        variants: found.variants.length > 0,
+      },
+      name: safeText(found.title, 200),
+      currentPrice: found.currentPrice,
+      oldPrice: found.oldPrice,
+      description: found.description ?? "",
+      attributes: found.attributes.map((item) => ({ label: safeText(item.label, 60), value: safeText(item.value, 200) })),
+      images: found.images,
+      variantNames: found.variants.map((variant) => variant.name),
+      missingFields: outcome.result.missingFields,
+    });
+  }
+
+  // Sempre a versão mais recente, para a escuta abaixo não guardar uma função antiga.
+  const importCaptureRef = useRef(importCapture);
+  importCaptureRef.current = importCapture;
+
+  useEffect(() => {
+    if (!captureMode) return;
+    return listenForCapture(window, getCaptureToken(), (capture) => void importCaptureRef.current(capture));
+  }, [captureMode]);
+
+  useEffect(() => {
+    // Atribuído direto no elemento: o React recusa endereços "javascript:" passados por propriedade.
+    bookmarkletRef.current?.setAttribute("href", buildCaptureBookmarklet(window.location.origin, getCaptureToken()));
+  }, []);
+
+  async function handlePasteCapture() {
+    let text = "";
+    try {
+      text = await navigator.clipboard.readText();
+    } catch {
+      toast.error("O navegador não liberou a área de transferência. Cole no campo abaixo com Ctrl+V.");
+      return;
+    }
+    const capture = readClipboardCapture(text);
+    if (!capture) {
+      toast.error("Não há captura copiada. Clique no botão na página do produto e tente de novo.");
+      return;
+    }
+    await importCapture(capture);
   }
 
   async function handleGenerateDescription() {
@@ -168,7 +281,7 @@ function BrowserImportPage() {
         data: {
           title: name || product.title || "",
           attributes,
-          price: toNumberInput(price) ?? product.currentPrice,
+          price: parseDecimalInput(price) ?? product.currentPrice,
         },
       });
       setDescription(result.description);
@@ -186,34 +299,47 @@ function BrowserImportPage() {
       toast.error("Escolha abrir o produto existente ou importar como novo.");
       return;
     }
+    await createFromCapture(product, {
+      selection: {
+        name: true,
+        currentPrice: true,
+        oldPrice: Boolean(oldPrice),
+        attributes: true,
+        rating: Boolean(rating),
+        reviewCount: Boolean(reviewCount),
+        variants: selectedVariants.length > 0,
+      },
+      name,
+      currentPrice: parseDecimalInput(price) ?? 0,
+      oldPrice: oldPrice ? parseDecimalInput(oldPrice) : null,
+      description,
+      attributes,
+      images: primaryImage
+        ? [primaryImage, ...selectedImages.filter((image) => image !== primaryImage)]
+        : selectedImages,
+      variantNames: selectedVariants,
+      missingFields: analysis?.missingFields ?? [],
+    });
+  }
+
+  async function createFromCapture(found: ImportedProduct, values: CreateValues) {
     setCreating(true);
     try {
       const productId = await createProductFromImport({
-        imported: product,
-        selection: {
-          name: true,
-          currentPrice: true,
-          oldPrice: Boolean(oldPrice),
-          attributes: true,
-          rating: Boolean(rating),
-          reviewCount: Boolean(reviewCount),
-          variants: selectedVariants.length > 0,
-        },
-        name,
-        currentPrice: toNumberInput(price) ?? 0,
-        oldPrice: oldPrice ? toNumberInput(oldPrice) : null,
-        description,
+        imported: found,
+        selection: values.selection,
+        name: values.name,
+        currentPrice: values.currentPrice,
+        oldPrice: values.oldPrice,
+        description: values.description,
         selectedImagePaths: [],
-        selectedAttributes: attributes.filter((item) => item.label.trim() && item.value.trim()),
-        selectedVariants: product.variants.filter((variant) => selectedVariants.includes(variant.name)),
+        selectedAttributes: values.attributes.filter((item) => item.label.trim() && item.value.trim()),
+        selectedVariants: found.variants.filter((variant) => values.variantNames.includes(variant.name)),
         importMethod: "browser_capture",
       });
 
-      if (selectedImages.length > 0) {
-        const ordered = primaryImage
-          ? [primaryImage, ...selectedImages.filter((image) => image !== primaryImage)]
-          : selectedImages;
-        const { paths, skipped } = await copyImages({ data: { productId, urls: ordered } });
+      if (values.images.length > 0) {
+        const { paths, skipped } = await copyImages({ data: { productId, urls: values.images } });
         if (paths.length > 0) {
           await supabase.from("product_images").insert(
             paths.map((path, index) => ({ product_id: productId, image_url: path, sort_order: index })) as never,
@@ -225,13 +351,13 @@ function BrowserImportPage() {
       }
 
       await logImport({
-        source_platform: product.source,
-        source_url: product.sourceUrl,
-        external_product_id: product.externalId,
+        source_platform: found.source,
+        source_url: found.sourceUrl,
+        external_product_id: found.externalId,
         product_id: productId,
         status: "imported",
-        title: name,
-        missing_fields: analysis?.missingFields ?? [],
+        title: values.name,
+        missing_fields: values.missingFields,
         import_method: "browser_capture",
       }).catch(() => undefined);
 
@@ -273,7 +399,48 @@ function BrowserImportPage() {
       </header>
 
       <section className="space-y-3 rounded-lg border border-border bg-background p-4">
-        <h2 className="text-sm font-semibold text-foreground">1. Colar dados capturados</h2>
+        <h2 className="text-sm font-semibold text-foreground">1. Captura em um clique</h2>
+        <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
+          <li>Arraste o botão abaixo para a barra de favoritos do navegador (só na primeira vez);</li>
+          <li>abra a página do produto na loja de origem, como você faz normalmente;</li>
+          <li>clique no botão na barra de favoritos: uma aba desta loja abre e o rascunho é criado sozinho.</li>
+        </ol>
+        <div className="flex flex-wrap items-center gap-3">
+          <a
+            ref={bookmarkletRef}
+            draggable
+            onClick={(event) => {
+              event.preventDefault();
+              toast.info("Arraste este botão para a barra de favoritos e clique nele na página do produto.");
+            }}
+            className="inline-flex cursor-grab items-center rounded-md border border-primary bg-primary/10 px-3 py-2 text-sm font-medium text-foreground"
+          >
+            Enviar para a Vitrine
+          </a>
+          <Button variant="outline" size="sm" onClick={() => void handlePasteCapture()} disabled={analyzing || creating}>
+            COLAR CAPTURA
+          </Button>
+        </div>
+        {captureMode && !captureReceived && (
+          <p className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            Aguardando os dados da página do produto. Se nada chegar em alguns segundos, volte para a página do
+            produto, clique no botão de novo e depois use COLAR CAPTURA aqui.
+          </p>
+        )}
+        {captureReceived && (analyzing || creating) && (
+          <p className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-3 text-xs text-foreground">
+            <Loader2 className="size-4 animate-spin" />
+            {creating ? "Criando o rascunho e copiando as imagens..." : "Captura recebida. Lendo os dados..."}
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          O botão vale para este navegador e funciona no computador. Ele envia para esta loja apenas o que já está
+          aberto na sua tela; se a loja de origem pedir uma verificação, resolva-a antes de clicar.
+        </p>
+      </section>
+
+      <section className="space-y-3 rounded-lg border border-border bg-background p-4">
+        <h2 className="text-sm font-semibold text-foreground">2. Ou cole os dados manualmente</h2>
         <ol className="list-decimal space-y-1 pl-5 text-xs text-muted-foreground">
           <li>Com a página do produto aberta, abra as ferramentas do navegador;</li>
           <li>copie o HTML da página ou os dados estruturados disponíveis;</li>
@@ -301,7 +468,12 @@ function BrowserImportPage() {
             rows={12}
             spellCheck={false}
             value={content}
-            onChange={(event) => setContent(event.target.value)}
+            onChange={(event) => {
+              setContent(event.target.value);
+              // Captura do botão colada à mão: o endereço do produto vem na primeira linha.
+              const capture = readClipboardCapture(event.target.value);
+              if (capture && !sourceUrl.trim()) setSourceUrl(capture.url);
+            }}
             placeholder="Cole aqui o HTML da página, o JSON-LD ou o JSON estruturado."
             className="font-mono text-xs"
           />
@@ -317,7 +489,7 @@ function BrowserImportPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={handleAnalyze} disabled={analyzing || tooLarge}>
+          <Button onClick={() => void runAnalysis(content, sourceUrl)} disabled={analyzing || tooLarge}>
             {analyzing && <Loader2 className="mr-2 size-4 animate-spin" />}
             ANALISAR DADOS
           </Button>
@@ -329,15 +501,6 @@ function BrowserImportPage() {
         <p className="rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
           O conteúdo colado é tratado como dado não confiável: nada é executado, nenhum script roda e nenhum recurso
           externo é carregado automaticamente. Fazemos apenas a leitura do texto.
-        </p>
-      </section>
-
-      <section className="space-y-2 rounded-lg border border-dashed border-border bg-muted/20 p-4">
-        <h2 className="text-sm font-semibold text-foreground">2. Extensão / bookmarklet (em breve)</h2>
-        <p className="text-xs text-muted-foreground">
-          Em uma próxima etapa você poderá clicar em “Enviar para minha loja” enquanto navega no produto: os dados
-          publicamente visíveis da página serão capturados e enviados direto para este importador. A arquitetura já está
-          pronta — a mesma análise é usada nos dois caminhos.
         </p>
       </section>
 

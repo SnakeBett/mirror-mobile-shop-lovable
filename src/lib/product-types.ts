@@ -120,6 +120,29 @@ export function slugify(value: string) {
     .slice(0, 80);
 }
 
+/**
+ * Lê um número digitado em formato brasileiro ou internacional:
+ * "33,90", "33.9", "1.299,99", "1,299.99", "R$ 19,90".
+ */
+export function parseDecimalInput(raw: string | null | undefined): number | null {
+  let text = String(raw ?? "").replace(/[^\d.,-]/g, "");
+  if (!/\d/.test(text)) return null;
+  const lastComma = text.lastIndexOf(",");
+  const lastDot = text.lastIndexOf(".");
+  if (lastComma > lastDot) text = text.replace(/\./g, "").replace(",", ".");
+  else if (lastComma >= 0) text = text.replace(/,/g, "");
+  // Só pontos, em grupos de três: separador de milhar ("1.299" = mil duzentos e noventa e nove).
+  else if (/^-?\d{1,3}(\.\d{3})+$/.test(text)) text = text.replace(/\./g, "");
+  const parsed = Number(text);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+/** Número para preencher um campo de texto, com vírgula decimal. */
+export function formatDecimalInput(value: number | null | undefined, decimals?: number) {
+  if (value == null || !Number.isFinite(value)) return "";
+  return (decimals == null ? String(value) : value.toFixed(decimals)).replace(".", ",");
+}
+
 export function calcDiscount(oldPrice: number | null, currentPrice: number | null) {
   if (!oldPrice || !currentPrice || oldPrice <= 0 || currentPrice >= oldPrice) return null;
   return Math.round(((oldPrice - currentPrice) / oldPrice) * 100);

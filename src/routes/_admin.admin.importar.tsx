@@ -30,6 +30,7 @@ import {
   type ImportSelection,
 } from "@/lib/import-queries";
 import { uploadProductImage } from "@/lib/admin-queries";
+import { formatDecimalInput, parseDecimalInput } from "@/lib/product-types";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,10 +68,19 @@ const STATUS_LABELS: Record<string, string> = {
 type DescriptionMode = "none" | "reference" | "generated";
 type EditableAttribute = { label: string; value: string };
 
-function toNumberInput(value: string): number | null {
-  const parsed = Number(value.replace(/\./g, "").replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : null;
-}
+/** Tudo o que a criação precisa, venha da tela de revisão ou do cadastro em um clique. */
+type CreateValues = {
+  selection: ImportSelection;
+  name: string;
+  currentPrice: number;
+  oldPrice: number | null;
+  description: string;
+  attributes: EditableAttribute[];
+  /** Já na ordem final: a primeira vira a principal. */
+  images: string[];
+  variantNames: string[];
+  missingFields: string[];
+};
 
 function ImportPage() {
   const navigate = useNavigate();
@@ -126,8 +136,8 @@ function ImportPage() {
 
   function resetPreview(found: ImportedProduct) {
     setName(found.title ?? "");
-    setPrice(found.currentPrice != null ? String(found.currentPrice) : "");
-    setOldPrice(found.oldPrice != null ? String(found.oldPrice) : "");
+    setPrice(formatDecimalInput(found.currentPrice, 2));
+    setOldPrice(formatDecimalInput(found.oldPrice, 2));
     setAttributes(found.attributes.map((item) => ({ ...item })));
     setSelectedImages(found.images);
     setPrimaryImage(found.images[0] ?? null);
@@ -136,10 +146,11 @@ function ImportPage() {
     setDescriptionMode("generated");
   }
 
-  async function handleAnalyze() {
+  /** Lê o link e preenche a prévia. Devolve o resultado para quem quiser seguir direto para a criação. */
+  async function runAnalysis(): Promise<{ result: ImportAnalysis; duplicated: boolean } | null> {
     if (!url.trim()) {
       toast.error("URL inválida.");
-      return;
+      return null;
     }
     setAnalyzing(true);
     setAnalysis(null);
@@ -149,10 +160,14 @@ function ImportPage() {
     try {
       const result = await analyze({ data: { url: url.trim() } });
       setAnalysis(result);
+      let duplicated = false;
       if (result.product) {
         resetPreview(result.product);
         const existing = await findExistingImport(result.product.sourceUrl, result.product.externalId);
-        if (existing) setDuplicate({ id: existing.id, name: existing.name });
+        if (existing) {
+          setDuplicate({ id: existing.id, name: existing.name });
+          duplicated = true;
+        }
       } else {
         setAssisted((prev) => ({ ...prev, name: prev.name }));
       }
@@ -168,6 +183,7 @@ function ImportPage() {
       queryClient.invalidateQueries({ queryKey: ["admin", "imports"] });
       if (result.status === "failed") toast.error(result.message ?? "URL inválida.");
       if (result.status === "blocked") toast.warning(result.message ?? "Não conseguimos ler esta página.");
+      return { result, duplicated };
     } catch {
       setAnalysis({
         status: "blocked",
@@ -178,9 +194,49 @@ function ImportPage() {
         individualReviewsAvailable: false,
         foundCount: 0,
       });
+      return null;
     } finally {
       setAnalyzing(false);
     }
+  }
+
+  /** Um clique: lê o link e, se a página entregar os dados sem bloqueio, já cria o rascunho completo. */
+  async function handleImportAndCreate() {
+    const outcome = await runAnalysis();
+    const found = outcome?.result.product;
+    // Sem produto: o painel de alternativas (navegador / assistida / manual) já aparece abaixo.
+    if (!outcome || !found) return;
+    if (outcome.duplicated) {
+      toast.info("Este produto já foi importado. Escolha abaixo abrir o existente ou importar como novo.");
+      return;
+    }
+    if (outcome.result.blockedReason) {
+      toast.warning("A página bloqueou parte da leitura. Confira os dados abaixo antes de criar.");
+      return;
+    }
+    if (!found.title || found.currentPrice == null) {
+      toast.warning("A página não entregou nome e preço. Confira os dados abaixo antes de criar.");
+      return;
+    }
+    await createFromImport(found, {
+      selection: {
+        name: true,
+        currentPrice: true,
+        oldPrice: true,
+        attributes: true,
+        rating: true,
+        reviewCount: true,
+        variants: true,
+      },
+      name: found.title,
+      currentPrice: found.currentPrice,
+      oldPrice: found.oldPrice,
+      description: found.description ?? "",
+      attributes: found.attributes,
+      images: found.images,
+      variantNames: found.variants.map((variant) => variant.name),
+      missingFields: outcome.result.missingFields,
+    });
   }
 
   async function handleGenerateDescription() {
@@ -191,7 +247,7 @@ function ImportPage() {
         data: {
           title: name || product.title || "",
           attributes,
-          price: toNumberInput(price) ?? product.currentPrice,
+          price: parseDecimalInput(price) ?? product.currentPrice,
         },
       });
       setDescription(result.description);
@@ -210,32 +266,45 @@ function ImportPage() {
       toast.error("Escolha abrir o produto existente ou importar como novo.");
       return;
     }
+    const finalDescription =
+      descriptionMode === "none"
+        ? ""
+        : descriptionMode === "reference"
+          ? (product.description ?? "")
+          : description;
+
+    await createFromImport(product, {
+      selection,
+      name,
+      currentPrice: parseDecimalInput(price) ?? 0,
+      oldPrice: oldPrice ? parseDecimalInput(oldPrice) : null,
+      description: finalDescription,
+      attributes,
+      images: primaryImage
+        ? [primaryImage, ...selectedImages.filter((image) => image !== primaryImage)]
+        : selectedImages,
+      variantNames: selectedVariants,
+      missingFields: analysis?.missingFields ?? [],
+    });
+  }
+
+  async function createFromImport(found: ImportedProduct, values: CreateValues) {
     setCreating(true);
     try {
-      const finalDescription =
-        descriptionMode === "none"
-          ? ""
-          : descriptionMode === "reference"
-            ? (product.description ?? "")
-            : description;
-
       const productId = await createProductFromImport({
-        imported: product,
-        selection,
-        name: selection.name ? name : "Produto importado",
-        currentPrice: toNumberInput(price) ?? 0,
-        oldPrice: oldPrice ? toNumberInput(oldPrice) : null,
-        description: finalDescription,
+        imported: found,
+        selection: values.selection,
+        name: values.selection.name ? values.name : "Produto importado",
+        currentPrice: values.currentPrice,
+        oldPrice: values.oldPrice,
+        description: values.description,
         selectedImagePaths: [],
-        selectedAttributes: attributes.filter((item) => item.label.trim() && item.value.trim()),
-        selectedVariants: product.variants.filter((variant) => selectedVariants.includes(variant.name)),
+        selectedAttributes: values.attributes.filter((item) => item.label.trim() && item.value.trim()),
+        selectedVariants: found.variants.filter((variant) => values.variantNames.includes(variant.name)),
       });
 
-      if (selectedImages.length > 0) {
-        const ordered = primaryImage
-          ? [primaryImage, ...selectedImages.filter((image) => image !== primaryImage)]
-          : selectedImages;
-        const { paths, skipped } = await copyImages({ data: { productId, urls: ordered } });
+      if (values.images.length > 0) {
+        const { paths, skipped } = await copyImages({ data: { productId, urls: values.images } });
         if (paths.length > 0) {
           await supabase.from("product_images").insert(
             paths.map((path, index) => ({ product_id: productId, image_url: path, sort_order: index })) as never,
@@ -247,13 +316,13 @@ function ImportPage() {
       }
 
       await logImport({
-        source_platform: product.source,
-        source_url: product.sourceUrl,
-        external_product_id: product.externalId,
+        source_platform: found.source,
+        source_url: found.sourceUrl,
+        external_product_id: found.externalId,
         product_id: productId,
         status: "imported",
-        title: name,
-        missing_fields: analysis?.missingFields ?? [],
+        title: values.name,
+        missing_fields: values.missingFields,
       }).catch(() => undefined);
 
       queryClient.invalidateQueries({ queryKey: ["admin"] });
@@ -275,11 +344,11 @@ function ImportPage() {
     try {
       const productId = await createProductAssisted({
         name: assisted.name,
-        currentPrice: toNumberInput(assisted.price) ?? 0,
-        oldPrice: assisted.oldPrice ? toNumberInput(assisted.oldPrice) : null,
+        currentPrice: parseDecimalInput(assisted.price) ?? 0,
+        oldPrice: assisted.oldPrice ? parseDecimalInput(assisted.oldPrice) : null,
         description: assisted.description,
-        rating: assisted.rating ? toNumberInput(assisted.rating) : null,
-        reviewCount: assisted.reviewCount ? toNumberInput(assisted.reviewCount) : null,
+        rating: assisted.rating ? parseDecimalInput(assisted.rating) : null,
+        reviewCount: assisted.reviewCount ? parseDecimalInput(assisted.reviewCount) : null,
         attributes: assistedAttributes,
         sourceUrl: url.trim() || null,
         sourcePlatform: platform,
@@ -341,15 +410,13 @@ function ImportPage() {
           Origem detectada: <span className="font-medium text-foreground">{PLATFORM_LABELS[platform]}</span>
         </p>
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={handleAnalyze} disabled={analyzing}>
-            {analyzing && <Loader2 className="mr-2 size-4 animate-spin" />}
-            ANALISAR PRODUTO
+          <Button onClick={handleImportAndCreate} disabled={analyzing || creating}>
+            {(analyzing || creating) && <Loader2 className="mr-2 size-4 animate-spin" />}
+            IMPORTAR E CADASTRAR
           </Button>
-          {analysis && (
-            <Button variant="secondary" onClick={handleAnalyze} disabled={analyzing}>
-              TENTAR NOVAMENTE
-            </Button>
-          )}
+          <Button variant="secondary" onClick={() => void runAnalysis()} disabled={analyzing || creating}>
+            {analysis ? "ANALISAR DE NOVO" : "ANALISAR ANTES DE CRIAR"}
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link to="/admin/importar/navegador">IMPORTAR PELO NAVEGADOR</Link>
           </Button>
@@ -357,7 +424,10 @@ function ImportPage() {
             <Link to="/admin/produtos/novo">CADASTRO MANUAL</Link>
           </Button>
         </div>
-
+        <p className="text-xs text-muted-foreground">
+          Importar e cadastrar cria o rascunho completo de uma vez: nome, preços, imagens, características e
+          variações. O produto nasce inativo, para você conferir antes de publicar.
+        </p>
       </section>
 
       {(analysis?.status === "blocked" || analysis?.status === "failed") && (
