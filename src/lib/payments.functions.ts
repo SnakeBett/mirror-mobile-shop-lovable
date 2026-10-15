@@ -102,3 +102,57 @@ export const getImperiumPayStatus = createServerFn({ method: "GET" })
       last_event_at: (last as { received_at?: string } | null)?.received_at ?? null,
     };
   });
+
+export type GatewayConfigStatus = {
+  provider: string;
+  configured: boolean;
+  secrets: Array<{ name: string; set: boolean }>;
+  webhook_url: string;
+  postback_signature: boolean | null;
+};
+
+export const getGatewayConfigStatus = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<GatewayConfigStatus[]> => {
+    await assertAdmin(context as never);
+    const { getGatewayAdapter, webhookUrl } = await import("@/lib/gateways");
+    const out: GatewayConfigStatus[] = [];
+    for (const provider of ["zuckpay", "imperiumpay"]) {
+      const a = (await getGatewayAdapter(provider))!;
+      out.push({
+        provider,
+        configured: a.configured(),
+        secrets: a.requiredSecrets.map((name) => ({ name, set: !!process.env[name] })),
+        webhook_url: webhookUrl(provider),
+        postback_signature: provider === "imperiumpay" ? !!process.env["IMPERIUMPAY_POSTBACK_SECRET"] : null,
+      });
+    }
+    return out;
+  });
+
+export const testGatewayConnection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { provider: string }) => z.object({ provider: z.enum(["zuckpay", "imperiumpay"]) }).parse(input))
+  .handler(async ({ context, data }) => {
+    await assertAdmin(context as never);
+    const { getGatewayAdapter } = await import("@/lib/gateways");
+    const a = (await getGatewayAdapter(data.provider))!;
+    const r = await a.testConnection();
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    await supabaseAdmin.from("payment_gateways").update({
+      integration_status: r.ok ? "connected" : "error",
+      last_error: r.ok ? null : `${new Date().toISOString()} · ${r.message}`,
+      updated_at: new Date().toISOString(),
+    }).eq("provider", data.provider);
+    return r;
+  });
+
+export type AttemptRow = { id: string; provider: string; status: string; amount_cents: number; created_at: string; error_message: string | null; order_id: string };
+
+export const listPaymentAttempts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AttemptRow[]> => {
+    await assertAdmin(context as never);
+    const { data } = await context.supabase.from("payment_attempts").select("id, provider, status, amount_cents, created_at, error_message, order_id").order("created_at", { ascending: false }).limit(30);
+    return (data ?? []) as AttemptRow[];
+  });
