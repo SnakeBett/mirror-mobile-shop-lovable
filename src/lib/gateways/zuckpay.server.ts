@@ -1,4 +1,4 @@
-import { fetchWithTimeout, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, type GatewayAdapter, type InternalPaymentStatus } from "./index";
+import { fetchWithTimeout, gatewayErrorCode, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, type GatewayAdapter, type InternalPaymentStatus } from "./index";
 
 const BASE = "https://www.zuckpay.com.br/conta/v3/pix";
 const TRACKING_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "src", "sck", "fbclid", "fbc", "fbp", "gclid", "wbraid", "gbraid", "ttclid", "kclid", "click_id"];
@@ -48,11 +48,12 @@ export const zuckpay: GatewayAdapter = {
       throw new GatewayUnknownResultError("Sem resposta da ZuckPay.");
     }
     const json = (await res.json().catch(() => null)) as Record<string, unknown> | null;
-    if (res.status >= 500) throw new GatewayUnknownResultError(`ZuckPay respondeu ${res.status}.`);
-    if (!res.ok || !json) throw new GatewayRequestError(`ZuckPay recusou a cobrança (HTTP ${res.status}).`, res.status);
+    if (res.status >= 500) throw new GatewayUnknownResultError(`ZuckPay respondeu ${res.status}.`, res.status, gatewayErrorCode(json, res.status));
+    if (!res.ok) throw new GatewayRequestError(`ZuckPay recusou a cobrança (HTTP ${res.status}).`, res.status, gatewayErrorCode(json, res.status));
+    if (!json) throw new GatewayUnknownResultError("Resposta ZuckPay inválida; resultado a confirmar.", res.status, "INVALID_RESPONSE");
     const tx = json["transactionId"];
-    const code = (json["pix_code"] ?? json["qrcode"]) as string | undefined;
-    if (!tx || !code) throw new GatewayRequestError("Resposta da ZuckPay sem transactionId ou código Pix.");
+    const code = (json["pix_code"] || json["qrcode"]) as string | undefined;
+    if (!tx || !code) throw new GatewayUnknownResultError("Resposta da ZuckPay sem transactionId ou código Pix.", res.status, "INCOMPLETE_RESPONSE", tx ? String(tx) : null);
     const exp = Number((json["calendar"] as Record<string, unknown> | undefined)?.["expiration"]);
     const img = json["qrcode_image"] as string | undefined;
     return {

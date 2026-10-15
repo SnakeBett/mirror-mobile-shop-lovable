@@ -11,6 +11,8 @@ import { createPendingOrder, getCheckoutQuote, getPixStatus, type CheckoutQuote 
 import { DEFAULT_CHECKOUT_SETTINGS, isValidCpf, maskCep, maskCpf, maskPhone, normalizeCheckoutSettings, onlyDigits, type CheckoutSettings } from "@/lib/checkout-settings";
 import { CHECKOUT_CONTEXT_KEY, unitLabel, type CheckoutContext } from "@/lib/variants";
 import { getCheckoutTrackingContext } from "@/lib/analytics";
+import { isCompleteAddress } from "@/lib/checkout-address";
+import { Button } from "@/components/ui/button";
 
 type Search = { produto?: string | undefined };
 
@@ -154,9 +156,11 @@ function CheckoutPage() {
   const [couponBusy, setCouponBusy] = useState(false);
 
   const [shippingId, setShippingId] = useState<string | null>(null);
+  const [quoteBusy, setQuoteBusy] = useState(false);
   const quoteSeq = useRef(0);
   const loadQuote = async (code: string | null, ship: string | null = shippingId) => {
     const seq = ++quoteSeq.current;
+    setQuoteBusy(true);
     try {
       const res = await quoteFn({ data: { ...selection, coupon_code: code, shipping_method_id: ship, buyer_cpf: isValidCpf(form.cpf) ? form.cpf : null } });
       if (seq !== quoteSeq.current) return null;
@@ -167,6 +171,8 @@ function CheckoutPage() {
     } catch {
       if (seq === quoteSeq.current) setQuoteError("Não foi possível calcular o pedido agora. Verifique sua conexão e tente novamente.");
       return null;
+    } finally {
+      if (seq === quoteSeq.current) setQuoteBusy(false);
     }
   };
   useEffect(() => {
@@ -207,7 +213,7 @@ function CheckoutPage() {
   const lastCep = useRef("");
   const lookupCep = async (cep: string) => {
     const d = onlyDigits(cep);
-    if (d.length !== 8) { cepSeq.current++; setCepStatus(null); return; }
+    if (d.length !== 8) { cepSeq.current++; lastCep.current = ""; setCepStatus(null); return; }
     if (d === lastCep.current) return;
     lastCep.current = d;
     const seq = ++cepSeq.current;
@@ -218,7 +224,7 @@ function CheckoutPage() {
         setCepStatus(!a.street || !a.district ? "Complete a rua e o bairro." : null);
       } else setCepStatus(failed ? "Não conseguimos buscar o CEP agora. Preencha o endereço manualmente." : "CEP não encontrado. Confira o número ou preencha manualmente.");
     };
-    if (cepCache.current.has(d)) return apply(cepCache.current.get(d)!);
+    if (cepCache.current.has(d)) return apply(cepCache.current.get(d) ?? null);
     setCepStatus("Buscando endereço...");
     const viaCep = async () => {
       const r = await fetch(`https://viacep.com.br/ws/${d}/json/`, { signal: AbortSignal.timeout(5000) });
@@ -244,6 +250,28 @@ function CheckoutPage() {
       apply(null, true);
     }
   };
+
+  const addressComplete = isCompleteAddress(form) && cepStatus !== "Buscando endereço...";
+  const addressKey = [form.cep, form.street, form.number, form.district, form.city, form.state].join("|");
+  useEffect(() => {
+    if (!slug || !quote || quote.digital) return;
+    setShippingId(null);
+    try { sessionStorage.removeItem(`vt_checkout_shipping:${slug}`); } catch { /* bloqueado */ }
+    // Métodos atuais têm preço fixo, sem cobertura por CEP. Reconsultar também
+    // invalida métodos que o administrador desativou durante o preenchimento.
+    if (!addressComplete) {
+      ++quoteSeq.current;
+      setQuoteBusy(false);
+      return;
+    }
+    setQuoteBusy(true);
+    const timer = setTimeout(() => { void loadQuote(couponCode, null); }, 250);
+    return () => { clearTimeout(timer); ++quoteSeq.current; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [addressKey, addressComplete, slug, quote?.digital]);
+  const shippingReady = !!quote && (quote.digital || (addressComplete && quote.shipping != null
+    && !quote.shipping_error && (quote.shipping_options.length === 0 || !!quote.shipping_method_id)));
+  const totalReady = shippingReady && !quoteBusy && !quoteError && !quote?.selection_error;
 
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -301,6 +329,7 @@ function CheckoutPage() {
       return;
     }
     if (quote?.selection_error) return setSubmitError(quote.selection_error);
+    if (!totalReady) return setSubmitError("Complete o endereço e confirme a entrega antes de gerar o Pix.");
     if (quote && !quote.digital && quote.shipping_error) return setSubmitError(quote.shipping_error);
     setSubmitting(true);
     setSubmitError(null);
@@ -380,10 +409,10 @@ function CheckoutPage() {
     <Card>
       <dl className="space-y-1.5 text-sm">
         <div className="flex justify-between"><dt className="text-muted-foreground">Subtotal</dt><dd>{brl.format(quote.subtotal)}</dd></div>
-        <div className="flex justify-between"><dt className="text-muted-foreground">Frete</dt><dd>{quote.shipping == null ? "A calcular" : quote.shipping_free ? <span className="font-medium text-[color:var(--success,green)]">Grátis</span> : brl.format(quote.shipping)}</dd></div>
+        <div className="flex justify-between"><dt className="text-muted-foreground">Frete</dt><dd>{!order && !shippingReady ? "A calcular" : quote.shipping == null ? "A calcular" : quote.shipping_free ? <span className="font-medium text-[color:var(--success,green)]">Grátis</span> : brl.format(quote.shipping)}</dd></div>
         {quote.product_discount > 0 && <div className="flex justify-between"><dt className="text-muted-foreground">Desconto do produto</dt><dd>-{brl.format(quote.product_discount)}</dd></div>}
         {quote.coupon && <div className="flex justify-between"><dt className="text-muted-foreground">Cupom {quote.coupon.code}</dt><dd>-{brl.format(quote.coupon.discount)}</dd></div>}
-        <div className="flex justify-between border-t border-border pt-2 text-base font-bold"><dt>Total</dt><dd>{brl.format(order?.total ?? quote.total)}</dd></div>
+        <div className="flex justify-between border-t border-border pt-2 text-base font-bold"><dt>Total</dt><dd>{!order && !totalReady ? "A confirmar" : brl.format(order?.total ?? quote.total)}</dd></div>
       </dl>
     </Card>
   );
@@ -475,7 +504,7 @@ function CheckoutPage() {
             </Card>
             )}
 
-            {!quote?.digital && quote && (
+            {!quote?.digital && quote && addressComplete && (
               <Card title="Escolha a entrega" icon={<Truck className="size-4" />}>
                 {quote.shipping_options.length > 0 ? (
                 <div className="space-y-2" role="radiogroup" aria-label="Escolha a entrega">
@@ -483,7 +512,7 @@ function CheckoutPage() {
                     const on = quote.shipping_method_id === m.id;
                     const days = m.min_days != null && m.max_days != null ? (m.min_days === m.max_days ? `${m.min_days} dias` : `${m.min_days} a ${m.max_days} dias`) : m.max_days != null ? `até ${m.max_days} dias` : null;
                     return (
-                      <button key={m.id} type="button" role="radio" aria-checked={on} onClick={() => chooseShipping(m.id)} className="flex w-full items-center gap-3 rounded-lg border p-3 text-left" style={on ? { borderColor: s.button_color, borderWidth: 2 } : undefined}>
+                      <Button variant="outline" key={m.id} type="button" role="radio" aria-checked={on} disabled={quoteBusy} onClick={() => chooseShipping(m.id)} className="flex h-auto w-full items-center gap-3 whitespace-normal rounded-lg border p-3 text-left" style={on ? { borderColor: s.button_color, borderWidth: 2 } : undefined}>
                         <span className="flex size-5 shrink-0 items-center justify-center rounded-full border" style={on ? { background: s.button_color, borderColor: s.button_color } : undefined}>{on && <Check className="size-3 text-primary-foreground" />}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-semibold text-foreground">{m.name}</span>
@@ -491,7 +520,7 @@ function CheckoutPage() {
                           {days && <span className="block text-xs text-muted-foreground">Prazo estimado: {days}</span>}
                         </span>
                         <span className="text-sm font-semibold text-foreground">{m.price <= 0 ? "Grátis" : brl.format(m.price)}</span>
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>
@@ -532,9 +561,9 @@ function CheckoutPage() {
       {!order && (
         <div className="fixed inset-x-0 bottom-0 mx-auto max-w-[480px] border-t border-border bg-background p-3">
           {submitError && <p className="mb-2 text-center text-xs text-destructive" role="alert">{submitError}</p>}
-          <button type="button" onClick={submit} disabled={submitting || !quote} className="h-12 w-full rounded-full text-sm font-bold disabled:opacity-60" style={{ background: s.button_color, color: "#fff" }}>
+          <Button type="button" onClick={submit} disabled={submitting || !totalReady} className="h-12 w-full rounded-full text-sm font-bold disabled:opacity-60" style={{ background: s.button_color }}>
             {submitting ? "Processando..." : s.button_text}
-          </button>
+          </Button>
         </div>
       )}
     </main>
@@ -553,7 +582,7 @@ function PixPanel({ order, color }: { order: { order_number: string; attempt: Pi
       <>
         <Clock className="mx-auto size-8 text-muted-foreground" />
         <p className="font-semibold text-foreground">Pedido #{order.order_number} criado</p>
-        <p className="text-sm text-muted-foreground">{order.payment_error ?? "O Pix não pôde ser gerado agora."} Nenhuma cobrança foi feita.</p>
+        <p className="text-sm text-muted-foreground" role="alert">{order.payment_error ?? "O Pix não pôde ser gerado agora."}</p>
       </>
     );
   }

@@ -51,10 +51,16 @@ export async function createChargeForOrder(
   }
   if (!gateway) return { ok: false, code: "no_gateway", error: "Nenhum gateway de pagamento está configurado." };
   const adapter = await getGatewayAdapter(gateway.provider);
-  if (!adapter || !adapter.configured()) return { ok: false, code: "not_configured", error: "O pagamento Pix está temporariamente indisponível." };
+  const endpoint = gateway.provider === "zuckpay" ? "https://www.zuckpay.com.br/conta/v3/pix/qrcode" : "https://api.imperiumpay.com.br/api/sales";
+  const configFailure = (code: string, message: string): ChargeResult => {
+    console.error("pix configuration", { gateway: gateway.provider, endpoint, order_id: orderId, http_status: null, code });
+    return { ok: false, code: "not_configured", error: message };
+  };
+  if (!adapter) return configFailure("UNSUPPORTED_GATEWAY", "O serviço Pix escolhido não é suportado pela loja.");
+  if (!adapter.configured()) return configFailure("MISSING_CREDENTIALS", "O serviço Pix escolhido está sem configuração de acesso. Entre em contato com a loja.");
 
   const { data: gw } = await sb.from("payment_gateways").select("is_active").eq("id", gateway.id).maybeSingle();
-  if (!gw?.is_active) return { ok: false, code: "not_configured", error: "O pagamento Pix está temporariamente indisponível." };
+  if (!gw?.is_active) return configFailure("GATEWAY_DISABLED", "O serviço Pix escolhido está desativado pela loja. Entre em contato com a loja para finalizar a compra.");
 
   const draft = build("");
   const { data: attempt, error } = await sb.from("payment_attempts")
@@ -74,13 +80,16 @@ export async function createChargeForOrder(
     return { ok: true, attempt: toPublic(saved ?? attempt) };
   } catch (e) {
     const unknown = e instanceof GatewayUnknownResultError;
-    const msg = e instanceof Error ? e.message : "Erro desconhecido";
-    await sb.from("payment_attempts").update({ status: unknown ? "unknown_result" : "failed", error_message: msg.slice(0, 300), updated_at: new Date().toISOString() }).eq("id", attempt.id);
+    const httpStatus = e instanceof GatewayRequestError || e instanceof GatewayUnknownResultError ? e.httpStatus : null;
+    const errorCode = e instanceof GatewayRequestError || e instanceof GatewayUnknownResultError ? e.errorCode : e instanceof GatewayNotReadyError ? "MISSING_CREDENTIALS" : "INTERNAL_ERROR";
+    const msg = `${gateway.provider} · HTTP ${httpStatus ?? "não recebido"} · ${errorCode}`;
+    await sb.from("payment_attempts").update({ status: unknown ? "unknown_result" : "failed", error_message: msg, ...(e instanceof GatewayUnknownResultError && e.transactionId ? { provider_transaction_id: e.transactionId } : {}), updated_at: new Date().toISOString() }).eq("id", attempt.id);
     await sb.from("payment_gateways").update({ last_error: `${new Date().toISOString()} · ${msg.slice(0, 200)}` }).eq("id", gateway.id);
-    console.error(`[pix:${gateway.provider}] criação falhou`, msg);
+    console.error("pix charge failed", { gateway: gateway.provider, endpoint, http_status: httpStatus, code: errorCode, order_id: orderId, attempt_id: attempt.id });
     if (unknown) return { ok: false, code: "unknown_result", error: "Não conseguimos confirmar a geração do Pix. Aguarde e não tente pagar outra vez antes de verificarmos." };
     if (e instanceof GatewayNotReadyError) return { ok: false, code: "not_configured", error: "O pagamento Pix está temporariamente indisponível." };
-    void (e instanceof GatewayRequestError);
+    if (httpStatus === 401 || httpStatus === 403) return { ok: false, code: "rejected", error: "O serviço Pix recusou o acesso da loja. Entre em contato com a loja." };
+    if (e instanceof GatewayRequestError && !httpStatus) return { ok: false, code: "rejected", error: "O serviço Pix escolhido não suporta a composição deste pedido. Entre em contato com a loja." };
     return { ok: false, code: "rejected", error: "Não foi possível gerar o Pix. Confira seus dados e tente novamente." };
   }
 }
@@ -94,7 +103,7 @@ export async function reconcileAttempt(attemptId: string, opts: { minIntervalMs?
   const sb = await db();
   const { data: a } = await sb.from("payment_attempts").select("*").eq("id", attemptId).maybeSingle();
   if (!a) return null;
-  if (!a.provider_transaction_id || !["pending", "processing", "med"].includes(a.status)) return toPublic(a);
+  if (!a.provider_transaction_id || !["pending", "processing", "med", "unknown_result"].includes(a.status)) return toPublic(a);
   const minGap = opts.minIntervalMs ?? 5000;
   if (a.last_checked_at && Date.now() - new Date(a.last_checked_at).getTime() < minGap) return toPublic(a);
   await sb.from("payment_attempts").update({ last_checked_at: new Date().toISOString(), check_count: (a.check_count ?? 0) + 1 }).eq("id", a.id);
@@ -165,7 +174,7 @@ export async function reconcilePendingAttempts(limit = 25) {
   const sb = await db();
   const since = new Date(Date.now() - MAX_AGE_HOURS * 3600_000).toISOString();
   const { data } = await sb.from("payment_attempts").select("id")
-    .in("status", ["pending", "processing", "med"]).not("provider_transaction_id", "is", null)
+    .in("status", ["pending", "processing", "med", "unknown_result"]).not("provider_transaction_id", "is", null)
     .gte("created_at", since).lt("check_count", MAX_CHECKS)
     .order("last_checked_at", { ascending: true, nullsFirst: true }).limit(limit);
   const results: Record<string, number> = {};

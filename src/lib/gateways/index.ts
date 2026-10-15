@@ -63,12 +63,22 @@ export class GatewayNotReadyError extends Error {
 }
 
 /** Erro em que não sabemos se a cobrança foi criada (timeout, rede). Não repetir cegamente. */
-export class GatewayUnknownResultError extends Error {}
+export class GatewayUnknownResultError extends Error {
+  constructor(message: string, public httpStatus: number | null = null, public errorCode = "UNKNOWN_RESULT", public transactionId: string | null = null) { super(message); }
+}
 
 export class GatewayRequestError extends Error {
-  constructor(message: string, public httpStatus: number | null = null) {
+  constructor(message: string, public httpStatus: number | null = null, public errorCode = "REQUEST_REJECTED") {
     super(message);
   }
+}
+
+/** Only known machine codes are retained; provider messages may contain PII. */
+export function gatewayErrorCode(json: Record<string, unknown> | null, status: number): string {
+  const error = json?.["error"];
+  const candidate = json?.["code"] ?? (error && typeof error === "object" ? (error as Record<string, unknown>)["code"] : null);
+  const allowed = new Set(["UNAUTHORIZED", "FORBIDDEN", "INVALID_CREDENTIALS", "VALIDATION_ERROR", "INVALID_DOCUMENT", "INVALID_AMOUNT", "INVALID_REQUEST", "MISSING_REQUIRED_FIELD", "PIX_KEY_REQUIRED", "INTERNAL_SERVER_ERROR"]);
+  return typeof candidate === "string" && allowed.has(candidate.toUpperCase()) ? candidate.toUpperCase() : `HTTP_${status}`;
 }
 
 export async function fetchWithTimeout(url: string, init: RequestInit, ms = 15000) {
