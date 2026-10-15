@@ -7,6 +7,7 @@ export type CheckoutSettings = {
   banner_bg: string;
   banner_fg: string;
   show_logo: boolean;
+  logo_path: string | null;
   logo_height: number;
   button_color: string;
   button_text: string;
@@ -21,6 +22,7 @@ export const DEFAULT_CHECKOUT_SETTINGS: CheckoutSettings = {
   banner_bg: "#111111",
   banner_fg: "#ffffff",
   show_logo: true,
+  logo_path: null,
   logo_height: 36,
   button_color: "#fe2c55",
   button_text: "CONTINUAR PARA PAGAMENTO",
@@ -57,6 +59,7 @@ export function normalizeCheckoutSettings(raw: unknown): CheckoutSettings {
     banner_bg: hex("banner_bg"),
     banner_fg: hex("banner_fg"),
     show_logo: bool("show_logo"),
+    logo_path: typeof r["logo_path"] === "string" && (r["logo_path"] as string).startsWith("checkout/") ? (r["logo_path"] as string) : null,
     logo_height: Number.isFinite(h) ? Math.min(80, Math.max(20, Math.round(h))) : d.logo_height,
     button_color: hex("button_color"),
     button_text: str("button_text", 40),

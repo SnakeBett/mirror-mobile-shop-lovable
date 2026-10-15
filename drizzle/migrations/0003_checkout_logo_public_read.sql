@@ -1,0 +1,1 @@
+CREATE POLICY "Public can read checkout logo" ON storage.objects FOR SELECT TO anon, authenticated USING (bucket_id = 'product-images' AND name LIKE 'checkout/%');

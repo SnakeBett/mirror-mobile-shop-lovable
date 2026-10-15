@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Clock, CreditCard, Lock, MapPin, ShieldCheck, Store, Ticket, User, X } from "lucide-react";
+import { ArrowLeft, Check, Clock, CreditCard, Lock, MapPin, ShieldCheck, Ticket, User, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicProduct } from "@/lib/public-product.functions";
@@ -128,6 +128,7 @@ function CheckoutPage() {
     },
   });
   const s = settings.data ?? DEFAULT_CHECKOUT_SETTINGS;
+  const logoUrl = useCheckoutLogo(s.logo_path);
 
   const sameCtx = ctx && ctx.slug === slug ? ctx : null;
   const selection = useMemo(
@@ -247,7 +248,6 @@ function CheckoutPage() {
   };
 
   const p = product.data;
-  const store = p?.store ?? null;
   const qty = quote?.quantity ?? sameCtx?.quantity ?? 1;
   const unitLines =
     p && sameCtx?.units?.length
@@ -261,13 +261,9 @@ function CheckoutPage() {
         <button type="button" onClick={() => history.back()} className="flex size-9 items-center justify-center rounded-full text-foreground hover:bg-muted" aria-label="Voltar">
           <ArrowLeft className="size-5" />
         </button>
-        {s.show_logo && (store?.logo_url ? (
-          <img src={store.logo_url} alt={store.name} style={{ height: s.logo_height }} className="max-w-[160px] object-contain" />
-        ) : store?.name ? (
-          <span className="text-sm font-semibold text-foreground">{store.name}</span>
-        ) : (
-          <Store className="size-6 text-muted-foreground" aria-hidden="true" />
-        ))}
+        {s.show_logo && logoUrl ? (
+          <img src={logoUrl} alt="Logo" style={{ maxHeight: s.logo_height }} className="h-auto w-auto max-w-[55vw] object-contain sm:max-w-[200px]" />
+        ) : <span />}
         <span className="size-9" />
       </header>
       <div className="bg-background px-4 pb-2 pt-3 text-center">
@@ -416,4 +412,15 @@ function CheckoutPage() {
       )}
     </main>
   );
+}
+
+function useCheckoutLogo(path: string | null) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!path) { setUrl(null); return; }
+    supabase.storage.from("product-images").createSignedUrl(path, 3600).then(({ data }) => { if (alive) setUrl(data?.signedUrl ?? null); });
+    return () => { alive = false; };
+  }, [path]);
+  return url;
 }
