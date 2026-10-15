@@ -2,11 +2,12 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Clock, CreditCard, Lock, MapPin, ShieldCheck, Ticket, User, X } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle2, Clock, Copy, CreditCard, Lock, MapPin, ShieldCheck, Ticket, User, X } from "lucide-react";
 
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicProduct } from "@/lib/public-product.functions";
-import { createPendingOrder, getCheckoutQuote, type CheckoutQuote } from "@/lib/checkout.functions";
+import { createPendingOrder, getCheckoutQuote, getPixStatus, type CheckoutQuote } from "@/lib/checkout.functions";
 import { DEFAULT_CHECKOUT_SETTINGS, isValidCpf, maskCep, maskCpf, maskPhone, normalizeCheckoutSettings, onlyDigits, type CheckoutSettings } from "@/lib/checkout-settings";
 import { CHECKOUT_CONTEXT_KEY, unitLabel, type CheckoutContext } from "@/lib/variants";
 import { getCheckoutTrackingContext } from "@/lib/analytics";
@@ -201,7 +202,48 @@ function CheckoutPage() {
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [order, setOrder] = useState<{ order_number: string; total: number; gateway_status: string } | null>(null);
+  const [order, setOrder] = useState<{ order_id: string; order_number: string; total: number; attempt: PixAttempt | null; payment_error: string | null } | null>(null);
+  const pixFn = useServerFn(getPixStatus);
+  const attemptId = order?.attempt?.attempt_id ?? null;
+  const attemptStatus = order?.attempt?.status ?? null;
+
+  // Recupera um Pix pendente desta aba (ex.: atualizou a página).
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(PIX_KEY) ?? "null");
+      if (saved?.slug === slug && saved.order) setOrder(saved.order);
+    } catch { /* ignora */ }
+  }, [slug]);
+  useEffect(() => {
+    if (order) try { sessionStorage.setItem(PIX_KEY, JSON.stringify({ slug, order })); } catch { /* ignora */ }
+  }, [order, slug]);
+
+  // Consulta periódica ao nosso backend (que verifica o gateway).
+  useEffect(() => {
+    if (!attemptId || !attemptStatus || !["pending", "processing", "med"].includes(attemptStatus)) return;
+    let alive = true;
+    const tick = async () => {
+      try {
+        const a = await pixFn({ data: { attempt_id: attemptId } });
+        if (alive && a) setOrder((o) => (o ? { ...o, attempt: a } : o));
+      } catch { /* tenta de novo */ }
+    };
+    const id = setInterval(tick, 6000);
+    return () => { alive = false; clearInterval(id); };
+  }, [attemptId, attemptStatus, pixFn]);
+
+  // Purchase no Pixel uma única vez, com o mesmo event_id da CAPI.
+  useEffect(() => {
+    if (attemptStatus !== "paid" || !order) return;
+    const flag = `vt_purchase_sent:${order.order_id}`;
+    try {
+      if (localStorage.getItem(flag)) return;
+      localStorage.setItem(flag, "1");
+    } catch { /* ignora */ }
+    const fbq = (window as unknown as { fbq?: (...a: unknown[]) => void }).fbq;
+    fbq?.("track", "Purchase", { value: order.total, currency: "BRL", content_type: "product" }, { eventID: `purchase_${order.order_id}` });
+    try { sessionStorage.removeItem(PIX_KEY); } catch { /* ignora */ }
+  }, [attemptStatus, order]);
   const idemKey = useRef<string>("");
 
   const submit = async () => {
@@ -231,6 +273,7 @@ function CheckoutPage() {
             utm_source: t.last.utm_source ?? null, utm_medium: t.last.utm_medium ?? null, utm_campaign: t.last.utm_campaign ?? null,
             utm_content: t.last.utm_content ?? null, utm_term: t.last.utm_term ?? null,
             utm_id: params.get("utm_id"), fbclid: params.get("fbclid"),
+            ...Object.fromEntries(["src", "sck", "gclid", "wbraid", "gbraid", "ttclid", "kclid", "click_id"].map((k) => [k, params.get(k)])),
             fbp: t.fbp, fbc: t.fbc, user_agent: navigator.userAgent.slice(0, 400),
           },
         },
@@ -348,11 +391,7 @@ function CheckoutPage() {
           <>
             <Card>
               <div className="space-y-2 text-center">
-                <Clock className="mx-auto size-8 text-muted-foreground" />
-                <p className="font-semibold text-foreground">Pedido #{order.order_number} criado</p>
-                <p className="text-sm text-muted-foreground">
-                  O pagamento Pix ainda não está conectado nesta loja. Seu pedido foi registrado como pendente, e nenhuma cobrança foi gerada.
-                </p>
+                <PixPanel order={order} color={s.button_color} />
               </div>
             </Card>
             {summary}
@@ -411,6 +450,62 @@ function CheckoutPage() {
         </div>
       )}
     </main>
+  );
+}
+
+const PIX_KEY = "vt_pix_attempt";
+type PixAttempt = { attempt_id: string; status: string; amount_cents: number; pix_copy_paste: string | null; qr_code_image: string | null; expires_at: string | null };
+
+function PixPanel({ order, color }: { order: { order_number: string; attempt: PixAttempt | null; payment_error: string | null }; color: string }) {
+  const a = order.attempt;
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id); }, []);
+  if (!a) {
+    return (
+      <>
+        <Clock className="mx-auto size-8 text-muted-foreground" />
+        <p className="font-semibold text-foreground">Pedido #{order.order_number} criado</p>
+        <p className="text-sm text-muted-foreground">{order.payment_error ?? "O Pix não pôde ser gerado agora."} Nenhuma cobrança foi feita.</p>
+      </>
+    );
+  }
+  if (a.status === "paid") {
+    return (
+      <>
+        <CheckCircle2 className="mx-auto size-10 text-[color:var(--success,green)]" />
+        <p className="text-lg font-bold text-foreground">Pagamento aprovado!</p>
+        <p className="text-sm text-muted-foreground">Pedido #{order.order_number} confirmado. Você receberá as informações por e-mail.</p>
+      </>
+    );
+  }
+  const expired = a.status === "expired" || (a.expires_at ? new Date(a.expires_at).getTime() <= now : false);
+  if (expired || ["failed", "declined", "cancelled"].includes(a.status)) {
+    return (
+      <>
+        <Clock className="mx-auto size-8 text-muted-foreground" />
+        <p className="font-semibold text-foreground">{expired ? "Este Pix expirou" : "Pagamento não concluído"}</p>
+        <p className="text-sm text-muted-foreground">Pedido #{order.order_number}. Volte ao produto para gerar um novo pedido.</p>
+      </>
+    );
+  }
+  const left = a.expires_at ? Math.max(0, Math.floor((new Date(a.expires_at).getTime() - now) / 1000)) : null;
+  const copy = () => a.pix_copy_paste && navigator.clipboard.writeText(a.pix_copy_paste).then(() => toast.success("Código Pix copiado!"), () => toast.error("Copie o código manualmente."));
+  return (
+    <>
+      <p className="font-semibold text-foreground">Pague com Pix para concluir o pedido #{order.order_number}</p>
+      <p className="text-2xl font-bold text-foreground">{brl.format(a.amount_cents / 100)}</p>
+      {left != null && <p className="text-xs text-muted-foreground">Expira em {String(Math.floor(left / 60)).padStart(2, "0")}:{String(left % 60).padStart(2, "0")}</p>}
+      {a.qr_code_image && <img src={a.qr_code_image} alt="QR Code Pix" className="mx-auto size-52 rounded-lg border border-border bg-background object-contain p-2" />}
+      {a.pix_copy_paste && (
+        <>
+          <textarea readOnly value={a.pix_copy_paste} rows={3} className="w-full resize-none rounded-lg border border-input bg-muted p-2 font-mono text-[11px] text-foreground" />
+          <button type="button" onClick={copy} className="flex h-11 w-full items-center justify-center gap-2 rounded-full text-sm font-bold" style={{ background: color, color: "#fff" }}>
+            <Copy className="size-4" /> COPIAR CÓDIGO PIX
+          </button>
+        </>
+      )}
+      <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground"><Clock className="size-3.5" /> Aguardando pagamento… esta tela atualiza sozinha.</p>
+    </>
   );
 }
 

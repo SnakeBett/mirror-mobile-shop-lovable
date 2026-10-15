@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
 import { parseShippingFee, isValidCpf, onlyDigits } from "./checkout-settings";
+import type { PublicAttempt } from "./payments.server";
 import { DEFAULT_VARIANT_SETTINGS, computePricing, missingSelection, type ProductAttribute, type ProductVariant, type QuantityOffer, type VariantSettings } from "./variants";
 
 const unitSchema = z.record(z.string().uuid(), z.string().uuid());
@@ -142,7 +143,7 @@ const orderSchema = quoteSchema.extend({
 });
 
 export type CreateOrderResult =
-  | { ok: true; order_id: string; order_number: string; total: number; gateway_status: "pending_integration" | "no_gateway" }
+  | { ok: true; order_id: string; order_number: string; total: number; attempt: PublicAttempt | null; payment_error: string | null }
   | { ok: false; error: string };
 
 export const createPendingOrder = createServerFn({ method: "POST" })
@@ -204,12 +205,37 @@ export const createPendingOrder = createServerFn({ method: "POST" })
       console.error("checkout_create_order", msg);
       return { ok: false, error: "Não foi possível criar o pedido. Tente novamente." };
     }
-    // Etapa 2: aqui será chamado getGatewayAdapter(gateway.provider).createPixCharge(...)
+    const { createChargeForOrder } = await import("./payments.server");
+    const totalCents = Math.round(quote.total * 100);
+    const shipCents = Math.round((quote.shipping ?? 0) * 100);
+    const title = `${product.name}${kit ? ` · ${kit.name}` : ""}${labels.length ? ` (${labels.join("; ")})` : ""}`;
+    const charge = totalCents > 0
+      ? await createChargeForOrder(orderId as string, gateway, () => ({
+          order_id: orderId as string,
+          amount_cents: totalCents,
+          customer: { name: data.buyer.name, email: data.buyer.email.toLowerCase(), cpf, phone: onlyDigits(data.buyer.phone) },
+          description: `Pedido ${String(orderId).slice(0, 8).toUpperCase()}`,
+          items: [
+            { id: product.id, title, unit_price_cents: totalCents - shipCents, quantity: 1, tangible: true },
+            ...(shipCents > 0 ? [{ id: "frete", title: "Frete", unit_price_cents: shipCents, quantity: 1, tangible: false }] : []),
+          ],
+          shipping: { street: data.address.street, number: data.address.number, complement: data.address.complement, cep: onlyDigits(data.address.cep), district: data.address.district, city: data.address.city, state: data.address.state.toUpperCase() },
+          tracking: Object.fromEntries(Object.entries(t).filter(([, v]) => typeof v === "string" && v)) as Record<string, string>,
+        }))
+      : ({ ok: false, error: "Total inválido para Pix." } as const);
     return {
       ok: true,
       order_id: orderId as string,
       order_number: String(orderId).slice(0, 8).toUpperCase(),
       total: quote.total,
-      gateway_status: gateway ? "pending_integration" : "no_gateway",
+      attempt: charge.ok ? charge.attempt : null,
+      payment_error: charge.ok ? null : charge.error,
     };
+  });
+
+export const getPixStatus = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) => z.object({ attempt_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }): Promise<PublicAttempt | null> => {
+    const { reconcileAttempt } = await import("./payments.server");
+    return reconcileAttempt(data.attempt_id);
   });

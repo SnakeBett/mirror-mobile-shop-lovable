@@ -38,6 +38,7 @@ import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
 import { Route as ApiPublicWebhooksImperiumpayRouteImport } from './routes/api/public/webhooks/imperiumpay'
 import { Route as ApiPublicWebhooksPagamentoRouteImport } from './routes/api/public/webhooks/pagamento'
+import { Route as ApiPublicWebhooksZuckpayRouteImport } from './routes/api/public/webhooks/zuckpay'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -194,6 +195,12 @@ const ApiPublicWebhooksPagamentoRoute =
     path: '/api/public/webhooks/pagamento',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWebhooksZuckpayRoute =
+  ApiPublicWebhooksZuckpayRouteImport.update({
+    id: '/api/public/webhooks/zuckpay',
+    path: '/api/public/webhooks/zuckpay',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -223,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
+  '/api/public/webhooks/zuckpay': typeof ApiPublicWebhooksZuckpayRoute
   '/admin/produtos/': typeof AdminAdminProdutosIndexRoute
 }
 export interface FileRoutesByTo {
@@ -253,6 +261,7 @@ export interface FileRoutesByTo {
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
+  '/api/public/webhooks/zuckpay': typeof ApiPublicWebhooksZuckpayRoute
   '/admin/produtos': typeof AdminAdminProdutosIndexRoute
 }
 export interface FileRoutesById {
@@ -285,6 +294,7 @@ export interface FileRoutesById {
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
+  '/api/public/webhooks/zuckpay': typeof ApiPublicWebhooksZuckpayRoute
   '/_admin/admin/produtos/': typeof AdminAdminProdutosIndexRoute
 }
 export interface FileRouteTypes {
@@ -317,6 +327,7 @@ export interface FileRouteTypes {
     | '/admin/produtos/novo'
     | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
+    | '/api/public/webhooks/zuckpay'
     | '/admin/produtos/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -347,6 +358,7 @@ export interface FileRouteTypes {
     | '/admin/produtos/novo'
     | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
+    | '/api/public/webhooks/zuckpay'
     | '/admin/produtos'
   id:
     | '__root__'
@@ -378,6 +390,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/produtos/novo'
     | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
+    | '/api/public/webhooks/zuckpay'
     | '/_admin/admin/produtos/'
   fileRoutesById: FileRoutesById
 }
@@ -391,6 +404,7 @@ export interface RootRouteChildren {
   ApiPublicTrackRoute: typeof ApiPublicTrackRoute
   ApiPublicWebhooksImperiumpayRoute: typeof ApiPublicWebhooksImperiumpayRoute
   ApiPublicWebhooksPagamentoRoute: typeof ApiPublicWebhooksPagamentoRoute
+  ApiPublicWebhooksZuckpayRoute: typeof ApiPublicWebhooksZuckpayRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -598,6 +612,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksPagamentoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/webhooks/zuckpay': {
+      id: '/api/public/webhooks/zuckpay'
+      path: '/api/public/webhooks/zuckpay'
+      fullPath: '/api/public/webhooks/zuckpay'
+      preLoaderRoute: typeof ApiPublicWebhooksZuckpayRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -670,6 +691,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicTrackRoute: ApiPublicTrackRoute,
   ApiPublicWebhooksImperiumpayRoute: ApiPublicWebhooksImperiumpayRoute,
   ApiPublicWebhooksPagamentoRoute: ApiPublicWebhooksPagamentoRoute,
+  ApiPublicWebhooksZuckpayRoute: ApiPublicWebhooksZuckpayRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

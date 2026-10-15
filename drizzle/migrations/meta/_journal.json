@@ -29,6 +29,13 @@
       "when": 1792027672310,
       "tag": "0003_checkout_logo_public_read",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792028631829,
+      "tag": "0004_payment_attempts",
+      "breakpoints": true
     }
   ]
 }

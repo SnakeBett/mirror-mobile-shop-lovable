@@ -484,6 +484,78 @@ export type Database = {
           },
         ]
       }
+      payment_attempts: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          error_message: string | null
+          expires_at: string | null
+          gateway_id: string | null
+          id: string
+          last_checked_at: string | null
+          order_id: string
+          paid_at: string | null
+          pix_copy_paste: string | null
+          provider: string
+          provider_transaction_id: string | null
+          qr_code_image: string | null
+          raw_status: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          gateway_id?: string | null
+          id?: string
+          last_checked_at?: string | null
+          order_id: string
+          paid_at?: string | null
+          pix_copy_paste?: string | null
+          provider: string
+          provider_transaction_id?: string | null
+          qr_code_image?: string | null
+          raw_status?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          error_message?: string | null
+          expires_at?: string | null
+          gateway_id?: string | null
+          id?: string
+          last_checked_at?: string | null
+          order_id?: string
+          paid_at?: string | null
+          pix_copy_paste?: string | null
+          provider?: string
+          provider_transaction_id?: string | null
+          qr_code_image?: string | null
+          raw_status?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_attempts_gateway_id_fkey"
+            columns: ["gateway_id"]
+            isOneToOne: false
+            referencedRelation: "payment_gateways"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_attempts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_gateways: {
         Row: {
           created_at: string

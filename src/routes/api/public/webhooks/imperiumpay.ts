@@ -92,8 +92,23 @@ export const Route = createFileRoute("/api/public/webhooks/imperiumpay")({
           return jsonResponse({ received: true, stored: false }, 202);
         }
 
-        // 200 rápido: nenhum processamento pesado é feito aqui.
-        return jsonResponse({ received: true, stored: true, status: "received_unmapped" }, 200);
+        // Postback assinado (X-Signature HMAC) → reconcilia pela API autenticada.
+        // Sem assinatura válida nada financeiro acontece; a confirmação segue pela consulta do checkout.
+        try {
+          const { imperiumpay } = await import("@/lib/gateways/imperiumpay.server");
+          const valid = await imperiumpay.verifyWebhook(request, raw);
+          if (!valid) return jsonResponse({ received: true, stored: true, verified: false, error: "Assinatura inválida ou ausente." }, 401);
+          const obj = (payload ?? {}) as Record<string, unknown>;
+          const inner = (obj["data"] ?? obj["sale"] ?? obj["transaction"] ?? obj) as Record<string, unknown>;
+          const txId = String(inner["id"] ?? obj["id"] ?? "");
+          const { findAttemptByTransaction, reconcileAttempt } = await import("@/lib/payments.server");
+          const attemptId = txId ? await findAttemptByTransaction("imperiumpay", txId) : null;
+          if (attemptId) await reconcileAttempt(attemptId, { minIntervalMs: 0 });
+          return jsonResponse({ received: true, verified: true, matched: !!attemptId }, 200);
+        } catch (err) {
+          console.error("[imperiumpay-webhook] reconciliação falhou:", err instanceof Error ? err.message : err);
+          return jsonResponse({ received: true, stored: true }, 200);
+        }
       },
     },
   },
