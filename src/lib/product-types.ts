@@ -34,6 +34,8 @@ export type ProductRow = {
   category_id: string | null;
   subcategory_id: string | null;
   store_id: string | null;
+  checkout_mode?: string;
+  gateway_id?: string | null;
   created_at: string;
   updated_at: string;
 };

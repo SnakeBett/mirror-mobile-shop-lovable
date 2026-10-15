@@ -256,6 +256,9 @@ export type CheckoutContext = {
   visitor_id?: string | null;
   session_id?: string | null;
   utms?: Record<string, string | null>;
+  slug?: string;
+  units?: UnitSelection[];
+  same_for_all?: boolean;
 };
 
 export const CHECKOUT_CONTEXT_KEY = "vt_checkout_context";
