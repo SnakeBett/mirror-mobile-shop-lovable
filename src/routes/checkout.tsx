@@ -153,26 +153,42 @@ function CheckoutPage() {
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
 
-  const loadQuote = async (code: string | null) => {
+  const [shippingId, setShippingId] = useState<string | null>(null);
+  const quoteSeq = useRef(0);
+  const loadQuote = async (code: string | null, ship: string | null = shippingId) => {
+    const seq = ++quoteSeq.current;
     try {
-      const q = await quoteFn({ data: { ...selection, coupon_code: code, buyer_cpf: isValidCpf(form.cpf) ? form.cpf : null } });
-      setQuote(q);
+      const res = await quoteFn({ data: { ...selection, coupon_code: code, shipping_method_id: ship, buyer_cpf: isValidCpf(form.cpf) ? form.cpf : null } });
+      if (seq !== quoteSeq.current) return null;
+      if (!res.ok) { setQuoteError(res.error); return null; }
+      setQuote(res.quote);
       setQuoteError(null);
-      return q;
+      return res.quote;
     } catch {
-      setQuoteError("Não foi possível calcular o pedido. Volte ao produto e tente novamente.");
+      if (seq === quoteSeq.current) setQuoteError("Não foi possível calcular o pedido agora. Verifique sua conexão e tente novamente.");
       return null;
     }
   };
   useEffect(() => {
-    if (slug) loadQuote(null);
+    if (!slug) return;
+    let saved: string | null = null;
+    try { saved = sessionStorage.getItem(`vt_checkout_shipping:${slug}`); } catch { /* ignora */ }
+    if (saved) setShippingId(saved);
+    loadQuote(null, saved);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [slug]);
+  const chooseShipping = async (id: string) => {
+    setShippingId(id);
+    idemKey.current = "";
+    try { sessionStorage.setItem(`vt_checkout_shipping:${slug}`, id); } catch { /* ignora */ }
+    await loadQuote(couponCode, id);
+  };
 
   const applyCoupon = async () => {
     const code = couponInput.trim().toUpperCase();
     if (!code) return;
     setCouponBusy(true);
+    idemKey.current = "";
     const q = await loadQuote(code);
     setCouponBusy(false);
     if (q?.coupon) setCouponCode(code);
@@ -181,22 +197,51 @@ function CheckoutPage() {
   const removeCoupon = async () => {
     setCouponCode(null);
     setCouponInput("");
+    idemKey.current = "";
     await loadQuote(null);
   };
 
   const [cepStatus, setCepStatus] = useState<string | null>(null);
+  const cepSeq = useRef(0);
+  const cepCache = useRef(new Map<string, { street: string; district: string; city: string; state: string } | null>());
+  const lastCep = useRef("");
   const lookupCep = async (cep: string) => {
     const d = onlyDigits(cep);
-    if (d.length !== 8) return;
+    if (d.length !== 8) { cepSeq.current++; setCepStatus(null); return; }
+    if (d === lastCep.current) return;
+    lastCep.current = d;
+    const seq = ++cepSeq.current;
+    const apply = (a: { street: string; district: string; city: string; state: string } | null, failed = false) => {
+      if (seq !== cepSeq.current) return;
+      if (a) {
+        setForm((f) => ({ ...f, street: a.street || f.street, district: a.district || f.district, city: a.city || f.city, state: a.state || f.state }));
+        setCepStatus(!a.street || !a.district ? "Complete a rua e o bairro." : null);
+      } else setCepStatus(failed ? "Não conseguimos buscar o CEP agora. Preencha o endereço manualmente." : "CEP não encontrado. Confira o número ou preencha manualmente.");
+    };
+    if (cepCache.current.has(d)) return apply(cepCache.current.get(d)!);
     setCepStatus("Buscando endereço...");
-    try {
-      const r = await fetch(`https://viacep.com.br/ws/${d}/json/`);
+    const viaCep = async () => {
+      const r = await fetch(`https://viacep.com.br/ws/${d}/json/`, { signal: AbortSignal.timeout(5000) });
+      if (!r.ok) throw new Error("http");
       const j = await r.json();
-      if (j.erro) throw new Error();
-      setForm((f) => ({ ...f, street: j.logradouro || f.street, district: j.bairro || f.district, city: j.localidade || f.city, state: j.uf || f.state }));
-      setCepStatus(null);
+      if (j.erro) return null;
+      return { street: j.logradouro ?? "", district: j.bairro ?? "", city: j.localidade ?? "", state: j.uf ?? "" };
+    };
+    const brasilApi = async () => {
+      const r = await fetch(`https://brasilapi.com.br/api/cep/v1/${d}`, { signal: AbortSignal.timeout(5000) });
+      if (r.status === 404) return null;
+      if (!r.ok) throw new Error("http");
+      const j = await r.json();
+      return { street: j.street ?? "", district: j.neighborhood ?? "", city: j.city ?? "", state: j.state ?? "" };
+    };
+    try {
+      let a: Awaited<ReturnType<typeof viaCep>>;
+      try { a = await viaCep(); } catch { a = await brasilApi(); }
+      cepCache.current.set(d, a);
+      apply(a);
     } catch {
-      setCepStatus("Não encontramos o CEP. Preencha o endereço manualmente.");
+      lastCep.current = "";
+      apply(null, true);
     }
   };
 
@@ -256,6 +301,7 @@ function CheckoutPage() {
       return;
     }
     if (quote?.selection_error) return setSubmitError(quote.selection_error);
+    if (quote && !quote.digital && quote.shipping_error) return setSubmitError(quote.shipping_error);
     setSubmitting(true);
     setSubmitError(null);
     if (!idemKey.current) idemKey.current = crypto.randomUUID() + "-" + Date.now();
@@ -266,6 +312,7 @@ function CheckoutPage() {
         data: {
           ...selection,
           coupon_code: couponCode,
+          shipping_method_id: quote?.shipping_method_id ?? shippingId,
           idempotency_key: idemKey.current,
           buyer: { name: form.name, email: form.email, cpf: form.cpf, phone: form.phone },
           address: quote?.digital ? null : { cep: form.cep, street: form.street, number: form.number, complement: form.complement, district: form.district, city: form.city, state: form.state },
@@ -423,6 +470,32 @@ function CheckoutPage() {
                 <Input className="col-span-2" label="Estado" maxLength={2} value={form.state} error={errors.state} onChange={(e) => set("state", e.target.value.toUpperCase())} />
               </div>
             </Card>
+            )}
+
+            {!quote?.digital && quote && quote.shipping_options.length > 0 && (
+              <Card title="Escolha a entrega" icon={<Truck className="size-4" />}>
+                <div className="space-y-2" role="radiogroup" aria-label="Escolha a entrega">
+                  {quote.shipping_options.map((m) => {
+                    const on = quote.shipping_method_id === m.id;
+                    const days = m.min_days != null && m.max_days != null ? (m.min_days === m.max_days ? `${m.min_days} dias` : `${m.min_days} a ${m.max_days} dias`) : m.max_days != null ? `até ${m.max_days} dias` : null;
+                    return (
+                      <button key={m.id} type="button" role="radio" aria-checked={on} onClick={() => chooseShipping(m.id)} className="flex w-full items-center gap-3 rounded-lg border p-3 text-left" style={on ? { borderColor: s.button_color, borderWidth: 2 } : undefined}>
+                        <span className="flex size-5 shrink-0 items-center justify-center rounded-full border" style={on ? { background: s.button_color, borderColor: s.button_color } : undefined}>{on && <Check className="size-3 text-primary-foreground" />}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-semibold text-foreground">{m.name}</span>
+                          {m.description && <span className="block text-xs text-muted-foreground">{m.description}</span>}
+                          {days && <span className="block text-xs text-muted-foreground">Prazo estimado: {days}</span>}
+                        </span>
+                        <span className="text-sm font-semibold text-foreground">{m.price <= 0 ? "Grátis" : brl.format(m.price)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {quote.shipping_error && !quote.shipping_method_id && <p className="mt-2 text-xs text-destructive">{quote.shipping_error}</p>}
+              </Card>
+            )}
+            {!quote?.digital && quote && quote.shipping_options.length === 0 && quote.shipping_error && (
+              <p className="text-center text-xs text-destructive">{quote.shipping_error}</p>
             )}
 
             {summary}
