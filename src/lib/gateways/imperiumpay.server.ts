@@ -119,7 +119,8 @@ export const imperiumpay: GatewayAdapter = {
     const candidates = [rawBody];
     try { candidates.push(JSON.stringify(JSON.parse(rawBody))); } catch { /* corpo inválido */ }
     for (const msg of candidates) {
-      for (const expected of await hmac(secret, msg)) if (safeEqual(expected.toLowerCase() === expected ? sig.toLowerCase() : sig, expected)) return true;
+      const [hex, b64] = await hmac(secret, msg);
+      if (safeEqual(sig.toLowerCase(), hex!) || safeEqual(sig, b64!)) return true;
     }
     return false;
   },
