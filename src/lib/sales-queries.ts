@@ -22,6 +22,11 @@ export type OrderRow = {
   is_test: boolean;
   paid_at: string | null;
   created_at: string;
+  shipping_amount?: number | null;
+  shipping_method_name?: string | null;
+  coupon_discount?: number | null;
+  shipping_address?: { cep?: string; street?: string; number?: string; complement?: string; district?: string; city?: string; state?: string } | null;
+  metadata?: { quantity?: number; kit_name?: string | null; variant_labels?: string[]; product_discount?: number } | null;
 };
 
 export type SalesRange = { from: string; to: string };
@@ -166,12 +171,12 @@ export type OrderFilters = {
   to?: string;
 };
 
-export type OrderListItem = OrderRow & { product_name: string | null };
+export type OrderListItem = OrderRow & { product_name: string | null; gateway_name?: string | null };
 
 export async function listOrders(filters: OrderFilters = {}): Promise<OrderListItem[]> {
   let query = supabase
     .from("orders")
-    .select("*, products(name)")
+    .select("*, products(name), payment_gateways(name)")
     .order("created_at", { ascending: false })
     .limit(300);
 
