@@ -34,6 +34,8 @@ export type CreatePixInput = {
   amount_cents: number;
   customer: { name: string; email: string; cpf: string; phone: string };
   description: string;
+  /** Frete incluído em amount_cents (já somado ao total exibido). */
+  shipping_cents: number;
   items: Array<{ id: string; title: string; unit_price_cents: number; quantity: number; tangible: boolean }>;
   shipping: { street: string; number: string; complement: string; cep: string; district: string; city: string; state: string } | null;
   tracking: Record<string, string | null>;

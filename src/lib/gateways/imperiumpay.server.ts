@@ -53,6 +53,8 @@ export const imperiumpay: GatewayAdapter = {
   normalizePaymentStatus: normalize,
 
   async createPixCharge(input) {
+    // A documentação não traz campo oficial de frete; não inventamos item "Frete".
+    if (input.shipping_cents > 0) throw new GatewayRequestError("ImperiumPay: frete pago não suportado pela documentação recebida; cobrança não criada.");
     const itemsSum = input.items.reduce((s, i) => s + i.unit_price_cents * i.quantity, 0);
     if (itemsSum !== input.amount_cents) throw new GatewayRequestError("Soma dos itens diverge do total; cobrança não criada.");
     const t = input.tracking;
