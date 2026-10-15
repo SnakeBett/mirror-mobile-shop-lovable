@@ -127,7 +127,7 @@ export async function reconcileAttempt(attemptId: string, opts: { minIntervalMs?
     if (row) await sendPurchaseForOrder(row.id, row.customer_phone ?? null).catch((e) => console.error("[pix] purchase", e));
   } else if (orderStatus) {
     // Estados finais negativos só se aplicam a pedidos ainda pendentes ou (estorno/chargeback) pagos.
-    const from = orderStatus === "refunded" || orderStatus === "chargeback" ? ["paid", "pending"] : ["pending"];
+    const from: Array<"paid" | "pending"> = orderStatus === "refunded" || orderStatus === "chargeback" ? ["paid", "pending"] : ["pending"];
     await sb.from("orders").update({ status: orderStatus, updated_at: now }).eq("id", a.order_id).in("status", from);
   }
   return toPublic(updated ?? a);
