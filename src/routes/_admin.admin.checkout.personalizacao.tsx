@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +39,13 @@ function Page() {
   const [s, setS] = useState<CheckoutSettings | null>(null);
   const [newPhrase, setNewPhrase] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!s?.logo_path) return;
+    supabase.storage.from("product-images").createSignedUrl(s.logo_path, 3600).then(({ data }) => setLogoUrl(data?.signedUrl ?? null));
+  }, [s?.logo_path]);
   useEffect(() => {
     if (q.data) setS(normalizeCheckoutSettings(q.data.settings));
   }, [q.data]);
@@ -50,6 +57,19 @@ function Page() {
     if (j < 0 || j >= list.length) return;
     [list[i], list[j]] = [list[j]!, list[i]!];
     up("phrases", list);
+  };
+  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) { toast.error("Use PNG, JPG ou WebP."); return; }
+    setUploading(true);
+    const ext = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    const path = `checkout/logo-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("product-images").upload(path, file, { contentType: file.type });
+    setUploading(false);
+    if (error) { toast.error("Não foi possível enviar a logo."); return; }
+    up("logo_path", path);
   };
   const save = async () => {
     setSaving(true);
@@ -96,7 +116,19 @@ function Page() {
 
       <section className="space-y-3 rounded-lg border border-border p-4">
         <h2 className="font-semibold">Logo e botões</h2>
-        <label className="flex items-center gap-2 text-sm"><Switch checked={s.show_logo} onCheckedChange={(v) => up("show_logo", v)} /> Mostrar a logo da loja do produto</label>
+        <div className="space-y-2">
+          <Label>Logo do Checkout</Label>
+          <div className="flex h-24 items-center justify-center rounded-md border border-dashed border-border bg-muted/40 p-2">
+            {logoUrl ? <img src={logoUrl} alt="Logo do checkout" style={{ maxHeight: s.logo_height }} className="max-w-[200px] object-contain" /> : <span className="text-xs text-muted-foreground">Nenhuma logo cadastrada</span>}
+          </div>
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" size="sm" disabled={uploading} onClick={() => fileRef.current?.click()}>{uploading ? "Enviando..." : s.logo_path ? "Substituir logo" : "Enviar logo"}</Button>
+            {s.logo_path && <Button type="button" variant="ghost" size="sm" onClick={() => { up("logo_path", null); setLogoUrl(null); }}>Remover</Button>}
+          </div>
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={onFile} />
+          <p className="text-xs text-muted-foreground">PNG (inclusive transparente), JPG ou WebP. A mesma logo aparece em todos os checkouts. Clique em Salvar para aplicar.</p>
+        </div>
+        <label className="flex items-center gap-2 text-sm"><Switch checked={s.show_logo} onCheckedChange={(v) => up("show_logo", v)} /> Mostrar a logo no checkout</label>
         <div className="space-y-1"><Label>Altura da logo (px)</Label><Input type="number" min={20} max={80} value={s.logo_height} onChange={(e) => up("logo_height", Number(e.target.value))} /></div>
         <ColorField label="Cor principal dos botões" value={s.button_color} onChange={(v) => up("button_color", v)} />
         <div className="space-y-1"><Label>Texto do botão principal</Label><Input value={s.button_text} maxLength={40} onChange={(e) => up("button_text", e.target.value)} /></div>

@@ -128,6 +128,7 @@ function CheckoutPage() {
     },
   });
   const s = settings.data ?? DEFAULT_CHECKOUT_SETTINGS;
+  const logoUrl = useCheckoutLogo(s.logo_path);
 
   const sameCtx = ctx && ctx.slug === slug ? ctx : null;
   const selection = useMemo(
@@ -261,13 +262,9 @@ function CheckoutPage() {
         <button type="button" onClick={() => history.back()} className="flex size-9 items-center justify-center rounded-full text-foreground hover:bg-muted" aria-label="Voltar">
           <ArrowLeft className="size-5" />
         </button>
-        {s.show_logo && (store?.logo_url ? (
-          <img src={store.logo_url} alt={store.name} style={{ height: s.logo_height }} className="max-w-[160px] object-contain" />
-        ) : store?.name ? (
-          <span className="text-sm font-semibold text-foreground">{store.name}</span>
-        ) : (
-          <Store className="size-6 text-muted-foreground" aria-hidden="true" />
-        ))}
+        {s.show_logo && logoUrl ? (
+          <img src={logoUrl} alt="Logo" style={{ maxHeight: s.logo_height }} className="h-auto w-auto max-w-[55vw] object-contain sm:max-w-[200px]" />
+        ) : <span />}
         <span className="size-9" />
       </header>
       <div className="bg-background px-4 pb-2 pt-3 text-center">
@@ -416,4 +413,15 @@ function CheckoutPage() {
       )}
     </main>
   );
+}
+
+function useCheckoutLogo(path: string | null) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!path) { setUrl(null); return; }
+    supabase.storage.from("product-images").createSignedUrl(path, 3600).then(({ data }) => { if (alive) setUrl(data?.signedUrl ?? null); });
+    return () => { alive = false; };
+  }, [path]);
+  return url;
 }
