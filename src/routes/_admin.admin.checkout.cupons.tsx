@@ -42,15 +42,15 @@ function Page() {
   const stores = useQuery({ queryKey: ["admin", "coupon-stores"], queryFn: async () => (await supabase.from("stores").select("id, name").order("name")).data ?? [] });
   const [edit, setEdit] = useState<Coupon | null>(null);
 
-  const save = async () => {
+  const save = async (): Promise<void> => {
     if (!edit) return;
     const code = edit.code.trim().toUpperCase();
-    if (!/^[A-Z0-9_-]{2,40}$/.test(code)) return toast.error("Código: use 2 a 40 letras, números, - ou _.");
-    if (!(edit.discount_value > 0) || (edit.discount_type === "percentage" && edit.discount_value > 100)) return toast.error("Desconto inválido.");
+    if (!/^[A-Z0-9_-]{2,40}$/.test(code)) { toast.error("Código: use 2 a 40 letras, números, - ou _."); return; }
+    if (!(edit.discount_value > 0) || (edit.discount_type === "percentage" && edit.discount_value > 100)) { toast.error("Desconto inválido."); return; }
     const { id, uses_count: _u, ...rest } = edit;
     const row = { ...rest, code, updated_at: new Date().toISOString() };
     const { error } = id ? await supabase.from("coupons").update(row).eq("id", id) : await supabase.from("coupons").insert(row);
-    if (error) return toast.error(error.code === "23505" ? "Já existe um cupom com esse código." : "Não foi possível salvar.");
+    if (error) { toast.error(error.code === "23505" ? "Já existe um cupom com esse código." : "Não foi possível salvar."); return; }
     toast.success("Cupom salvo");
     setEdit(null);
     qc.invalidateQueries({ queryKey: ["admin", "coupons"] });

@@ -11,7 +11,7 @@ import { DEFAULT_CHECKOUT_SETTINGS, isValidCpf, maskCep, maskCpf, maskPhone, nor
 import { CHECKOUT_CONTEXT_KEY, unitLabel, type CheckoutContext } from "@/lib/variants";
 import { getCheckoutTrackingContext } from "@/lib/analytics";
 
-type Search = { produto?: string };
+type Search = { produto?: string | undefined };
 
 export const Route = createFileRoute("/checkout")({
   ssr: false,
@@ -101,7 +101,7 @@ function Card({ children, title, icon }: { children: React.ReactNode; title?: st
   );
 }
 
-function Input({ label, error, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string }) {
+function Input({ label, error, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | undefined }) {
   return (
     <label className={"block " + (className ?? "")}>
       <span className="mb-1 block text-xs text-muted-foreground">{label}</span>
