@@ -54,17 +54,17 @@ function Page() {
     if (!edit) return;
     const name = edit.name.trim();
     if (!name) { toast.error("Informe o nome do método."); return; }
-    if (!Number.isFinite(edit.price) || edit.price < 0) { toast.error("Valor inválido.");
-    if (edit.min_days != null && edit.max_days != null && edit.min_days > edit.max_days) { toast.error("O prazo mínimo não pode ser maior que o máximo.");
+    if (!Number.isFinite(edit.price) || edit.price < 0) { toast.error("Valor inválido."); return; }
+    if (edit.min_days != null && edit.max_days != null && edit.min_days > edit.max_days) { toast.error("O prazo mínimo não pode ser maior que o máximo."); return; }
     const code = codeOf(edit.code || name);
-    if (!code) { toast.error("Identificador inválido.");
+    if (!code) { toast.error("Identificador inválido."); return; }
     setSaving(true);
     const row = { code, name, description: edit.description?.trim() || null, price: Math.round(edit.price * 100) / 100, min_days: edit.min_days, max_days: edit.max_days, is_active: edit.is_active, sort_order: edit.id ? edit.sort_order : list.length };
     const { error } = edit.id
       ? await supabase.from("shipping_methods").update(row).eq("id", edit.id)
       : await supabase.from("shipping_methods").insert(row);
     setSaving(false);
-    if (error) { toast.error(error.code === "23505" ? "Já existe um método com esse identificador." : "Não foi possível salvar.");
+    if (error) { toast.error(error.code === "23505" ? "Já existe um método com esse identificador." : "Não foi possível salvar."); return; }
     toast.success("Método salvo.");
     setEdit(null);
     refresh();
@@ -73,7 +73,7 @@ function Page() {
   const remove = async (m: ShippingMethod) => {
     if (!confirm(`Excluir "${m.name}"? Pedidos antigos mantêm o nome e o valor cobrado.`)) return;
     const { error } = await supabase.from("shipping_methods").delete().eq("id", m.id!);
-    if (error) { toast.error("Não foi possível excluir.");
+    if (error) { toast.error("Não foi possível excluir."); return; }
     refresh();
   };
   const toggle = async (m: ShippingMethod, v: boolean) => {
