@@ -70,7 +70,7 @@ export async function createChargeForOrder(
       provider_transaction_id: charge.providerTransactionId, status: charge.status === "paid" ? "pending" : charge.status === "unknown" ? "pending" : charge.status,
       raw_status: charge.rawStatus, pix_copy_paste: charge.pixCopyPaste, qr_code_image: charge.qrCodeImage, expires_at: charge.expiresAt, updated_at: new Date().toISOString(),
     }).eq("id", attempt.id).select("*").single();
-    await sb.from("orders").update({ payment_method: "pix", external_order_id: `${gateway.provider}:${charge.providerTransactionId}` }).eq("id", orderId);
+    await sb.from("orders").update({ payment_method: "pix" }).eq("id", orderId);
     return { ok: true, attempt: toPublic(saved ?? attempt) };
   } catch (e) {
     const unknown = e instanceof GatewayUnknownResultError;
