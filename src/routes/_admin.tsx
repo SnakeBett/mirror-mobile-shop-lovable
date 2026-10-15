@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, CreditCard, Download, Filter, LayoutDashboard, LogOut, Package, Receipt, Settings, Store, Tags, Webhook } from "lucide-react";
+import { BarChart3, CreditCard, Download, Filter, LayoutDashboard, LogOut, Package, Receipt, Settings, Store, Tags, Truck, Webhook } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { claimAdminIfFirst } from "@/lib/admin.functions";
@@ -144,6 +144,13 @@ function AdminLayout() {
             className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           >
             <CreditCard className="size-4" /> Checkouts
+          </Link>
+          <Link
+            to="/admin/entrega/fretes"
+            activeProps={{ className: "bg-accent text-accent-foreground" }}
+            className="flex items-center gap-2 rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          >
+            <Truck className="size-4" /> Entrega: Métodos de Frete
           </Link>
           <Link
             to="/admin/checkout/personalizacao"

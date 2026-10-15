@@ -371,6 +371,8 @@ export type Database = {
           session_id: string | null
           shipping_address: Json | null
           shipping_amount: number | null
+          shipping_method_id: string | null
+          shipping_method_name: string | null
           source: string
           status: Database["public"]["Enums"]["order_status"]
           subtotal: number | null
@@ -410,6 +412,8 @@ export type Database = {
           session_id?: string | null
           shipping_address?: Json | null
           shipping_amount?: number | null
+          shipping_method_id?: string | null
+          shipping_method_name?: string | null
           source?: string
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number | null
@@ -449,6 +453,8 @@ export type Database = {
           session_id?: string | null
           shipping_address?: Json | null
           shipping_amount?: number | null
+          shipping_method_id?: string | null
+          shipping_method_name?: string | null
           source?: string
           status?: Database["public"]["Enums"]["order_status"]
           subtotal?: number | null
@@ -1269,7 +1275,9 @@ export type Database = {
           shipping_discount_text: string | null
           shipping_fee: string | null
           shipping_max_days: number
+          shipping_method_ids: string[]
           shipping_min_days: number
+          shipping_mode: string
           shipping_promotion_text: string | null
           slug: string
           source_platform: string | null
@@ -1315,7 +1323,9 @@ export type Database = {
           shipping_discount_text?: string | null
           shipping_fee?: string | null
           shipping_max_days?: number
+          shipping_method_ids?: string[]
           shipping_min_days?: number
+          shipping_mode?: string
           shipping_promotion_text?: string | null
           slug: string
           source_platform?: string | null
@@ -1361,7 +1371,9 @@ export type Database = {
           shipping_discount_text?: string | null
           shipping_fee?: string | null
           shipping_max_days?: number
+          shipping_method_ids?: string[]
           shipping_min_days?: number
+          shipping_mode?: string
           shipping_promotion_text?: string | null
           slug?: string
           source_platform?: string | null
@@ -1528,6 +1540,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shipping_methods: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_days: number | null
+          min_days: number | null
+          name: string
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_days?: number | null
+          min_days?: number | null
+          name: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_days?: number | null
+          min_days?: number | null
+          name?: string
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       stores: {
         Row: {
@@ -1778,6 +1832,10 @@ export type Database = {
           _order: Json
         }
         Returns: string
+      }
+      checkout_set_order_shipping: {
+        Args: { _method_id: string; _method_name: string; _order_id: string }
+        Returns: undefined
       }
       has_role: {
         Args: {
