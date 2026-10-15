@@ -1,4 +1,6 @@
-import { getGatewayAdapter, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, webhookUrl, type CreatePixInput, type InternalPaymentStatus } from "./gateways";
+import { getGatewayAdapter, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, type CreatePixInput, type InternalPaymentStatus } from "./gateways";
+import { resolveGatewayCredentials, resolveWebhookUrl } from "./gateways/credential-store.server";
+import { isGatewayProvider } from "./gateways/credentials";
 import { sendPurchaseForOrder } from "./meta-purchase.server";
 
 /** Estado público de uma tentativa (sem dados pessoais). */
@@ -56,12 +58,18 @@ export async function createChargeForOrder(
     console.error("pix configuration", { gateway: gateway.provider, endpoint, order_id: orderId, http_status: null, code });
     return { ok: false, code: "not_configured", error: message };
   };
-  if (!adapter) return configFailure("UNSUPPORTED_GATEWAY", "O serviço Pix escolhido não é suportado pela loja.");
-  if (!adapter.configured()) return configFailure("MISSING_CREDENTIALS", "O serviço Pix escolhido está sem configuração de acesso. Entre em contato com a loja.");
+  if (!adapter || !isGatewayProvider(gateway.provider)) return configFailure("UNSUPPORTED_GATEWAY", "O serviço Pix escolhido não é suportado pela loja.");
+  // Leitura sem cache: chave trocada no painel vale já na próxima cobrança.
+  const creds = await resolveGatewayCredentials(gateway.provider, { fresh: true });
+  if (!adapter.configured(creds.values)) {
+    if (!creds.store.ok) return configFailure("VAULT_UNAVAILABLE", "O pagamento Pix está indisponível no momento. Tente novamente em instantes.");
+    return configFailure("MISSING_CREDENTIALS", "O serviço Pix escolhido está sem configuração de acesso. Entre em contato com a loja.");
+  }
 
   const { data: gw } = await sb.from("payment_gateways").select("is_active").eq("id", gateway.id).maybeSingle();
   if (!gw?.is_active) return configFailure("GATEWAY_DISABLED", "O serviço Pix escolhido está desativado pela loja. Entre em contato com a loja para finalizar a compra.");
 
+  const notifyUrl = await resolveWebhookUrl(gateway.provider);
   const draft = build("");
   const { data: attempt, error } = await sb.from("payment_attempts")
     .insert({ order_id: orderId, gateway_id: gateway.id, provider: gateway.provider, amount_cents: draft.amount_cents, status: "creating" })
@@ -71,7 +79,7 @@ export async function createChargeForOrder(
     return { ok: false, code: "unknown_result", error: "Seu Pix já está sendo gerado. Aguarde alguns instantes." };
   }
   try {
-    const charge = await adapter.createPixCharge({ ...build(attempt.id), attempt_id: attempt.id, webhook_url: webhookUrl(gateway.provider) });
+    const charge = await adapter.createPixCharge({ ...build(attempt.id), attempt_id: attempt.id, webhook_url: notifyUrl }, creds.values);
     const { data: saved } = await sb.from("payment_attempts").update({
       provider_transaction_id: charge.providerTransactionId, status: charge.status === "paid" ? "pending" : charge.status === "unknown" ? "pending" : charge.status,
       raw_status: charge.rawStatus, pix_copy_paste: charge.pixCopyPaste, qr_code_image: charge.qrCodeImage, expires_at: charge.expiresAt, updated_at: new Date().toISOString(),
@@ -109,10 +117,12 @@ export async function reconcileAttempt(attemptId: string, opts: { minIntervalMs?
   await sb.from("payment_attempts").update({ last_checked_at: new Date().toISOString(), check_count: (a.check_count ?? 0) + 1 }).eq("id", a.id);
 
   const adapter = await getGatewayAdapter(a.provider);
-  if (!adapter?.configured()) return toPublic(a);
+  if (!adapter || !isGatewayProvider(a.provider)) return toPublic(a);
+  const creds = await resolveGatewayCredentials(a.provider);
+  if (!adapter.configured(creds.values)) return toPublic(a);
   let result;
   try {
-    result = await adapter.getPaymentStatus(a.provider_transaction_id);
+    result = await adapter.getPaymentStatus(a.provider_transaction_id, creds.values);
   } catch (e) {
     console.error(`[pix:${a.provider}] consulta falhou`, e instanceof Error ? e.message : e);
     return toPublic(a);

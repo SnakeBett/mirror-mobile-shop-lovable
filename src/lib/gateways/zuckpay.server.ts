@@ -1,12 +1,12 @@
-import { fetchWithTimeout, gatewayErrorCode, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, type GatewayAdapter, type InternalPaymentStatus } from "./index";
+import { GATEWAY_FIELDS, isConfigured, type GatewayCredentials } from "./credentials";
+import { fetchWithTimeout, gatewayErrorCode, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, requireCredential, type GatewayAdapter, type InternalPaymentStatus } from "./index";
 
 const BASE = "https://www.zuckpay.com.br/conta/v3/pix";
 const TRACKING_KEYS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "src", "sck", "fbclid", "fbc", "fbp", "gclid", "wbraid", "gbraid", "ttclid", "kclid", "click_id"];
 
-function auth() {
-  const id = process.env["ZUCKPAY_CLIENT_ID"];
-  const secret = process.env["ZUCKPAY_CLIENT_SECRET"];
-  if (!id || !secret) throw new GatewayNotReadyError("zuckpay");
+function auth(creds: GatewayCredentials) {
+  const id = requireCredential("zuckpay", creds, "client_id");
+  const secret = requireCredential("zuckpay", creds, "client_secret");
   return "Basic " + btoa(`${id}:${secret}`);
 }
 
@@ -23,11 +23,11 @@ function toCents(v: unknown): number | null {
 
 export const zuckpay: GatewayAdapter = {
   provider: "zuckpay",
-  requiredSecrets: ["ZUCKPAY_CLIENT_ID", "ZUCKPAY_CLIENT_SECRET"],
-  configured: () => !!process.env["ZUCKPAY_CLIENT_ID"] && !!process.env["ZUCKPAY_CLIENT_SECRET"],
+  fields: GATEWAY_FIELDS.zuckpay,
+  configured: (creds) => isConfigured("zuckpay", creds),
   normalizePaymentStatus: normalize,
 
-  async createPixCharge(input) {
+  async createPixCharge(input, creds) {
     const body: Record<string, unknown> = {
       nome: input.customer.name,
       cpf: input.customer.cpf,
@@ -42,7 +42,7 @@ export const zuckpay: GatewayAdapter = {
     const createdAt = new Date();
     let res: Response;
     try {
-      res = await fetchWithTimeout(`${BASE}/qrcode`, { method: "POST", headers: { Authorization: auth(), "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      res = await fetchWithTimeout(`${BASE}/qrcode`, { method: "POST", headers: { Authorization: auth(creds), "Content-Type": "application/json" }, body: JSON.stringify(body) });
     } catch (e) {
       if (e instanceof GatewayNotReadyError) throw e;
       throw new GatewayUnknownResultError("Sem resposta da ZuckPay.");
@@ -70,8 +70,8 @@ export const zuckpay: GatewayAdapter = {
     };
   },
 
-  async getPaymentStatus(transactionId) {
-    const res = await fetchWithTimeout(`${BASE}/status?transactionId=${encodeURIComponent(transactionId)}`, { headers: { Authorization: auth() } });
+  async getPaymentStatus(transactionId, creds) {
+    const res = await fetchWithTimeout(`${BASE}/status?transactionId=${encodeURIComponent(transactionId)}`, { headers: { Authorization: auth(creds) } });
     if (!res.ok) throw new GatewayRequestError(`Consulta ZuckPay falhou (HTTP ${res.status}).`, res.status);
     const json = (await res.json().catch(() => ({}))) as Record<string, unknown>;
     const raw = (json["status"] as string) ?? null;
@@ -82,9 +82,9 @@ export const zuckpay: GatewayAdapter = {
   // sempre reconciliamos pela consulta autenticada.
   verifyWebhook: async () => false,
 
-  async testConnection() {
+  async testConnection(creds) {
     try {
-      const res = await fetchWithTimeout(`${BASE}/status?transactionId=teste-conexao`, { headers: { Authorization: auth() } });
+      const res = await fetchWithTimeout(`${BASE}/status?transactionId=teste-conexao`, { headers: { Authorization: auth(creds) } });
       if (res.status === 401 || res.status === 403) return { ok: false, message: "Credenciais recusadas pela ZuckPay." };
       return { ok: true, message: `ZuckPay respondeu (HTTP ${res.status}) e aceitou a autenticação.` };
     } catch (e) {

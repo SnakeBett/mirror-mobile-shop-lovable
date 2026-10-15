@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Copy } from "lucide-react";
 import { toast } from "sonner";
 
-import { getImperiumPayStatus } from "@/lib/payments.functions";
+import { getGatewayConfigStatus, getImperiumPayStatus } from "@/lib/payments.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -33,9 +33,13 @@ function formatDateTime(value: string | null) {
 
 function PaymentsSettingsPage() {
   const fetchStatus = useServerFn(getImperiumPayStatus);
+  const fetchConfig = useServerFn(getGatewayConfigStatus);
   const status = useQuery({ queryKey: ["admin", "imperiumpay", "status"], queryFn: () => fetchStatus() });
+  const config = useQuery({ queryKey: ["admin", "gateways", "config"], queryFn: () => fetchConfig() });
+  const imperium = config.data?.gateways.find((g) => g.provider === "imperiumpay");
 
-  const productionUrl = `${PUBLISHED_ORIGIN}${WEBHOOK_PATH}`;
+  // Mesmo endereço que vai nas cobranças (Gateways → Endereço do site); o padrão enquanto carrega.
+  const productionUrl = imperium?.webhook_url ?? `${PUBLISHED_ORIGIN}${WEBHOOK_PATH}`;
   const previewUrl = typeof window !== "undefined" ? `${window.location.origin}${WEBHOOK_PATH}` : "";
   const received = (status.data?.total_events ?? 0) > 0;
 
@@ -77,6 +81,33 @@ function PaymentsSettingsPage() {
           </p>
         ) : null}
 
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-3">
+          <p className="text-sm">
+            <span className="font-medium text-foreground">Chaves da Imperium Pay: </span>
+            <span className="text-muted-foreground">
+              {config.isError && !imperium
+                ? "não foi possível verificar agora."
+                : !imperium
+                  ? "verificando…"
+                  : !imperium.readable
+                    ? "não foi possível ler o cofre das chaves agora."
+                    : imperium.configured
+                      ? `completas${imperium.signature_check ? ", com segredo do postback" : ""}.`
+                      : `faltam ${imperium.missing.join(", ").toLowerCase()}.`}
+            </span>
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {config.isError && (
+              <Button type="button" size="sm" variant="ghost" onClick={() => void config.refetch()}>
+                Tentar de novo
+              </Button>
+            )}
+            <Button asChild size="sm" variant="outline">
+              <Link to="/admin/pagamentos/gateways">Cadastrar chaves</Link>
+            </Button>
+          </div>
+        </div>
+
         <div className="space-y-2">
           <label className="text-sm font-medium text-foreground">URL DO WEBHOOK</label>
           <div className="flex flex-wrap gap-2">
@@ -86,7 +117,8 @@ function PaymentsSettingsPage() {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            URL estável de produção (não muda se o projeto for renomeado). Cadastre esta no painel da Imperium Pay.
+            Usa o endereço do site configurado em Gateways (ou o endereço padrão da Lovable). Cadastre esta no painel da Imperium
+            Pay.
           </p>
           {previewUrl && previewUrl !== productionUrl ? (
             <div className="flex flex-wrap items-center gap-2 pt-1">
@@ -117,9 +149,8 @@ function PaymentsSettingsPage() {
         </div>
 
         <p className="text-xs text-muted-foreground">
-          Nesta etapa o webhook apenas registra os payloads recebidos para diagnóstico. Nenhum pedido é marcado como
-          pago, cancelado ou reembolsado, e nenhum evento de compra é enviado à Meta até mapearmos os status reais da
-          Imperium Pay.
+          Todo aviso recebido fica registrado em Webhooks. Um aviso só dispara a conferência do pagamento quando a
+          assinatura bate com o segredo do postback, e mesmo assim o pedido só vira pago depois da consulta à Imperium Pay.
         </p>
       </section>
     </div>

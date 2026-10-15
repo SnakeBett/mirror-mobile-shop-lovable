@@ -96,7 +96,9 @@ export const Route = createFileRoute("/api/public/webhooks/imperiumpay")({
         // Sem assinatura válida nada financeiro acontece; a confirmação segue pela consulta do checkout.
         try {
           const { imperiumpay } = await import("@/lib/gateways/imperiumpay.server");
-          const valid = await imperiumpay.verifyWebhook(request, raw);
+          const { resolveGatewayCredentials } = await import("@/lib/gateways/credential-store.server");
+          const creds = await resolveGatewayCredentials("imperiumpay");
+          const valid = await imperiumpay.verifyWebhook(request, raw, creds.values);
           if (!valid) return jsonResponse({ received: true, stored: true, verified: false, error: "Assinatura inválida ou ausente." }, 401);
           const obj = (payload ?? {}) as Record<string, unknown>;
           const inner = (obj["data"] ?? obj["sale"] ?? obj["transaction"] ?? obj) as Record<string, unknown>;

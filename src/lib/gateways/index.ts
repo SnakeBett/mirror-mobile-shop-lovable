@@ -1,7 +1,11 @@
 /**
  * Arquitetura modular de gateways Pix. Cada provedor implementa a mesma interface;
  * o checkout só consome a estrutura comum `PixCharge`. Só roda no servidor.
+ * As credenciais chegam como parâmetro (ver credential-store.server.ts): o adaptador
+ * não lê variável de ambiente.
  */
+import { credentialValueError, type CredentialField, type GatewayCredentials, type GatewayProvider } from "./credentials";
+
 export type InternalPaymentStatus =
   | "pending"
   | "processing"
@@ -45,21 +49,31 @@ export type CreatePixInput = {
 export type StatusResult = { status: InternalPaymentStatus; rawStatus: string | null; amountCents: number | null };
 
 export interface GatewayAdapter {
-  provider: string;
-  /** Lista de segredos exigidos (nomes, nunca valores). */
-  requiredSecrets: string[];
-  configured(): boolean;
-  createPixCharge(input: CreatePixInput): Promise<PixCharge>;
-  getPaymentStatus(transactionId: string): Promise<StatusResult>;
-  verifyWebhook(request: Request, rawBody: string): Promise<boolean>;
+  provider: GatewayProvider;
+  /** Campos de credencial do gateway (definição, nunca valores). */
+  fields: readonly CredentialField[];
+  configured(creds: GatewayCredentials): boolean;
+  createPixCharge(input: CreatePixInput, creds: GatewayCredentials): Promise<PixCharge>;
+  getPaymentStatus(transactionId: string, creds: GatewayCredentials): Promise<StatusResult>;
+  verifyWebhook(request: Request, rawBody: string, creds: GatewayCredentials): Promise<boolean>;
   normalizePaymentStatus(raw: string | null | undefined): InternalPaymentStatus;
-  testConnection(): Promise<{ ok: boolean; message: string }>;
+  testConnection(creds: GatewayCredentials): Promise<{ ok: boolean; message: string }>;
 }
 
 export class GatewayNotReadyError extends Error {
   constructor(provider: string) {
     super(`Gateway ${provider} não está configurado.`);
   }
+}
+
+/**
+ * Lê uma credencial para usar em cabeçalho HTTP. Valor ausente ou com caractere que
+ * o fetch recusaria vira "não configurado", e não um falso "sem resposta do gateway".
+ */
+export function requireCredential(provider: string, creds: GatewayCredentials, key: string): string {
+  const value = creds[key]?.trim();
+  if (!value || credentialValueError(value) !== null) throw new GatewayNotReadyError(provider);
+  return value;
 }
 
 /** Erro em que não sabemos se a cobrança foi criada (timeout, rede). Não repetir cegamente. */
@@ -97,7 +111,9 @@ export async function getGatewayAdapter(provider: string): Promise<GatewayAdapte
   return null;
 }
 
-export function webhookUrl(provider: string) {
-  const origin = process.env["PUBLIC_SITE_URL"] || "https://project--3e5c2a7c-afb9-4fe4-84a9-5af06a27398e.lovable.app";
+/** Endereço publicado do projeto na Lovable, usado quando nenhum outro foi configurado. */
+export const DEFAULT_SITE_ORIGIN = "https://project--3e5c2a7c-afb9-4fe4-84a9-5af06a27398e.lovable.app";
+
+export function webhookUrl(provider: string, origin: string = DEFAULT_SITE_ORIGIN) {
   return `${origin}/api/public/webhooks/${provider}`;
 }

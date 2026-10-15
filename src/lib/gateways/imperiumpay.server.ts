@@ -1,11 +1,11 @@
-import { fetchWithTimeout, gatewayErrorCode, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, type GatewayAdapter, type InternalPaymentStatus } from "./index";
+import { GATEWAY_FIELDS, isConfigured, type GatewayCredentials } from "./credentials";
+import { fetchWithTimeout, gatewayErrorCode, GatewayNotReadyError, GatewayRequestError, GatewayUnknownResultError, requireCredential, type GatewayAdapter, type InternalPaymentStatus } from "./index";
 
 const BASE = "https://api.imperiumpay.com.br";
 
-function headers() {
-  const pub = process.env["IMPERIUMPAY_PUBLIC_KEY"];
-  const priv = process.env["IMPERIUMPAY_PRIVATE_KEY"];
-  if (!pub || !priv) throw new GatewayNotReadyError("imperiumpay");
+function headers(creds: GatewayCredentials) {
+  const pub = requireCredential("imperiumpay", creds, "public_key");
+  const priv = requireCredential("imperiumpay", creds, "private_key");
   return { "X-Api-Public-Key": pub, "X-Api-Private-Key": priv, "Content-Type": "application/json" };
 }
 
@@ -48,11 +48,11 @@ function safeEqual(a: string, b: string) {
 
 export const imperiumpay: GatewayAdapter = {
   provider: "imperiumpay",
-  requiredSecrets: ["IMPERIUMPAY_PUBLIC_KEY", "IMPERIUMPAY_PRIVATE_KEY"],
-  configured: () => !!process.env["IMPERIUMPAY_PUBLIC_KEY"] && !!process.env["IMPERIUMPAY_PRIVATE_KEY"],
+  fields: GATEWAY_FIELDS.imperiumpay,
+  configured: (creds) => isConfigured("imperiumpay", creds),
   normalizePaymentStatus: normalize,
 
-  async createPixCharge(input) {
+  async createPixCharge(input, creds) {
     // A documentação não traz campo oficial de frete; não inventamos item "Frete".
     if (input.shipping_cents > 0) throw new GatewayRequestError("ImperiumPay: frete pago não suportado pela documentação recebida; cobrança não criada.");
     const itemsSum = input.items.reduce((s, i) => s + i.unit_price_cents * i.quantity, 0);
@@ -78,7 +78,7 @@ export const imperiumpay: GatewayAdapter = {
     const createdAt = new Date();
     let res: Response;
     try {
-      res = await fetchWithTimeout(`${BASE}/api/sales`, { method: "POST", headers: headers(), body: JSON.stringify(body) });
+      res = await fetchWithTimeout(`${BASE}/api/sales`, { method: "POST", headers: headers(creds), body: JSON.stringify(body) });
     } catch (e) {
       if (e instanceof GatewayNotReadyError) throw e;
       throw new GatewayUnknownResultError("Sem resposta da ImperiumPay.");
@@ -106,8 +106,8 @@ export const imperiumpay: GatewayAdapter = {
     };
   },
 
-  async getPaymentStatus(id) {
-    const res = await fetchWithTimeout(`${BASE}/api/transactions/${encodeURIComponent(id)}`, { headers: headers() });
+  async getPaymentStatus(id, creds) {
+    const res = await fetchWithTimeout(`${BASE}/api/transactions/${encodeURIComponent(id)}`, { headers: headers(creds) });
     if (!res.ok) throw new GatewayRequestError(`Consulta ImperiumPay falhou (HTTP ${res.status}).`, res.status);
     const tx = unwrap(((await res.json().catch(() => ({}))) as Record<string, unknown>));
     const raw = (tx["status"] as string) ?? null;
@@ -115,8 +115,8 @@ export const imperiumpay: GatewayAdapter = {
     return { status: normalize(raw), rawStatus: raw, amountCents: Number.isFinite(amt) && amt > 0 ? amt : null };
   },
 
-  async verifyWebhook(request, rawBody) {
-    const secret = process.env["IMPERIUMPAY_POSTBACK_SECRET"];
+  async verifyWebhook(request, rawBody, creds) {
+    const secret = creds["postback_secret"]?.trim();
     const sig = request.headers.get("x-signature")?.trim().replace(/^sha256=/i, "");
     if (!secret || !sig) return false;
     const candidates = [rawBody];
@@ -128,9 +128,9 @@ export const imperiumpay: GatewayAdapter = {
     return false;
   },
 
-  async testConnection() {
+  async testConnection(creds) {
     try {
-      const res = await fetchWithTimeout(`${BASE}/api/transactions/teste-conexao`, { headers: headers() });
+      const res = await fetchWithTimeout(`${BASE}/api/transactions/teste-conexao`, { headers: headers(creds) });
       if (res.status === 401 || res.status === 403) return { ok: false, message: "Chaves recusadas pela ImperiumPay." };
       return { ok: true, message: `ImperiumPay respondeu (HTTP ${res.status}) e aceitou a autenticação.` };
     } catch (e) {

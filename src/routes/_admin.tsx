@@ -195,8 +195,9 @@ function AdminLayout() {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between gap-2 border-b border-border bg-background px-4 py-3 md:hidden">
-          <span className="text-sm font-semibold">Vitrine Admin</span>
-          <div className="flex gap-1">
+          <span className="shrink-0 text-sm font-semibold">Vitrine Admin</span>
+          {/* No celular a faixa de links rola de lado, sem alargar a página. */}
+          <div className="flex min-w-0 gap-1 overflow-x-auto whitespace-nowrap">
             <Link to="/admin" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Início</Link>
             <Link to="/admin/produtos" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Produtos</Link>
             <Link to="/admin/vendas" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Vendas</Link>
@@ -205,6 +206,7 @@ function AdminLayout() {
             <Link to="/admin/configuracoes/geral" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Config</Link>
             <Link to="/admin/lojas" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Loja</Link>
             <Link to="/admin/configuracoes/tracking" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Tracking</Link>
+            <Link to="/admin/pagamentos/gateways" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Gateways</Link>
             <Link to="/admin/importar" className="rounded-md px-2 py-1 text-sm text-muted-foreground">Importar</Link>
             <Button variant="ghost" size="sm" onClick={openStore}>Loja</Button>
             <Button variant="ghost" size="sm" onClick={signOut}>Sair</Button>
