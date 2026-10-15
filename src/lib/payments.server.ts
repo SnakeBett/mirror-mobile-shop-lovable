@@ -115,6 +115,14 @@ export async function reconcileAttempt(attemptId: string, opts: { minIntervalMs?
     status = a.status;
     error = `Valor divergente: gateway ${result.amountCents} x pedido ${a.amount_cents}. Revisão manual.`;
   }
+  if (status === "paid") {
+    // Uma cobrança só aprova o pedido se o valor dela for exatamente o valor do pedido.
+    const { data: ord } = await sb.from("orders").select("amount").eq("id", a.order_id).maybeSingle();
+    if (!ord || Math.round(Number(ord.amount) * 100) !== a.amount_cents) {
+      status = a.status;
+      error = `Cobrança de ${a.amount_cents} centavos não corresponde ao valor atual do pedido. Revisão manual.`;
+    }
+  }
   const now = new Date().toISOString();
   const { data: updated } = await sb.from("payment_attempts").update({
     status, raw_status: result.rawStatus, error_message: error, updated_at: now, ...(status === "paid" && !a.paid_at ? { paid_at: now } : {}),
