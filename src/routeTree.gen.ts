@@ -36,6 +36,7 @@ import { Route as AdminAdminPagamentosWebhooksRouteImport } from './routes/_admi
 import { Route as AdminAdminProdutosIndexRouteImport } from './routes/_admin.admin.produtos.index'
 import { Route as AdminAdminProdutosIdRouteImport } from './routes/_admin.admin.produtos.$id'
 import { Route as AdminAdminProdutosNovoRouteImport } from './routes/_admin.admin.produtos.novo'
+import { Route as ApiPublicHooksReconcilePixRouteImport } from './routes/api/public/hooks/reconcile-pix'
 import { Route as ApiPublicWebhooksImperiumpayRouteImport } from './routes/api/public/webhooks/imperiumpay'
 import { Route as ApiPublicWebhooksPagamentoRouteImport } from './routes/api/public/webhooks/pagamento'
 import { Route as ApiPublicWebhooksZuckpayRouteImport } from './routes/api/public/webhooks/zuckpay'
@@ -183,6 +184,12 @@ const AdminAdminProdutosNovoRoute = AdminAdminProdutosNovoRouteImport.update({
   path: '/admin/produtos/novo',
   getParentRoute: () => AdminRoute,
 } as any)
+const ApiPublicHooksReconcilePixRoute =
+  ApiPublicHooksReconcilePixRouteImport.update({
+    id: '/api/public/hooks/reconcile-pix',
+    path: '/api/public/hooks/reconcile-pix',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksImperiumpayRoute =
   ApiPublicWebhooksImperiumpayRouteImport.update({
     id: '/api/public/webhooks/imperiumpay',
@@ -228,6 +235,7 @@ export interface FileRoutesByFullPath {
   '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/hooks/reconcile-pix': typeof ApiPublicHooksReconcilePixRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/api/public/webhooks/zuckpay': typeof ApiPublicWebhooksZuckpayRoute
@@ -259,6 +267,7 @@ export interface FileRoutesByTo {
   '/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/hooks/reconcile-pix': typeof ApiPublicHooksReconcilePixRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/api/public/webhooks/zuckpay': typeof ApiPublicWebhooksZuckpayRoute
@@ -292,6 +301,7 @@ export interface FileRoutesById {
   '/_admin/admin/pagamentos/webhooks': typeof AdminAdminPagamentosWebhooksRoute
   '/_admin/admin/produtos/$id': typeof AdminAdminProdutosIdRoute
   '/_admin/admin/produtos/novo': typeof AdminAdminProdutosNovoRoute
+  '/api/public/hooks/reconcile-pix': typeof ApiPublicHooksReconcilePixRoute
   '/api/public/webhooks/imperiumpay': typeof ApiPublicWebhooksImperiumpayRoute
   '/api/public/webhooks/pagamento': typeof ApiPublicWebhooksPagamentoRoute
   '/api/public/webhooks/zuckpay': typeof ApiPublicWebhooksZuckpayRoute
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/admin/pagamentos/webhooks'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/public/hooks/reconcile-pix'
     | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
     | '/api/public/webhooks/zuckpay'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/admin/pagamentos/webhooks'
     | '/admin/produtos/$id'
     | '/admin/produtos/novo'
+    | '/api/public/hooks/reconcile-pix'
     | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
     | '/api/public/webhooks/zuckpay'
@@ -388,6 +400,7 @@ export interface FileRouteTypes {
     | '/_admin/admin/pagamentos/webhooks'
     | '/_admin/admin/produtos/$id'
     | '/_admin/admin/produtos/novo'
+    | '/api/public/hooks/reconcile-pix'
     | '/api/public/webhooks/imperiumpay'
     | '/api/public/webhooks/pagamento'
     | '/api/public/webhooks/zuckpay'
@@ -402,6 +415,7 @@ export interface RootRouteChildren {
   ProdutoSlugRoute: typeof ProdutoSlugRoute
   ApiPublicMetaEventRoute: typeof ApiPublicMetaEventRoute
   ApiPublicTrackRoute: typeof ApiPublicTrackRoute
+  ApiPublicHooksReconcilePixRoute: typeof ApiPublicHooksReconcilePixRoute
   ApiPublicWebhooksImperiumpayRoute: typeof ApiPublicWebhooksImperiumpayRoute
   ApiPublicWebhooksPagamentoRoute: typeof ApiPublicWebhooksPagamentoRoute
   ApiPublicWebhooksZuckpayRoute: typeof ApiPublicWebhooksZuckpayRoute
@@ -598,6 +612,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminAdminProdutosNovoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/api/public/hooks/reconcile-pix': {
+      id: '/api/public/hooks/reconcile-pix'
+      path: '/api/public/hooks/reconcile-pix'
+      fullPath: '/api/public/hooks/reconcile-pix'
+      preLoaderRoute: typeof ApiPublicHooksReconcilePixRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/imperiumpay': {
       id: '/api/public/webhooks/imperiumpay'
       path: '/api/public/webhooks/imperiumpay'
@@ -689,6 +710,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProdutoSlugRoute: ProdutoSlugRoute,
   ApiPublicMetaEventRoute: ApiPublicMetaEventRoute,
   ApiPublicTrackRoute: ApiPublicTrackRoute,
+  ApiPublicHooksReconcilePixRoute: ApiPublicHooksReconcilePixRoute,
   ApiPublicWebhooksImperiumpayRoute: ApiPublicWebhooksImperiumpayRoute,
   ApiPublicWebhooksPagamentoRoute: ApiPublicWebhooksPagamentoRoute,
   ApiPublicWebhooksZuckpayRoute: ApiPublicWebhooksZuckpayRoute,
