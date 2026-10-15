@@ -43,6 +43,13 @@
       "when": 1792029587294,
       "tag": "0005_product_type_and_attempt_checks",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792031689199,
+      "tag": "0006_shipping_methods",
+      "breakpoints": true
     }
   ]
 }
