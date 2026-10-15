@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Check, Clock, CreditCard, Lock, MapPin, ShieldCheck, Store, Ticket, User, X } from "lucide-react";
+import { ArrowLeft, Check, Clock, CreditCard, Lock, MapPin, ShieldCheck, Ticket, User, X } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
 import { getPublicProduct } from "@/lib/public-product.functions";
@@ -248,7 +248,6 @@ function CheckoutPage() {
   };
 
   const p = product.data;
-  const store = p?.store ?? null;
   const qty = quote?.quantity ?? sameCtx?.quantity ?? 1;
   const unitLines =
     p && sameCtx?.units?.length
