@@ -254,7 +254,7 @@ function CheckoutPage() {
   const addressComplete = isCompleteAddress(form) && cepStatus !== "Buscando endereço...";
   const addressKey = [form.cep, form.street, form.number, form.district, form.city, form.state].join("|");
   useEffect(() => {
-    if (!slug || quote?.digital) return;
+    if (!slug || !quote || quote.digital) return;
     setShippingId(null);
     try { sessionStorage.removeItem(`vt_checkout_shipping:${slug}`); } catch { /* bloqueado */ }
     // Métodos atuais têm preço fixo, sem cobertura por CEP. Reconsultar também
