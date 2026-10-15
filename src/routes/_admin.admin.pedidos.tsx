@@ -95,6 +95,7 @@ function OrdersPage() {
               <th className="px-3 py-2 font-medium">ID do pedido</th>
               <th className="px-3 py-2 font-medium">Valor</th>
               <th className="px-3 py-2 font-medium">Status</th>
+              <th className="px-3 py-2 font-medium">Cliente / Entrega</th>
               <th className="px-3 py-2 font-medium">Pagamento</th>
             </tr>
           </thead>
@@ -104,23 +105,44 @@ function OrdersPage() {
                 <td className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground">
                   {new Date(order.created_at).toLocaleString("pt-BR")}
                 </td>
-                <td className="max-w-56 truncate px-3 py-2">{order.product_name ?? "—"}</td>
+                <td className="max-w-56 px-3 py-2">
+                  <p className="truncate">{order.product_name ?? "—"}</p>
+                  {order.metadata && (
+                    <p className="text-xs text-muted-foreground">
+                      Qtd. {order.metadata.quantity ?? 1}{order.metadata.kit_name ? ` · ${order.metadata.kit_name}` : ""}
+                      {order.metadata.variant_labels?.length ? ` · ${order.metadata.variant_labels.join("; ")}` : ""}
+                    </p>
+                  )}
+                </td>
                 <td className="px-3 py-2 font-mono text-xs">
                   {order.external_order_id}
                   {order.is_test && <span className="ml-2 rounded bg-muted px-1 text-[10px]">teste</span>}
                 </td>
-                <td className="whitespace-nowrap px-3 py-2">{currencyBRL.format(order.amount)}</td>
+                <td className="whitespace-nowrap px-3 py-2">
+                  {currencyBRL.format(order.amount)}
+                  {order.shipping_amount != null && <p className="text-xs text-muted-foreground">Frete {Number(order.shipping_amount) > 0 ? currencyBRL.format(Number(order.shipping_amount)) : "grátis"}</p>}
+                  {Number(order.coupon_discount ?? 0) > 0 && <p className="text-xs text-muted-foreground">Desc. -{currencyBRL.format(Number(order.coupon_discount))}</p>}
+                </td>
                 <td className="px-3 py-2">
                   <span className={`rounded px-2 py-0.5 text-xs ${STATUS_STYLES[order.status]}`}>
                     {ORDER_STATUS_LABELS[order.status]}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-xs text-muted-foreground">{order.payment_method ?? "—"}</td>
+                <td className="max-w-64 px-3 py-2 text-xs">
+                  <p>{order.customer_name ?? "—"}</p>
+                  {order.shipping_address && (
+                    <p className="text-muted-foreground">
+                      {order.shipping_address.street}, {order.shipping_address.number}{order.shipping_address.complement ? ` - ${order.shipping_address.complement}` : ""} · {order.shipping_address.district} · {order.shipping_address.city}/{order.shipping_address.state} · CEP {order.shipping_address.cep}
+                    </p>
+                  )}
+                  {order.shipping_method_name && <p className="text-muted-foreground">Entrega: {order.shipping_method_name}</p>}
+                </td>
+                <td className="px-3 py-2 text-xs text-muted-foreground">{order.gateway_name ?? order.payment_method ?? "—"}</td>
               </tr>
             ))}
             {orders.data?.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-6 text-center text-sm text-muted-foreground">
+                <td colSpan={7} className="px-3 py-6 text-center text-sm text-muted-foreground">
                   Nenhum pedido encontrado.
                 </td>
               </tr>

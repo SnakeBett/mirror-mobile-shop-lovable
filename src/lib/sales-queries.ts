@@ -191,8 +191,8 @@ export async function listOrders(filters: OrderFilters = {}): Promise<OrderListI
   if (error) throw error;
 
   return (data ?? []).map((row) => {
-    const { products, ...order } = row as OrderRow & { products: { name: string } | null };
-    return { ...order, amount: Number(order.amount), product_name: products?.name ?? null };
+    const { products, payment_gateways, ...order } = row as unknown as OrderRow & { products: { name: string } | null; payment_gateways: { name: string } | null };
+    return { ...order, amount: Number(order.amount), product_name: products?.name ?? null, gateway_name: payment_gateways?.name ?? null };
   });
 }
 
