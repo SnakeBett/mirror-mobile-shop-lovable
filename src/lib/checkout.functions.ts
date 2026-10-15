@@ -249,6 +249,11 @@ export const createPendingOrder = createServerFn({ method: "POST" })
       console.error("checkout_create_order", msg);
       return { ok: false, error: "Não foi possível criar o pedido. Tente novamente." };
     }
+    // Mesma chave reaproveitada depois de mudar frete/cupom: o pedido já gravado tem outro valor.
+    const { data: saved } = await db.from("orders").select("amount").eq("id", orderId as string).maybeSingle();
+    if (!saved || Math.round(Number(saved.amount) * 100) !== Math.round(quote.total * 100)) {
+      return { ok: false, error: "O total do pedido mudou. Toque novamente para gerar o Pix com o valor atualizado.", reset: true };
+    }
     if (shippingMethod) {
       await db.rpc("checkout_set_order_shipping", { _order_id: orderId as string, _method_id: shippingMethod.id, _method_name: shippingMethod.name });
     }
