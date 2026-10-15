@@ -138,14 +138,11 @@ function CheckoutPage() {
     [slug, sameCtx],
   );
 
-  const [form, setForm] = useState<Form>(EMPTY);
-  const formLoaded = useRef(false);
+  // Página sem SSR: dá para ler o rascunho direto na inicialização.
+  const [form, setForm] = useState<Form>(() => {
+    try { return { ...EMPTY, ...JSON.parse(sessionStorage.getItem(FORM_KEY) ?? "{}") }; } catch { return EMPTY; }
+  });
   useEffect(() => {
-    try { setForm({ ...EMPTY, ...JSON.parse(sessionStorage.getItem(FORM_KEY) ?? "{}") }); } catch { /* vazio */ }
-    formLoaded.current = true;
-  }, []);
-  useEffect(() => {
-    if (!formLoaded.current) return;
     try { sessionStorage.setItem(FORM_KEY, JSON.stringify(form)); } catch { /* bloqueado */ }
   }, [form]);
   const set = (k: keyof Form, v: string) => setForm((f) => ({ ...f, [k]: v }));
