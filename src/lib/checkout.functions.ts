@@ -147,16 +147,21 @@ async function computeQuote(input: QuoteInput) {
   return { quote, product, coupon_id, kit, units, attributes, shippingMethod };
 }
 
+// Hospedagem fora do Lovable (ex.: Vercel) sem a chave de servidor do banco: o checkout não consegue ler cupons/fretes nem criar pedidos.
+const CONFIG_ERROR = "Checkout indisponível neste endereço do site: a configuração do servidor está incompleta. Use o site principal da loja.";
+const isConfigError = (msg: string) => /Missing Supabase environment variable/i.test(msg);
+
 export const getCheckoutQuote = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => quoteSchema.parse(data))
-  .handler(async ({ data }): Promise<{ ok: true; quote: CheckoutQuote } | { ok: false; error: string }> => {
+  .handler(async ({ data }): Promise<{ ok: true; quote: CheckoutQuote } | { ok: false; error: string; code?: string }> => {
     try {
       return { ok: true, quote: (await computeQuote(data)).quote };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("checkout quote", data.slug, msg);
+      if (isConfigError(msg)) return { ok: false, error: CONFIG_ERROR, code: "server_config" };
       const known = /disponível|oferta escolhida|entrega/i.test(msg);
-      return { ok: false, error: known ? msg : "Não foi possível calcular o pedido agora. Tente novamente em instantes." };
+      return { ok: false, error: known ? msg : "Não foi possível calcular o pedido agora. Tente novamente em instantes.", code: known ? "known" : "unexpected" };
     }
   });
 
@@ -189,7 +194,11 @@ export const createPendingOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<CreateOrderResult> => {
     let computed: Awaited<ReturnType<typeof computeQuote>>;
     try { computed = await computeQuote({ ...data, buyer_cpf: data.buyer.cpf }); }
-    catch (e) { return { ok: false, error: e instanceof Error ? e.message : "Não foi possível calcular o pedido." }; }
+    catch (e) {
+      const msg = e instanceof Error ? e.message : "";
+      console.error("checkout order quote", data.slug, msg);
+      return { ok: false, error: isConfigError(msg) ? CONFIG_ERROR : msg || "Não foi possível calcular o pedido." };
+    }
     const { quote, product, coupon_id, kit, units, attributes, shippingMethod } = computed;
     if (quote.selection_error) return { ok: false, error: quote.selection_error };
     if (!quote.digital && quote.shipping_error) return { ok: false, error: quote.shipping_error };
