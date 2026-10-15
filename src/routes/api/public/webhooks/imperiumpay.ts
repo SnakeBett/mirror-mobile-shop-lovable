@@ -97,7 +97,7 @@ export const Route = createFileRoute("/api/public/webhooks/imperiumpay")({
         try {
           const { imperiumpay } = await import("@/lib/gateways/imperiumpay.server");
           const valid = await imperiumpay.verifyWebhook(request, raw);
-          if (!valid) return jsonResponse({ received: true, stored: true, verified: false }, 200);
+          if (!valid) return jsonResponse({ received: true, stored: true, verified: false, error: "Assinatura inválida ou ausente." }, 401);
           const obj = (payload ?? {}) as Record<string, unknown>;
           const inner = (obj["data"] ?? obj["sale"] ?? obj["transaction"] ?? obj) as Record<string, unknown>;
           const txId = String(inner["id"] ?? obj["id"] ?? "");
