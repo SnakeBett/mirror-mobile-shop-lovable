@@ -487,6 +487,7 @@ export type Database = {
       payment_attempts: {
         Row: {
           amount_cents: number
+          check_count: number
           created_at: string
           error_message: string | null
           expires_at: string | null
@@ -505,6 +506,7 @@ export type Database = {
         }
         Insert: {
           amount_cents: number
+          check_count?: number
           created_at?: string
           error_message?: string | null
           expires_at?: string | null
@@ -523,6 +525,7 @@ export type Database = {
         }
         Update: {
           amount_cents?: number
+          check_count?: number
           created_at?: string
           error_message?: string | null
           expires_at?: string | null
@@ -1256,6 +1259,7 @@ export type Database = {
           meta_pixel_id: string | null
           name: string
           old_price: number | null
+          product_type: string
           rating: number | null
           review_count: number | null
           sales_count: string | null
@@ -1301,6 +1305,7 @@ export type Database = {
           meta_pixel_id?: string | null
           name: string
           old_price?: number | null
+          product_type?: string
           rating?: number | null
           review_count?: number | null
           sales_count?: string | null
@@ -1346,6 +1351,7 @@ export type Database = {
           meta_pixel_id?: string | null
           name?: string
           old_price?: number | null
+          product_type?: string
           rating?: number | null
           review_count?: number | null
           sales_count?: string | null

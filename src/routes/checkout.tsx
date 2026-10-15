@@ -48,13 +48,14 @@ function readContext(): CheckoutContext | null {
   }
 }
 
-function validate(f: Form): Partial<Record<keyof Form, string>> {
+function validate(f: Form, digital = false): Partial<Record<keyof Form, string>> {
   const e: Partial<Record<keyof Form, string>> = {};
   if (f.name.trim().split(/\s+/).length < 2) e.name = "Informe nome e sobrenome.";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) e.email = "E-mail inválido.";
   if (!isValidCpf(f.cpf)) e.cpf = "CPF inválido.";
   const p = onlyDigits(f.phone).length;
   if (p < 10 || p > 11) e.phone = "WhatsApp inválido.";
+  if (digital) return e;
   if (onlyDigits(f.cep).length !== 8) e.cep = "CEP inválido.";
   if (f.street.trim().length < 2) e.street = "Informe a rua.";
   if (!f.number.trim()) e.number = "Informe o número.";
@@ -248,7 +249,7 @@ function CheckoutPage() {
 
   const submit = async () => {
     if (submitting) return;
-    const e = validate(form);
+    const e = validate(form, quote?.digital);
     setErrors(e);
     if (Object.keys(e).length) {
       setSubmitError("Confira os campos destacados.");
@@ -267,7 +268,7 @@ function CheckoutPage() {
           coupon_code: couponCode,
           idempotency_key: idemKey.current,
           buyer: { name: form.name, email: form.email, cpf: form.cpf, phone: form.phone },
-          address: { cep: form.cep, street: form.street, number: form.number, complement: form.complement, district: form.district, city: form.city, state: form.state },
+          address: quote?.digital ? null : { cep: form.cep, street: form.street, number: form.number, complement: form.complement, district: form.district, city: form.city, state: form.state },
           tracking: {
             visitor_id: t.visitor_id, session_id: t.session_id,
             utm_source: t.last.utm_source ?? null, utm_medium: t.last.utm_medium ?? null, utm_campaign: t.last.utm_campaign ?? null,
@@ -409,6 +410,7 @@ function CheckoutPage() {
               </div>
             </Card>
 
+            {!quote?.digital && (
             <Card title="Endereço de entrega" icon={<MapPin className="size-4" />}>
               <div className="grid grid-cols-6 gap-2">
                 <Input className="col-span-3" label="CEP" inputMode="numeric" autoComplete="postal-code" value={form.cep} error={errors.cep} onChange={(e) => { const v = maskCep(e.target.value); set("cep", v); lookupCep(v); }} />
@@ -421,6 +423,7 @@ function CheckoutPage() {
                 <Input className="col-span-2" label="Estado" maxLength={2} value={form.state} error={errors.state} onChange={(e) => set("state", e.target.value.toUpperCase())} />
               </div>
             </Card>
+            )}
 
             {summary}
 

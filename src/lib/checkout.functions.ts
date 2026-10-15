@@ -27,6 +27,7 @@ export type CheckoutQuote = {
   coupon_error: string | null;
   total: number;
   selection_error: string | null;
+  digital: boolean;
 };
 
 const round = (n: number) => Math.round(n * 100) / 100;
@@ -114,6 +115,7 @@ async function computeQuote(input: QuoteInput) {
     coupon_error,
     total,
     selection_error,
+    digital: product.product_type === "digital",
   };
   return { quote, product, coupon_id, kit, units, attributes };
 }
@@ -138,7 +140,7 @@ const orderSchema = quoteSchema.extend({
     district: z.string().trim().min(2).max(80),
     city: z.string().trim().min(2).max(80),
     state: z.string().trim().length(2),
-  }),
+  }).nullable(),
   tracking: z.record(z.string(), z.string().max(400).nullable()).optional(),
 });
 
@@ -152,6 +154,8 @@ export const createPendingOrder = createServerFn({ method: "POST" })
     const { quote, product, coupon_id, kit, units, attributes } = await computeQuote({ ...data, buyer_cpf: data.buyer.cpf });
     if (quote.selection_error) return { ok: false, error: quote.selection_error };
     if (data.coupon_code && quote.coupon_error) return { ok: false, error: quote.coupon_error };
+    if (!quote.digital && !data.address) return { ok: false, error: "Informe o endereço de entrega." };
+    const addr = quote.digital ? null : data.address;
     const { supabaseAdmin: db } = await import("@/integrations/supabase/client.server");
 
     // Gateway: o do produto, senão o padrão ativo. Fica gravado no pedido.
@@ -181,7 +185,7 @@ export const createPendingOrder = createServerFn({ method: "POST" })
         customer_email: data.buyer.email.toLowerCase(),
         customer_phone: onlyDigits(data.buyer.phone),
         gateway_id: gateway?.id ?? "",
-        shipping_address: { ...data.address, cep: onlyDigits(data.address.cep), state: data.address.state.toUpperCase() },
+        shipping_address: addr ? { ...addr, cep: onlyDigits(addr.cep), state: addr.state.toUpperCase() } : null,
         metadata: { kit_id: kit?.id ?? null, kit_name: kit?.name ?? null, quantity: quote.quantity, units, variant_labels: labels, product_discount: quote.product_discount, utm_id: t["utm_id"] ?? null, fbclid: t["fbclid"] ?? null },
         visitor_id: t["visitor_id"] ?? null,
         session_id: t["session_id"] ?? null,
@@ -215,11 +219,9 @@ export const createPendingOrder = createServerFn({ method: "POST" })
           amount_cents: totalCents,
           customer: { name: data.buyer.name, email: data.buyer.email.toLowerCase(), cpf, phone: onlyDigits(data.buyer.phone) },
           description: `Pedido ${String(orderId).slice(0, 8).toUpperCase()}`,
-          items: [
-            { id: product.id, title, unit_price_cents: totalCents - shipCents, quantity: 1, tangible: true },
-            ...(shipCents > 0 ? [{ id: "frete", title: "Frete", unit_price_cents: shipCents, quantity: 1, tangible: false }] : []),
-          ],
-          shipping: { street: data.address.street, number: data.address.number, complement: data.address.complement, cep: onlyDigits(data.address.cep), district: data.address.district, city: data.address.city, state: data.address.state.toUpperCase() },
+          shipping_cents: shipCents,
+          items: [{ id: product.id, title, unit_price_cents: totalCents - shipCents, quantity: 1, tangible: !quote.digital }],
+          shipping: addr ? { street: addr.street, number: addr.number, complement: addr.complement, cep: onlyDigits(addr.cep), district: addr.district, city: addr.city, state: addr.state.toUpperCase() } : null,
           tracking: Object.fromEntries(Object.entries(t).filter(([, v]) => typeof v === "string" && v)) as Record<string, string>,
         }))
       : ({ ok: false, error: "Total inválido para Pix." } as const);

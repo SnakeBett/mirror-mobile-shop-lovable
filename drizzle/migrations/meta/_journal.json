@@ -36,6 +36,13 @@
       "when": 1792028631829,
       "tag": "0004_payment_attempts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792029587294,
+      "tag": "0005_product_type_and_attempt_checks",
+      "breakpoints": true
     }
   ]
 }

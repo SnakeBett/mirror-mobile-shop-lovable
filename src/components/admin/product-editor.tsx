@@ -568,6 +568,12 @@ export function ProductEditor({ productId }: { productId?: string }) {
               <Label htmlFor="bizdays">Contar apenas dias úteis</Label>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
+              <Field label="Tipo de produto" id="ptype">
+                <select id="ptype" value={draft.product_type ?? "physical"} onChange={(e) => set("product_type", e.target.value)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="physical">Produto físico (pede endereço)</option>
+                  <option value="digital">Produto digital (sem endereço)</option>
+                </select>
+              </Field>
               <Field label="Taxa de envio" id="fee">
                 <Input id="fee" value={draft.shipping_fee ?? ""} onChange={(e) => set("shipping_fee", e.target.value)} />
               </Field>

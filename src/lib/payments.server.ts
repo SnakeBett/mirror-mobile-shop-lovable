@@ -97,7 +97,7 @@ export async function reconcileAttempt(attemptId: string, opts: { minIntervalMs?
   if (!a.provider_transaction_id || !["pending", "processing", "med"].includes(a.status)) return toPublic(a);
   const minGap = opts.minIntervalMs ?? 5000;
   if (a.last_checked_at && Date.now() - new Date(a.last_checked_at).getTime() < minGap) return toPublic(a);
-  await sb.from("payment_attempts").update({ last_checked_at: new Date().toISOString() }).eq("id", a.id);
+  await sb.from("payment_attempts").update({ last_checked_at: new Date().toISOString(), check_count: (a.check_count ?? 0) + 1 }).eq("id", a.id);
 
   const adapter = await getGatewayAdapter(a.provider);
   if (!adapter?.configured()) return toPublic(a);
@@ -143,4 +143,28 @@ export async function getPublicAttempt(attemptId: string) {
   const sb = await db();
   const { data } = await sb.from("payment_attempts").select("*").eq("id", attemptId).maybeSingle();
   return data ? toPublic(data) : null;
+}
+
+export const MAX_CHECKS = 500;
+export const MAX_AGE_HOURS = 48;
+
+/**
+ * Conciliação em lote (rotina agendada): só tentativas abertas, recentes e
+ * abaixo do limite de consultas. Funciona com o navegador fechado e
+ * convive com postbacks — tudo passa pelo mesmo reconcileAttempt idempotente.
+ */
+export async function reconcilePendingAttempts(limit = 25) {
+  const sb = await db();
+  const since = new Date(Date.now() - MAX_AGE_HOURS * 3600_000).toISOString();
+  const { data } = await sb.from("payment_attempts").select("id")
+    .in("status", ["pending", "processing", "med"]).not("provider_transaction_id", "is", null)
+    .gte("created_at", since).lt("check_count", MAX_CHECKS)
+    .order("last_checked_at", { ascending: true, nullsFirst: true }).limit(limit);
+  const results: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const r = await reconcileAttempt(row.id, { minIntervalMs: 60_000 });
+    const k = r?.status ?? "missing";
+    results[k] = (results[k] ?? 0) + 1;
+  }
+  return { checked: data?.length ?? 0, results };
 }
